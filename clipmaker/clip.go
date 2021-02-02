@@ -29,11 +29,13 @@ func NewClip(clipData, folder string) (clip, error) {
 	if err != nil {
 		return c, err
 	}
-	c.clipStart = prmTime2Seconds(timestamps[2])
-	c.clipDuration = prmTime2Seconds(timestamps[3])
-	c.seqPosStartTimeCode = timestamps[0]
-	c.seqPosEndTimeCode = timestamps[1]
+	c.index = parseFileIndex(clipData)
+	c.clipStart = prmTime2Seconds(timestamps[0])
+	c.clipDuration = prmTime2Seconds(timestamps[1]) - c.clipStart
+	c.seqPosStartTimeCode = timestamps[2]
+	c.seqPosEndTimeCode = timestamps[3]
 	c.sourceFileName = parseFileName(clipData)
+	c.sourceFileType = extention(c.sourceFileName)
 	c.sourceFileFolder = folder
 	return c, nil
 }
@@ -94,6 +96,13 @@ func parseFileName(clipData string) string {
 	return ""
 }
 
+func parseFileIndex(clipData string) int {
+	rawData := strings.Split(clipData, " ")
+	index, err := strconv.Atoi(rawData[0])
+	fmt.Println(err)
+	return index
+}
+
 func containsAny(s string, subs ...string) bool {
 	for _, sub := range subs {
 		if strings.Contains(s, sub) {
@@ -110,6 +119,7 @@ func shortName(fileName string) string {
 
 func extention(fileName string) string {
 	p := strings.Split(fileName, ".")
+	fmt.Println("func extention(fileName string) string {", p)
 	return "." + p[len(p)-1]
 }
 
@@ -120,12 +130,39 @@ func validFileExtetions() []string {
 	}
 }
 
+func indexStr(i int) string {
+	s := strconv.Itoa(i)
+	if i < 100 {
+		s = "0" + s
+	}
+	if i < 10 {
+		s = "0" + s
+	}
+	return s
+}
+
 func Create(cl clip) {
 	program := "ffmpeg"
+	argums := formArgs(cl)
+	fmt.Println(argums)
+	cli.RunConsole(program, argums...)
+	//"ffmpeg", "-i", file, "-map", "0:0", "-vcodec", "copy", "-an", "-t", premToFF(timeLen), "-ss", premToFF(timeStart), outputFile
+}
+
+func formArgs(cl clip) []string {
+	var argums []string
+	//sdfsdf
 	ssStamp := strconv.FormatFloat(cl.clipStart, 'f', 3, 64)
 	tStamp := strconv.FormatFloat(cl.clipDuration, 'f', 3, 64)
-	args := []string{"-i", cl.sourceFileFolder + cl.sourceFileName, "-an", "-map", "0:0", "-vcodec", "copy", "-ss", ssStamp, "-t", tStamp,
-		shortName(cl.sourceFileName) + extention(cl.sourceFileName)}
-	cli.RunConsole(program, args...)
-	//"ffmpeg", "-i", file, "-map", "0:0", "-vcodec", "copy", "-an", "-t", premToFF(timeLen), "-ss", premToFF(timeStart), outputFile
+	switch cl.sourceFileType {
+	case ".mp4":
+		argums = []string{"-i", cl.sourceFileFolder + cl.sourceFileName, "-an", "-map", "0:0", "-vcodec", "copy", "-ss", ssStamp, "-t", tStamp, "e:\\_OUT\\slicerOUT\\" + shortName(cl.sourceFileName) + "__OUT_" + indexStr(cl.index) + extention(cl.sourceFileName)}
+	case ".m4a":
+		argums = []string{"-i", cl.sourceFileFolder + cl.sourceFileName, "-vn", "-acodec", "copy", "-ss", ssStamp, "-t", tStamp, "e:\\_OUT\\slicerOUT\\" + shortName(cl.sourceFileName) + "__OUT_" + indexStr(cl.index) + extention(cl.sourceFileName)}
+	default:
+		fmt.Print("----------" + cl.sourceFileType + "------\n")
+	}
+	fmt.Print(ssStamp, tStamp)
+
+	return argums
 }
