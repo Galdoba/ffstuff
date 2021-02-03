@@ -2,19 +2,42 @@ package main
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/Galdoba/ffstuff/clipmaker"
 	"github.com/Galdoba/ffstuff/ediread"
+	"github.com/Galdoba/ffstuff/fldr"
 )
 
+var WorkDate string
+
 func main() {
-	edi, err := ediread.NewEdlData("f:\\Work\\petr_proj\\___IN\\IN_2021-01_29\\Vozvrashenie_v_golubuyu_lagunu\\Test.edl")
-	fmt.Println(err)
+	fldr.Init()
+
+	edlFile := fldr.SelectEDL()
+	edi, err := ediread.NewEdlData(edlFile)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	cliTasks := []string{}
+	clipMap := clipmaker.NewClipMap()
 	for _, clipData := range edi.Entry() {
 		fmt.Println(clipData)
-		fmt.Println(edi.Folder())
-		cl, err := clipmaker.NewClip(clipData, edi.Folder())
-		fmt.Println(err, cl)
-		clipmaker.Create(cl)
+		cl, err := clipmaker.NewClip(clipData)
+		if err != nil {
+			fmt.Println(err)
+		}
+		clipMap[cl.Index()] = cl
+
+		program, arguments := clipmaker.CreateTask(cl)
+		cutClip := program + " " + strings.Join(arguments, " ")
+		cliTasks = append(cliTasks, cutClip)
+
 	}
+	for _, val := range cliTasks {
+		fmt.Print("RUN:", val, "\n")
+
+	}
+	clipmaker.ConcatClips(clipMap)
 }

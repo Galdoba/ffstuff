@@ -14,8 +14,7 @@ type ediReader interface {
 }
 
 type edlData struct {
-	entry  []string
-	folder string
+	entry []string
 }
 
 //Entry - возвращает базовую информацию о клипах после прочтения EDL
@@ -23,14 +22,8 @@ func (edl *edlData) Entry() []string {
 	return edl.entry
 }
 
-//Folder - возвращает адресс папки в которой лежит EDL
-func (edl *edlData) Folder() string {
-	return edl.folder
-}
-
 func NewEdlData(path string) (edlData, error) {
 	eDt := edlData{}
-	eDt.folder = folder(path)
 	file, err := os.Open(path)
 	if err != nil {
 		if strings.Contains(err.Error(), "The system cannot find the file specified") {
@@ -64,7 +57,6 @@ func folder(path string) string {
 
 func cleanEDLdata(e edlData) edlData {
 	e2 := edlData{}
-	e2.folder = e.folder
 	for _, val := range e.entry {
 		if strings.Contains(val, "FROM CLIP") {
 			e2.entry = append(e2.entry, val)

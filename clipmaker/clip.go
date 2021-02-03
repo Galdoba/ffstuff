@@ -6,16 +6,20 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/Galdoba/ffstuff/cli"
+	"github.com/Galdoba/ffstuff/fldr"
+	"github.com/Galdoba/utils"
 )
 
-type ClipMap map[int]clip
+func NewClipMap() map[int]clip {
+	cm := make(map[int]clip)
+	return cm
+}
 
 type clip struct {
 	index               int
 	sourceFileName      string
-	sourceFileFolder    string
 	sourceFileType      string
+	targetFileName      string
 	clipStart           float64
 	clipDuration        float64
 	seqPosStartTimeCode string
@@ -23,21 +27,26 @@ type clip struct {
 	nextClipIndex       int
 }
 
-func NewClip(clipData, folder string) (clip, error) {
+func NewClip(clipData string) (clip, error) {
 	c := clip{}
 	timestamps, err := parseTimeCodes(clipData)
 	if err != nil {
 		return c, err
 	}
 	c.index = parseFileIndex(clipData)
+	c.sourceFileName = fldr.InPath() + parseFileName(clipData)
+	c.sourceFileType = extention(c.sourceFileName)
+	//c.sourceFileFolder = fldr.InPath()
 	c.clipStart = prmTime2Seconds(timestamps[0])
-	c.clipDuration = prmTime2Seconds(timestamps[1]) - c.clipStart
+	c.clipDuration = utils.RoundFloat64(prmTime2Seconds(timestamps[1])-prmTime2Seconds(timestamps[0]), 3)
 	c.seqPosStartTimeCode = timestamps[2]
 	c.seqPosEndTimeCode = timestamps[3]
-	c.sourceFileName = parseFileName(clipData)
-	c.sourceFileType = extention(c.sourceFileName)
-	c.sourceFileFolder = folder
+
 	return c, nil
+}
+
+func (cl *clip) Index() int {
+	return cl.index
 }
 
 func parseTimeCodes(clipData string) ([]string, error) {
@@ -81,9 +90,8 @@ func prmTime2Seconds(s string) float64 {
 			return 0.0
 		}
 	}
-	ms := (fr * 40) + (ss * 1000) + (mm * 60 * 1000) + (hh * 3600 * 1000)
-	sec := float64(ms / 1000)
-	return sec
+	ms := utils.RoundFloat64(float64((fr*40)+(ss*1000)+(mm*60*1000)+(hh*3600*1000))*0.001, 3)
+	return ms
 }
 
 func parseFileName(clipData string) string {
@@ -99,7 +107,9 @@ func parseFileName(clipData string) string {
 func parseFileIndex(clipData string) int {
 	rawData := strings.Split(clipData, " ")
 	index, err := strconv.Atoi(rawData[0])
-	fmt.Println(err)
+	if err != nil {
+		fmt.Println(err)
+	}
 	return index
 }
 
@@ -119,7 +129,6 @@ func shortName(fileName string) string {
 
 func extention(fileName string) string {
 	p := strings.Split(fileName, ".")
-	fmt.Println("func extention(fileName string) string {", p)
 	return "." + p[len(p)-1]
 }
 
@@ -141,12 +150,13 @@ func indexStr(i int) string {
 	return s
 }
 
-func Create(cl clip) {
+func CreateTask(cl clip) (string, []string) {
 	program := "ffmpeg"
 	argums := formArgs(cl)
 	fmt.Println(argums)
-	cli.RunConsole(program, argums...)
+	//cli.RunConsole(program, argums...)
 	//"ffmpeg", "-i", file, "-map", "0:0", "-vcodec", "copy", "-an", "-t", premToFF(timeLen), "-ss", premToFF(timeStart), outputFile
+	return program, argums
 }
 
 func formArgs(cl clip) []string {
@@ -156,13 +166,15 @@ func formArgs(cl clip) []string {
 	tStamp := strconv.FormatFloat(cl.clipDuration, 'f', 3, 64)
 	switch cl.sourceFileType {
 	case ".mp4":
-		argums = []string{"-i", cl.sourceFileFolder + cl.sourceFileName, "-an", "-map", "0:0", "-vcodec", "copy", "-ss", ssStamp, "-t", tStamp, "e:\\_OUT\\slicerOUT\\" + shortName(cl.sourceFileName) + "__OUT_" + indexStr(cl.index) + extention(cl.sourceFileName)}
+		cl.targetFileName = fldr.MuxPath() + shortName(cl.sourceFileName) + "_VCLIP_" + indexStr(cl.index) + extention(cl.sourceFileName)
+		argums = []string{"-i", cl.sourceFileName, "-an", "-map", "0:0", "-vcodec", "copy", "-ss", ssStamp, "-t", tStamp, cl.targetFileName}
+
 	case ".m4a":
-		argums = []string{"-i", cl.sourceFileFolder + cl.sourceFileName, "-vn", "-acodec", "copy", "-ss", ssStamp, "-t", tStamp, "e:\\_OUT\\slicerOUT\\" + shortName(cl.sourceFileName) + "__OUT_" + indexStr(cl.index) + extention(cl.sourceFileName)}
+		cl.targetFileName = fldr.MuxPath() + shortName(cl.sourceFileName) + "_ACLIP_" + indexStr(cl.index) + extention(cl.sourceFileName)
+		argums = []string{"-i", cl.sourceFileName, "-vn", "-acodec", "copy", "-ss", ssStamp, "-t", tStamp, cl.targetFileName}
 	default:
 		fmt.Print("----------" + cl.sourceFileType + "------\n")
 	}
-	fmt.Print(ssStamp, tStamp)
-
+	//fmt.Print(ssStamp, tStamp)
 	return argums
 }
