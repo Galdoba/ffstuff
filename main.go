@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"strings"
 
+	"github.com/Galdoba/ffstuff/cli"
 	"github.com/Galdoba/ffstuff/clipmaker"
 	"github.com/Galdoba/ffstuff/ediread"
 	"github.com/Galdoba/ffstuff/fldr"
@@ -20,7 +20,7 @@ func main() {
 		fmt.Println(err)
 	}
 
-	cliTasks := []string{}
+	cliTasks := []cli.Task{}
 	clipMap := clipmaker.NewClipMap()
 	for _, clipData := range edi.Entry() {
 		fmt.Println(clipData)
@@ -29,14 +29,13 @@ func main() {
 			fmt.Println(err)
 		}
 		clipMap[cl.Index()] = cl
-
-		program, arguments := clipmaker.CreateTask(cl)
-		cutClip := program + " " + strings.Join(arguments, " ")
-		cliTasks = append(cliTasks, cutClip)
-
+		cliTasks = append(cliTasks, cli.NewTask(clipmaker.CutClip(cl)))
+		//cli.RunConsole(program, arguments...)
+		//		fmt.Println(program, arguments, cutClip)
 	}
-	for _, val := range cliTasks {
-		fmt.Print("RUN:", val, "\n")
+	for _, task := range cliTasks {
+		fmt.Print("RUN:", task, "\n")
+		task.Run()
 
 	}
 	clipmaker.ConcatClips(clipMap)

@@ -27,6 +27,7 @@ func ConcatClips(cm map[int]clip) []string {
 			fmt.Println(i, concatIndexes[i])
 		}
 	}
+
 	return tasks
 }
 

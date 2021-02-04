@@ -34,7 +34,7 @@ func NewClip(clipData string) (clip, error) {
 		return c, err
 	}
 	c.index = parseFileIndex(clipData)
-	c.sourceFileName = fldr.InPath() + parseFileName(clipData)
+	c.sourceFileName = parseFileName(clipData)
 	c.sourceFileType = extention(c.sourceFileName)
 	//c.sourceFileFolder = fldr.InPath()
 	c.clipStart = prmTime2Seconds(timestamps[0])
@@ -150,7 +150,7 @@ func indexStr(i int) string {
 	return s
 }
 
-func CreateTask(cl clip) (string, []string) {
+func CutClip(cl clip) (string, []string) {
 	program := "ffmpeg"
 	argums := formArgs(cl)
 	fmt.Println(argums)
@@ -167,11 +167,11 @@ func formArgs(cl clip) []string {
 	switch cl.sourceFileType {
 	case ".mp4":
 		cl.targetFileName = fldr.MuxPath() + shortName(cl.sourceFileName) + "_VCLIP_" + indexStr(cl.index) + extention(cl.sourceFileName)
-		argums = []string{"-i", cl.sourceFileName, "-an", "-map", "0:0", "-vcodec", "copy", "-ss", ssStamp, "-t", tStamp, cl.targetFileName}
+		argums = []string{"-i", fldr.InPath() + cl.sourceFileName, "-an", "-map", "0:0", "-vcodec", "copy", "-ss", ssStamp, "-t", tStamp, cl.targetFileName}
 
 	case ".m4a":
 		cl.targetFileName = fldr.MuxPath() + shortName(cl.sourceFileName) + "_ACLIP_" + indexStr(cl.index) + extention(cl.sourceFileName)
-		argums = []string{"-i", cl.sourceFileName, "-vn", "-acodec", "copy", "-ss", ssStamp, "-t", tStamp, cl.targetFileName}
+		argums = []string{"-i", fldr.InPath() + cl.sourceFileName, "-vn", "-acodec", "copy", "-ss", ssStamp, "-t", tStamp, cl.targetFileName}
 	default:
 		fmt.Print("----------" + cl.sourceFileType + "------\n")
 	}
