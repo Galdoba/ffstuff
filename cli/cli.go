@@ -2,13 +2,26 @@ package cli
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"time"
 )
 
+//TODO: перестроить так чтобы запускальщик работал по типу фабрики
+/*
+Пример:
+cli.Run(                                                           //-имя явно поменять что-то типа RunProgram или Setup
+	runner.SetProgram("ffmpeg"),
+	runner.SetArguments(arguments...),
+	runner.SetStdOutOption(int)
+	runner.SetStdErrOption(int)
+)
+
+*/
+
 //RunConsole - запускает в дефолтовом терминале cli программу
-func RunConsole(program string, args ...string) error {
+func RunConsole(program string, args ...string) (io.Writer, io.Writer, error) {
 	var line []string
 	line = append(line, program)
 	line = append(line, args...)
@@ -19,7 +32,7 @@ func RunConsole(program string, args ...string) error {
 	cmd.Stderr = os.Stderr
 
 	err := cmd.Run()
-	return err
+	return cmd.Stdout, cmd.Stderr, err
 }
 
 type Task struct {
@@ -34,5 +47,6 @@ func NewTask(program string, arguments []string) Task {
 
 //Run - выполняет инструкции
 func (t *Task) Run() error {
-	return RunConsole(t.program, t.agruments...)
+	_, _, err := RunConsole(t.program, t.agruments...)
+	return err
 }

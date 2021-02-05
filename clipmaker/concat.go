@@ -2,7 +2,7 @@ package clipmaker
 
 import "fmt"
 
-func ConcatClips(cm map[int]clip) []string {
+func ConcatClips(cm map[int]clip) (string, []string) {
 	tasks := []string{}
 	lastClip := clip{}
 	workClip := clip{}
@@ -28,15 +28,12 @@ func ConcatClips(cm map[int]clip) []string {
 		}
 	}
 
-	return tasks
+	return "", tasks
 }
 
 /*
-Клипы: 1,4,6,11,12,14,18
-Ожидаем на выходе:
-1
-4,6
-11
-12,14,18
-
+создать файл
+закидать последовательность клипов
+сшить через ффмпег
+присвоить имя? как?
 */
