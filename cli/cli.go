@@ -21,18 +21,19 @@ cli.Run(                                                           //-имя я�
 */
 
 //RunConsole - запускает в дефолтовом терминале cli программу
-func RunConsole(program string, args ...string) (io.Writer, io.Writer, error) {
+func RunConsole(program string, args ...string) (string, io.Writer, error) {
 	var line []string
 	line = append(line, program)
 	line = append(line, args...)
 	fmt.Println("Run:", line)
-	time.Sleep(time.Millisecond * 100)
+	time.Sleep(time.Millisecond * 2)
 	cmd := exec.Command(program, args...)
 	cmd.Stdout = os.Stdout
+	output, _ := cmd.CombinedOutput()
+	sOUT := string(output)
 	cmd.Stderr = os.Stderr
-
 	err := cmd.Run()
-	return cmd.Stdout, cmd.Stderr, err
+	return sOUT, cmd.Stderr, err
 }
 
 type Task struct {
