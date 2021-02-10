@@ -9,12 +9,8 @@ import (
 	"github.com/Galdoba/ffstuff/fldr"
 )
 
-var WorkDate string
-
 func main() {
 	fldr.Init()
-
-	//ВЫХОД
 
 	edlFile := fldr.SelectEDL()
 	edi, err := ediread.NewEdlData(edlFile)

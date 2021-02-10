@@ -41,7 +41,7 @@ func NewClip(clipData string) (clip, error) {
 	c.clipDuration = utils.RoundFloat64(prmTime2Seconds(timestamps[1])-prmTime2Seconds(timestamps[0]), 3)
 	c.seqPosStartTimeCode = timestamps[2]
 	c.seqPosEndTimeCode = timestamps[3]
-
+	c.formArgs()
 	return c, nil
 }
 
@@ -152,14 +152,14 @@ func indexStr(i int) string {
 
 func CutClip(cl clip) (string, []string) {
 	program := "ffmpeg"
-	argums := formArgs(cl)
+	argums := cl.formArgs()
 	fmt.Println(argums)
 	//cli.RunConsole(program, argums...)
 	//"ffmpeg", "-i", file, "-map", "0:0", "-vcodec", "copy", "-an", "-t", premToFF(timeLen), "-ss", premToFF(timeStart), outputFile
 	return program, argums
 }
 
-func formArgs(cl clip) []string {
+func (cl *clip) formArgs() []string {
 	var argums []string
 	//sdfsdf
 	ssStamp := strconv.FormatFloat(cl.clipStart, 'f', 3, 64)
