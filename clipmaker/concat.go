@@ -40,16 +40,17 @@ func ConcatClips(cm map[int]clip) (string, []string) {
 }
 
 func concatVideo(cm map[int]clip, partIndexes []int) {
-	fmt.Println("Start concat")
 	file, err := os.OpenFile(fldr.MuxPath()+"temp.bat", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
 	if err != nil {
 		panic(2)
 	}
-	outName := "Out.mp4"
+	outName := ""
 	file.WriteString("set root=" + fldr.MuxPath() + "\n")
 	file.WriteString("pushd %root%\n")
-
 	for p, i := range partIndexes {
+		if p == 0 {
+			outName = "concated_" + strings.TrimPrefix(shortName(cm[i].targetFileName), fldr.MuxPath()) + ".mp4"
+		}
 		sName := strings.TrimPrefix(shortName(cm[i].targetFileName), fldr.MuxPath()) + ".mp4"
 		fmt.Println("Clip:", cm[i].index, cm[i].targetFileName)
 		nextStr := "echo file " + sName + " " + passToFile(p) + " " + fldr.MuxPath() + "newlist.txt\n"
@@ -62,9 +63,12 @@ func concatVideo(cm map[int]clip, partIndexes []int) {
 		panic(err)
 	}
 	bat := file.Name()
+	file.WriteString("exit\n")
 	file.Close()
-	runBatchFile(bat)
-	fmt.Println("end concat")
+	err2 := runBatchFile(bat)
+	if err2 != nil {
+		fmt.Println(err2)
+	}
 }
 
 func newClipList() *os.File {
@@ -89,7 +93,11 @@ func passToFile(i int) string {
 }
 
 func runBatchFile(path string) error {
-	cmd := exec.Command(`cmd.exe`, `/C`, `Start `+path)
+	cmd := exec.Command(`cmd.exe`, `/C`, path)
+	cmd.Stdout = os.Stdout
+	//output, _ := cmd.CombinedOutput()
+	//sOUT := string(output)
+	cmd.Stderr = os.Stderr
 	return cmd.Run()
 }
 

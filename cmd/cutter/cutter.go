@@ -28,8 +28,6 @@ func main() {
 		}
 		clipMap[cl.Index()] = cl
 		cliTasks = append(cliTasks, cli.NewTask(clipmaker.CutClip(cl)))
-		//cli.RunConsole(program, arguments...)
-		//		fmt.Println(program, arguments, cutClip)
 	}
 	for _, task := range cliTasks {
 		fmt.Print("RUN:", task, "\n")
