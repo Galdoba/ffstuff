@@ -9,6 +9,23 @@ import (
 	"github.com/Galdoba/ffstuff/fldr"
 )
 
+//ffmpeg -i test_Input_AUDIO51_ACLIP_001.m4a -i test_Input_AUDIO51_ACLIP_002.m4a -filter_complex acrossfade=d=0.1:o=0:c1=exp:c2=exp output5.ac3
+//ffmpeg -i test_Input_AUDIO51.m4a -vn -af "afade=t=in:ss=0:d=2,afade=t=out:ss=8:d=2" -acodec copy  -t 10 outFaded.m4a  - ДЕЛАЕТ ФЕЙДИН И ФЕЙДАУТ В ФАЙЛЕ
+
+/*
+Продседура сшивания звука:
+0 по едл понять какие куски станут единым выводом
+1 порезать куски с запасом для кросфейда
+2 наложить фейды
+3 сшить с оверлапом
+
+0:
+замуксить звук и видео:
+если старт и конец видео и аудио клипа совпадают - они единая компазиция
+
+
+*/
+
 func ConcatClips(cm map[int]clip) (string, []string) {
 	tasks := []string{}
 	lastClip := clip{}
@@ -40,6 +57,9 @@ func ConcatClips(cm map[int]clip) (string, []string) {
 }
 
 func concatVideo(cm map[int]clip, partIndexes []int) {
+	if !strings.Contains(cm[partIndexes[0]].sourceFileName, "VCLIP") {
+		return
+	}
 	file, err := os.OpenFile(fldr.MuxPath()+"temp.bat", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
 	if err != nil {
 		panic(2)

@@ -31,7 +31,7 @@ func main() {
 	}
 	for _, task := range cliTasks {
 		fmt.Print("RUN:", task, "\n")
-		task.Run()
+		//task.Run()
 
 	}
 	clipmaker.ConcatClips(clipMap)

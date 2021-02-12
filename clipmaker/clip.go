@@ -25,6 +25,7 @@ type clip struct {
 	seqPosStartTimeCode string
 	seqPosEndTimeCode   string
 	nextClipIndex       int
+	ffmpegArgs          []string
 }
 
 func NewClip(clipData string) (clip, error) {
