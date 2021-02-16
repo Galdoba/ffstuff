@@ -32,7 +32,7 @@ type InChecker interface {
 //Checker - mounts InChecker interface
 type Checker struct {
 	pathList []string
-	data     map[string]*ffinfo.File
+	data     map[string]ffinfo.File
 	groups   map[string][]string
 	errorLog map[string][]error
 }
@@ -41,7 +41,7 @@ type Checker struct {
 func NewChecker() Checker {
 	ch := Checker{}
 	ch.groups = make(map[string][]string)
-	ch.data = make(map[string]*ffinfo.File)
+	ch.data = make(map[string]ffinfo.File)
 	ch.errorLog = make(map[string][]error)
 	return ch
 }
@@ -71,7 +71,8 @@ func (ch *Checker) CheckValidity(path string) error {
 		return errors.New("\n" + "ffinfo.Probe(string): " + err.Error())
 	}
 	if err := checkInput(repFile); err != nil {
-		fmt.Println(repFile.String())
+		fmt.Println("-----------------")
+		fmt.Println(repFile)
 		return err
 	}
 	return nil
@@ -161,7 +162,7 @@ func knownTags() []string {
 	}
 }
 
-func checkInput(f *ffinfo.File) error {
+func checkInput(f ffinfo.File) error {
 	err := errors.New("Initial Error (MUST NOT HAPPEN)")
 	base, ext, tags := decodeName(f.Format.Filename)
 	if ext == "srt" {
@@ -184,7 +185,7 @@ func checkInput(f *ffinfo.File) error {
 	return nil
 }
 
-func checkAudio(repFile *ffinfo.File, stream int, tags []string) error {
+func checkAudio(repFile ffinfo.File, stream int, tags []string) error {
 	fileName := repFile.Format.Filename
 	report := ""
 	expChan, expLayout := expectedFromAudio(fileName)
@@ -202,7 +203,7 @@ func checkAudio(repFile *ffinfo.File, stream int, tags []string) error {
 	return nil
 }
 
-func checkVideo(f *ffinfo.File, stream int) error {
+func checkVideo(f ffinfo.File, stream int) error {
 	fileName := f.Format.Filename
 	report := ""
 	expWH, expPixFmt, expFPS, expSAR := expectedFromVideo(fileName)
@@ -246,7 +247,7 @@ func compareStrData(expected, real, dataType string) error {
 	return nil
 }
 
-func collectInfo(f *ffinfo.File, stream int, key string) string {
+func collectInfo(f ffinfo.File, stream int, key string) string {
 	key = strings.ToLower(key)
 	key = strings.ReplaceAll(key, " ", "_")
 	switch key {
