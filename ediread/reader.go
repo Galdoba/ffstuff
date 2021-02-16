@@ -3,6 +3,7 @@ package ediread
 import (
 	"bufio"
 	"errors"
+	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -39,7 +40,7 @@ func NewEdlData(path string) (edlData, error) {
 			eDt.entry = append(eDt.entry, text)
 			text = ""
 		}
-		//fmt.Println(scanner.Text())
+		fmt.Println(scanner.Text())
 	}
 	eDt.entry = append(eDt.entry, text)
 	if err := scanner.Err(); err != nil {
