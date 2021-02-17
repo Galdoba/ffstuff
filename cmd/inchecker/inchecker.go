@@ -14,30 +14,14 @@ func main() {
 	}
 	checker.Check()
 	checker.Report()
-	// for i, val := range os.Args {
-	// 	if len(os.Args) == 1 {
-	// 		fmt.Println("No Arguments received")
-	// 	}
-	// 	if i == 0 {
-	// 		continue
-	// 	}
-	// 	fmt.Print("File:	", val)
-	// 	checker.AddTask(val)
-	// 	if err := checker.CheckValidity(val); err != nil {
-	// 		fmt.Println("\n------------------------------------------------------------")
-	// 		fmt.Println(err.Error())
-	// 		fmt.Println("------------------------------------------------------------")
-	// 		continue
-	// 	}
-	// 	fmt.Print(" . . . ok\n")
-	// }
+
 }
 
 func pathsReceived() []string {
 	outArgs := []string{}
 	for i, val := range os.Args {
 		if len(os.Args) == 1 {
-			fmt.Println("No Arguments received")
+			fmt.Println("No аrguments received")
 		}
 		if i == 0 {
 			continue

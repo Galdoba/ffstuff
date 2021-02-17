@@ -7,6 +7,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/fatih/color"
+	"github.com/k0kubun/go-ansi"
+
 	"github.com/malashin/ffinfo"
 )
 
@@ -24,15 +27,10 @@ const (
 	ffinfoDuration      = "duration"
 )
 
-//InChecker - checks video and audio files to match input base format
-type InChecker interface {
-	CheckValidity(string) error
-}
-
 //Checker - mounts InChecker interface
 type Checker struct {
 	pathList []string
-	data     map[string]ffinfo.File
+	data     map[string]*ffinfo.File
 	groups   map[string][]string
 	errorLog map[string][]error
 }
@@ -41,13 +39,13 @@ type Checker struct {
 func NewChecker() Checker {
 	ch := Checker{}
 	ch.groups = make(map[string][]string)
-	ch.data = make(map[string]ffinfo.File)
+	ch.data = make(map[string]*ffinfo.File)
 	ch.errorLog = make(map[string][]error)
 	return ch
 }
 
 func (ch *Checker) AddTask(path string) {
-	//ch.pathList = append(ch.pathList, path)
+	ch.pathList = append(ch.pathList, path)
 	_, err := fileExists(path)
 	if err != nil {
 		ch.errorLog[path] = append(ch.errorLog[path], err)
@@ -58,48 +56,57 @@ func (ch *Checker) AddTask(path string) {
 		ch.errorLog[path] = append(ch.errorLog[path], err)
 		return
 	}
-	ch.pathList = append(ch.pathList, path)
+	//ch.pathList = append(ch.pathList, path)
 	base, _, _ := decodeName(path)
 	ch.groups[base] = append(ch.groups[base], path)
 	ch.data[path] = f
 }
 
-//CheckValidity - Checks File for valid format
-func (ch *Checker) CheckValidity(path string) error {
-	repFile, err := ffinfo.Probe(path)
-	if err != nil {
-		return errors.New("\n" + "ffinfo.Probe(string): " + err.Error())
-	}
-	if err := checkInput(repFile); err != nil {
-		fmt.Println("-----------------")
-		fmt.Println(repFile)
-		return err
-	}
-	return nil
-}
-
 //Check - проверяет файлы на тему всех косяков о которых я додумался
 func (ch *Checker) Check() {
 	for _, path := range ch.pathList {
-		if err := ch.checkDuration(path); err != nil {
-			ch.errorLog[path] = append(ch.errorLog[path], err)
+		if len(ch.errorLog[path]) != 0 {
+			//fmt.Println(ch.errorLog[path])
+			continue
 		}
-		if err := checkInput(ch.data[path]); err != nil { //Старый код - переписать по образцу логики выше
-			ch.errorLog[path] = append(ch.errorLog[path], err)
+		ch.errorLog[path] = addError(
+			ch.checkLayout(path),
+			ch.checkChannels(path),
+			ch.checkDuration(path),
+			ch.checkWidthHeight(path),
+			ch.checkPixFmt(path),
+			ch.checkFPS(path),
+			ch.checkSAR(path),
+		)
+	}
+}
+
+func addError(allErrors ...error) []error {
+	errLog := []error{}
+	for _, err := range allErrors {
+		if err != nil {
+			errLog = append(errLog, err)
 		}
 	}
+	return errLog
 }
 
 //Report - выводит результат проверки
 func (ch *Checker) Report() {
+	color.Output = ansi.NewAnsiStdout()
+	//	color.Cyan("TEXT")
 	for _, val := range ch.pathList {
-		fmt.Print(val)
+
 		if len(ch.errorLog[val]) == 0 {
-			fmt.Print(" . . . ok\n")
+			fmt.Print(val, ": ")
+			color.Green("		ok")
 			continue
 		}
+		fmt.Print(val, ": ")
 		for _, err := range ch.errorLog[val] {
-			fmt.Print("\n", err.Error())
+			fmt.Print("\n	")
+			color.Red(err.Error())
+			//fmt.Print("\n")
 		}
 	}
 }
@@ -127,6 +134,90 @@ func (ch *Checker) checkDuration(path string) error {
 	return nil
 }
 
+func (ch *Checker) checkChannels(path string) error {
+	if collectInfo(ch.data[path], 0, ffinfoCodecType) != codecTypeAudio {
+		return nil
+	}
+	for stream := 0; stream < len(ch.data[path].Streams); stream++ {
+		expChan, _ := expectedFromAudio(path)
+		channnels := collectInfo(ch.data[path], stream, ffinfoChannels)
+		if channnels != expChan {
+			return errors.New("Channels: " + channnels + " (expect " + expChan + ")")
+		}
+	}
+	return nil
+}
+
+func (ch *Checker) checkLayout(path string) error {
+	if collectInfo(ch.data[path], 0, ffinfoCodecType) != codecTypeAudio {
+		return nil
+	}
+	for stream := 0; stream < len(ch.data[path].Streams); stream++ {
+		_, expLayout := expectedFromAudio(path)
+		layout := collectInfo(ch.data[path], stream, ffinfoChannelLayout)
+		if layout != expLayout {
+			return errors.New("Channel layout: " + layout + " (expect " + expLayout + ")")
+		}
+	}
+	return nil
+}
+
+func (ch *Checker) checkWidthHeight(path string) error {
+	if collectInfo(ch.data[path], 0, ffinfoCodecType) != codecTypeVideo {
+		return nil
+	}
+	expWH, _, _, _ := expectedFromVideo(path)
+	for stream := 0; stream < len(ch.data[path].Streams); stream++ {
+		whData := collectInfo(ch.data[path], stream, ffinfoWidth) + "/" + collectInfo(ch.data[path], stream, ffinfoHeight)
+		if whData != expWH {
+			return errors.New("Width/Height: " + whData + " (expect " + expWH + ")")
+		}
+	}
+	return nil
+}
+
+func (ch *Checker) checkPixFmt(path string) error {
+	if collectInfo(ch.data[path], 0, ffinfoCodecType) != codecTypeVideo {
+		return nil
+	}
+	_, expPixFmt, _, _ := expectedFromVideo(path)
+	for stream := 0; stream < len(ch.data[path].Streams); stream++ {
+		pixFmt := collectInfo(ch.data[path], stream, ffinfoPixFmt)
+		if pixFmt != expPixFmt {
+			return errors.New("Width/Height: " + pixFmt + " (expect " + expPixFmt + ")")
+		}
+	}
+	return nil
+}
+
+func (ch *Checker) checkFPS(path string) error {
+	if collectInfo(ch.data[path], 0, ffinfoCodecType) != codecTypeVideo {
+		return nil
+	}
+	_, _, expFPS, _ := expectedFromVideo(path)
+	for stream := 0; stream < len(ch.data[path].Streams); stream++ {
+		fps := collectInfo(ch.data[path], stream, ffinfoFPS)
+		if fps != expFPS {
+			return errors.New("Width/Height: " + fps + " (expect " + expFPS + ")")
+		}
+	}
+	return nil
+}
+
+func (ch *Checker) checkSAR(path string) error {
+	if collectInfo(ch.data[path], 0, ffinfoCodecType) != codecTypeVideo {
+		return nil
+	}
+	_, _, _, expSar := expectedFromVideo(path)
+	for stream := 0; stream < len(ch.data[path].Streams); stream++ {
+		sar := collectInfo(ch.data[path], stream, ffinfoSAR)
+		if sar != expSar {
+			return errors.New("Width/Height: " + sar + " (expect " + expSar + ")")
+		}
+	}
+	return nil
+}
+
 func compareDuration(baseDuration, fileDuration string) error {
 	fDur, err := strconv.ParseFloat(fileDuration, 'f')
 	if err != nil {
@@ -136,17 +227,13 @@ func compareDuration(baseDuration, fileDuration string) error {
 	if err != nil {
 		return err
 	}
-	if fDur-bDur > 0.5 || fDur-bDur < 0.5 {
+	if fDur-bDur > 0.5 || fDur-bDur < -0.5 {
 		fl := fDur - bDur
 		flStr := strconv.FormatFloat(fl, 'f', 6, 64)
 		return errors.New("Duration mismatch: " + flStr + " seconds")
 	}
 	return nil
 }
-
-// func (ch *Checker) checkChannels(path) error {
-// 	base, ext, tags := decodeName(f.Format.Filename)
-// }
 
 func knownTags() []string {
 	return []string{
@@ -162,92 +249,7 @@ func knownTags() []string {
 	}
 }
 
-func checkInput(f ffinfo.File) error {
-	err := errors.New("Initial Error (MUST NOT HAPPEN)")
-	base, ext, tags := decodeName(f.Format.Filename)
-	if ext == "srt" {
-		return errors.New("\nFile is subtitles")
-	}
-	for stream := 0; stream < len(f.Streams); stream++ {
-		switch collectInfo(f, 0, ffinfoCodecType) {
-		default:
-			err = errors.New("Codec Type '" + collectInfo(f, 0, ffinfoCodecType) + "' unknown")
-			fmt.Println(base, ext)
-		case "audio":
-			err = checkAudio(f, stream, tags)
-		case "video":
-			err = checkVideo(f, stream)
-		}
-	}
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func checkAudio(repFile ffinfo.File, stream int, tags []string) error {
-	fileName := repFile.Format.Filename
-	report := ""
-	expChan, expLayout := expectedFromAudio(fileName)
-	if expChan != collectInfo(repFile, stream, ffinfoChannels) {
-		report += "Channels:"
-		report += " expect '" + expChan + "', have '" + collectInfo(repFile, stream, ffinfoChannels) + "'\n"
-	}
-	if expLayout != collectInfo(repFile, stream, ffinfoChannelLayout) {
-		report += "Channel Layout:"
-		report += " expect '" + expLayout + "', have '" + collectInfo(repFile, stream, ffinfoChannelLayout) + "'\n"
-	}
-	if report != "" {
-		return errors.New(report)
-	}
-	return nil
-}
-
-func checkVideo(f ffinfo.File, stream int) error {
-	fileName := f.Format.Filename
-	report := ""
-	expWH, expPixFmt, expFPS, expSAR := expectedFromVideo(fileName)
-	trueWH := collectInfo(f, stream, ffinfoWidth) + "/" + collectInfo(f, stream, ffinfoHeight)
-	truePixFmt := collectInfo(f, stream, ffinfoPixFmt)
-	trueFPS := collectInfo(f, stream, ffinfoFPS)
-	trueSAR := collectInfo(f, stream, ffinfoSAR)
-	if expWH != trueWH {
-		report += "Width/Height:"
-		report += " expect '" + expWH + "', have '" + trueWH + "'\n"
-	}
-	if expPixFmt != truePixFmt {
-		report += "PixFmt:"
-		report += " expect '" + expPixFmt + "', have '" + truePixFmt + "'\n"
-	}
-	if trueFPS != expFPS {
-		report += "FPS:"
-		report += " expect '" + expFPS + "', have '" + trueFPS + "'\n"
-	}
-	if trueSAR != expSAR && trueSAR != "" {
-		report += "SAR:"
-		report += " expect '" + expSAR + "', have '" + trueSAR + "'\n"
-	}
-	if report != "" {
-		return errors.New(report)
-	}
-	return nil
-}
-
-func compareStrData(expected, real, dataType string) error {
-	if real == "" {
-		fmt.Println("!have no data on SAR!")
-		return nil
-	}
-	if expected != real {
-		report := "File data do not match expected:"
-		report += "Have '" + dataType + "' : " + real + "\n"
-		report += "Expect '" + dataType + "' : " + expected + "\n"
-		return errors.New(report)
-	}
-	return nil
-}
-
-func collectInfo(f ffinfo.File, stream int, key string) string {
+func collectInfo(f *ffinfo.File, stream int, key string) string {
 	key = strings.ToLower(key)
 	key = strings.ReplaceAll(key, " ", "_")
 	switch key {
@@ -298,7 +300,7 @@ func expectedFromAudio(fileName string) (string, string) { //TODO: перепи�
 	return "unknown audio tags", "unknown audio tags"
 }
 
-func expectedFromVideo(fileName string) (string, string, string, string) { //TODO: переписать иак чтобы оно собирало тэги из имени файла
+func expectedFromVideo(fileName string) (wh string, pixFmt string, fps string, sar string) { //TODO: переписать иак чтобы оно собирало тэги из имени файла
 	if strings.Contains(fileName, "_HD") {
 		wh := "1920/1080"
 		pixFmt := "yuv420p"
@@ -379,11 +381,10 @@ func fileExists(path string) (bool, error) {
 	if _, err := os.Stat(path); err == nil {
 		return true, nil
 	} else if os.IsNotExist(err) {
-		return false, errors.New("File not exists")
+		return false, errors.New("File not exists ")
 
 	} else {
 		// Schrodinger: file may or may not exist. See err for details.
-		return false, err
+		return false, errors.New("Schrodinger: file may or may not exist. See err for details")
 	}
-	return false, errors.New("not even Schrodinger")
 }

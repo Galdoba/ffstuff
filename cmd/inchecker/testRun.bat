@@ -1,1 +1,0 @@
-go run inchecker.go e:\T9_pass_cargo.mp4 e:\T9_pass_cargo_480.mp4 e:\T9_pass_cargo_480_2.mp4 e:\T9_pass_cargo_480_3.mp4 e:\T9_pass_cargo_480_4.mp4
