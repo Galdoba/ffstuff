@@ -3,10 +3,10 @@ package main
 import (
 	"fmt"
 
-	"github.com/Galdoba/ffstuff/cli"
 	"github.com/Galdoba/ffstuff/clipmaker"
 	"github.com/Galdoba/ffstuff/ediread"
 	"github.com/Galdoba/ffstuff/fldr"
+	"github.com/Galdoba/ffstuff/pkg/cli"
 )
 
 func main() {
