@@ -13,7 +13,6 @@ import (
 
 	"github.com/Galdoba/ffstuff/pkg/cli"
 	"github.com/Galdoba/ffstuff/pkg/config"
-	"github.com/Galdoba/utils"
 )
 
 func visit(path string, f os.FileInfo, err error) error {
@@ -40,33 +39,28 @@ func visit(path string, f os.FileInfo, err error) error {
 }
 
 func main() {
-	config.Load("READYMARKER")
+	config.Read()
 
-	os.Exit(1)
-	for {
-		config.Load("READYMARKER")
-		utils.ClearScreen()
-		takeFile = []string{}
-		flag.Parse()
-		root := flag.Arg(0)
-		err := filepath.Walk(root, visit)
-		//fmt.Printf("filepath.Walk() returned %v\n", err)
-		if err != nil {
-			fmt.Print(err)
-		}
-		clearLine()
-		if len(takeFile) > 0 {
-			fmt.Println("\rNew Files Found:")
-		} else {
-			fmt.Println("\rNothing new")
-		}
-		for _, val := range takeFile {
-			//fmt.Println(val)
-			cli.RunConsole("inchecker", val)
-		}
-		wait := time.Second * 20
-		time.Sleep(wait)
+	//utils.ClearScreen()
+	takeFile = []string{}
+	flag.Parse()
+	root := flag.Arg(0)
+	err := filepath.Walk(root, visit)
+	//fmt.Printf("filepath.Walk() returned %v\n", err)
+	if err != nil {
+		fmt.Print(err)
 	}
+	clearLine()
+	if len(takeFile) > 0 {
+		fmt.Println("\rNew Files Found:")
+	} else {
+		fmt.Println("\rNothing new")
+	}
+
+	cli.RunConsole("inchecker", takeFile...)
+	//os.Exit(1)
+	wait := time.Second * 20
+	time.Sleep(wait)
 }
 
 func clearLine() {
