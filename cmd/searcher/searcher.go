@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/Galdoba/ffstuff/pkg/cli"
-	"github.com/Galdoba/ffstuff/pkg/config"
 )
 
 func visit(path string, f os.FileInfo, err error) error {
@@ -39,7 +38,7 @@ func visit(path string, f os.FileInfo, err error) error {
 }
 
 func main() {
-	config.Read()
+	//config.Read()
 
 	//utils.ClearScreen()
 	takeFile = []string{}

@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+
+	"github.com/Galdoba/utils"
 )
 
 type ConfigConstructor struct {
@@ -32,9 +34,6 @@ func Construct(fields ...Field) {
 	}
 	defer f.Close()
 
-	if _, err = f.WriteString("This is Text"); err != nil {
-		panic(err)
-	}
 }
 
 func configPath() (string, string) {
@@ -59,15 +58,27 @@ func configPath() (string, string) {
 
 //Read - reads config file for this specific program and returns [string]string map
 func Read() (configMap map[string]string, err error) {
+	fmt.Println("Start Read")
 	confDir, confFile := configPath()
 	f, err := os.OpenFile(confDir+"\\"+confFile, os.O_RDONLY, 0600)
 	if err != nil {
-		if strings.Contains(err.Error(), "The system cannot find the path specified") {
+		fmt.Println(err.Error())
+		errStr := err.Error()
+		if strings.Contains(errStr, "cannot find the file") {
+			fmt.Println("Do construct")
 			Construct()
 		}
 
 	}
 	defer f.Close()
+	keyVal := make(map[string]string)
+	for _, ln := range utils.LinesFromTXT(f.Name()) {
+		kv := strings.Split(ln, ":=")
+		if len(kv) == 2 {
+			keyVal[kv[0]] = kv[1]
+		}
+	}
+
 	//TODO: проверить есть ли файл
 	// return Err.Ошибки доступа и наличия файла
 	//
@@ -76,6 +87,8 @@ func Read() (configMap map[string]string, err error) {
 	//TODO: собрать строки из файла
 	// return Err.Ошибки парсинга
 	//
+	fmt.Println("End Read")
+	fmt.Println(keyVal)
 	return configMap, nil
 }
 
@@ -93,4 +106,29 @@ func Load(key string) (val string, err error) {
 func loadFromWindows(key string) (val string, err error) {
 	fmt.Println(os.UserHomeDir())
 	return "", nil
+}
+
+func SetField(key, val string) {
+	confDir, file := configPath()
+	f, err := os.OpenFile(confDir+"\\"+file, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+	key = strings.ToUpper(key)
+	key = strings.ReplaceAll(key, " ", "_")
+	key = strings.TrimSuffix(key, "_")
+	val = strings.ToUpper(val)
+	val = strings.ReplaceAll(val, " ", "_")
+	val = strings.TrimSuffix(val, "_")
+	lines := utils.LinesFromTXT(confDir + "\\" + file)
+	for n, line := range lines {
+		if strings.Contains(line, key+":=") {
+			utils.EditLineInFile(confDir+"\\"+file, n, key+":="+val)
+			return
+		}
+	}
+	if _, err = f.WriteString(key + ":=" + val); err != nil {
+		panic(err)
+	}
 }
