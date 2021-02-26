@@ -45,6 +45,15 @@ func NewTask(program string, arguments []string) Task {
 	return Task{program, arguments}
 }
 
+//String - возвращает строку для консоли
+func (t Task) String() string {
+	s := t.program
+	for _, arg := range t.agruments {
+		s = s + " " + arg
+	}
+	return s
+}
+
 //Run - выполняет инструкции
 func (t *Task) Run() error {
 	_, _, err := RunConsole(t.program, t.agruments...)

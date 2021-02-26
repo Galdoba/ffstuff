@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/Galdoba/ffstuff/clipmaker"
 	"github.com/Galdoba/ffstuff/ediread"
@@ -29,10 +30,31 @@ func main() {
 		clipMap[cl.Index()] = cl
 		cliTasks = append(cliTasks, cli.NewTask(clipmaker.CutClip(cl)))
 	}
+	cliTasks = sortTasks(cliTasks)
 	for _, task := range cliTasks {
 		fmt.Print("RUN:", task, "\n")
 		task.Run()
 
 	}
 	clipmaker.ConcatClips(clipMap)
+}
+
+//ставит резку аудио перед резкой видео.
+func sortTasks(unsorted []cli.Task) []cli.Task {
+	sorted := []cli.Task{}
+	for _, task := range unsorted {
+		if strings.Contains(task.String(), "_ACLIP_") {
+			sorted = append(sorted, task)
+		}
+	}
+	for _, task := range unsorted {
+		if strings.Contains(task.String(), "_VCLIP_") {
+			sorted = append(sorted, task)
+		}
+	}
+	if len(sorted) != len(unsorted) {
+		fmt.Println("Can not sort")
+		return unsorted
+	}
+	return sorted
 }

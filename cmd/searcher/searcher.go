@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -11,11 +10,97 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Galdoba/ffstuff/pkg/cli"
+	"github.com/Galdoba/devtools/cli/user"
+	"github.com/Galdoba/ffstuff/pkg/config"
 )
 
+var configMap map[string]string
+var takeFile []string
+var marker string
+
+func init() {
+	configMap = make(map[string]string)
+	_, err := config.Read()
+	if err != nil {
+		fmt.Println(err)
+		if err.Error() == "Config file not found" {
+			fmt.Print("Creating config...")
+			_, err := config.Construct()
+			if err != nil {
+				fmt.Println(err)
+				os.Exit(3)
+			}
+			config.SetField("marker", ".ready")
+			config.SetField("root", "UNDEFINED")
+			fmt.Print("	done\n")
+		}
+	}
+
+}
+
+func main() {
+	configMap, configErr := config.Read()
+	if configErr != nil {
+		fmt.Println(configErr)
+		os.Exit(4)
+	}
+	takeFile = []string{}
+	// flag.Parse()
+	// fmt.Println(configMap)
+	// root := flag.Arg(0)
+	root := configMap["ROOT"]
+	if root == "UNDEFINED" {
+		fmt.Println("Enter path to root folder:")
+		fmt.Print("Root=")
+		str, err := user.InputStr()
+		if err != nil {
+			fmt.Println(err)
+		}
+		config.SetField("ROOT", str)
+		root = str
+	}
+	fmt.Println("root =", root)
+	marker = configMap["MARKER"]
+
+	err := filepath.Walk(root, visit)
+	//fmt.Printf("filepath.Walk() returned %v\n", err)
+	if err != nil {
+		fmt.Print(err)
+	}
+	clearLine()
+
+	/////////NEXT STAGE TEST
+	if len(takeFile) > 0 {
+		fmt.Println("\rNew Files Found:")
+	} else {
+		fmt.Println("\rNothing new")
+	}
+	for _, val := range takeFile {
+		fmt.Println(val)
+	}
+
+	//cli.RunConsole("inchecker", takeFile...)
+	//os.Exit(1)
+	//wait := time.Second * 20
+	//time.Sleep(wait)
+}
+
+/*
+
+search -new
+search -all
+
+search -take
+
+search -today
+search -thisweek
+search -lastweek
+search -repeat=60 -incheck -grab -until:202127020900
+
+
+*/
+
 func visit(path string, f os.FileInfo, err error) error {
-	marker := ".ready"
 	if f.IsDir() {
 		clearLine()
 		fmt.Print("\rSearch: ", path)
@@ -29,37 +114,13 @@ func visit(path string, f os.FileInfo, err error) error {
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	for _, fl := range files {
 		if strings.Contains(fl.Name(), base) && !strings.Contains(fl.Name(), marker) {
 			takeFile = append(takeFile, dir+fl.Name())
 		}
 	}
 	return nil
-}
-
-func main() {
-	//config.Read()
-
-	//utils.ClearScreen()
-	takeFile = []string{}
-	flag.Parse()
-	root := flag.Arg(0)
-	err := filepath.Walk(root, visit)
-	//fmt.Printf("filepath.Walk() returned %v\n", err)
-	if err != nil {
-		fmt.Print(err)
-	}
-	clearLine()
-	if len(takeFile) > 0 {
-		fmt.Println("\rNew Files Found:")
-	} else {
-		fmt.Println("\rNothing new")
-	}
-
-	cli.RunConsole("inchecker", takeFile...)
-	//os.Exit(1)
-	wait := time.Second * 20
-	time.Sleep(wait)
 }
 
 func clearLine() {
@@ -120,5 +181,3 @@ func timeStr(tVal int64) string {
 
 	return tStr
 }
-
-var takeFile []string
