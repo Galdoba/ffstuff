@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/Galdoba/ffstuff/clipmaker"
@@ -23,6 +24,16 @@ func main() {
 	clipMap := clipmaker.NewClipMap()
 	for _, clipData := range edi.Entry() {
 		fmt.Println(clipData)
+		//////////////////////////////////
+		f, err := os.OpenFile(fldr.MuxPath()+"names.txt", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
+		if err != nil {
+			panic(err)
+		}
+		defer f.Close()
+		if _, err = f.WriteString(clipData + "\n"); err != nil {
+			fmt.Println(err)
+		}
+		//////////////////////////////////
 		cl, err := clipmaker.NewClip(clipData)
 		if err != nil {
 			fmt.Println(err)
@@ -31,6 +42,7 @@ func main() {
 		cliTasks = append(cliTasks, cli.NewTask(clipmaker.CutClip(cl)))
 	}
 	cliTasks = sortTasks(cliTasks)
+
 	for _, task := range cliTasks {
 		fmt.Print("RUN:", task, "\n")
 		task.Run()

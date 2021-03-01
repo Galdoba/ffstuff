@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Galdoba/ffstuff/pkg/cli"
+
 	"github.com/Galdoba/devtools/cli/user"
 	"github.com/Galdoba/ffstuff/pkg/config"
 )
@@ -78,8 +80,8 @@ func main() {
 	for _, val := range takeFile {
 		fmt.Println(val)
 	}
-
-	//cli.RunConsole("inchecker", takeFile...)
+	fmt.Println("Checking via 'inchecker':")
+	cli.RunConsole("inchecker", takeFile...)
 	//os.Exit(1)
 	//wait := time.Second * 20
 	//time.Sleep(wait)
