@@ -301,6 +301,13 @@ func expectedFromAudio(fileName string) (string, string) { //TODO: перепи�
 }
 
 func expectedFromVideo(fileName string) (wh string, pixFmt string, fps string, sar string) { //TODO: переписать иак чтобы оно собирало тэги из имени файла
+	if strings.Contains(fileName, "_HD__Proxy__") {
+		wh := "480/270"
+		pixFmt := "yuv420p"
+		fps := "25/1"
+		sar := "1:1"
+		return wh, pixFmt, fps, sar
+	}
 	if strings.Contains(fileName, "_HD") {
 		wh := "1920/1080"
 		pixFmt := "yuv420p"
