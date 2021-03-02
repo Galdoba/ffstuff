@@ -10,10 +10,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Galdoba/ffstuff/fldr"
 	"github.com/Galdoba/ffstuff/pkg/cli"
 
 	"github.com/Galdoba/devtools/cli/user"
 	"github.com/Galdoba/ffstuff/pkg/config"
+	"github.com/Galdoba/ffstuff/pkg/logfile"
 )
 
 var configMap map[string]string
@@ -21,8 +23,8 @@ var takeFile []string
 var marker string
 
 func init() {
-	configMap = make(map[string]string)
-	_, err := config.Read()
+	configMapTemp := make(map[string]string)
+	configMapTemp, err := config.Read()
 	if err != nil {
 		fmt.Println(err)
 		if err.Error() == "Config file not found" {
@@ -37,15 +39,18 @@ func init() {
 			fmt.Print("	done\n")
 		}
 	}
-
+	configMap = configMapTemp
 }
 
 func main() {
-	configMap, configErr := config.Read()
-	if configErr != nil {
-		fmt.Println(configErr)
-		os.Exit(4)
-	}
+	fldr.Init()
+	logger := logfile.New(fldr.MuxPath()+"logfile.txt", logfile.LogLevelWARN)
+
+	// configMap, configErr := config.Read()
+	// if configErr != nil {
+	// 	fmt.Println(configErr)
+	// 	os.Exit(4)
+	// }
 	takeFile = []string{}
 	// flag.Parse()
 	// fmt.Println(configMap)
@@ -56,35 +61,39 @@ func main() {
 		fmt.Print("Root=")
 		str, err := user.InputStr()
 		if err != nil {
-			fmt.Println(err)
+			logger.WARN(err.Error())
 		}
 		config.SetField("ROOT", str)
 		root = str
 	}
-	fmt.Println("root =", root)
+	//fmt.Println("root =", root)
 	marker = configMap["MARKER"]
 
 	err := filepath.Walk(root, visit)
 	//fmt.Printf("filepath.Walk() returned %v\n", err)
 	if err != nil {
-		fmt.Print(err)
+		logger.ERROR(err.Error())
 	}
 	clearLine()
 
 	/////////NEXT STAGE TEST
-	if len(takeFile) > 0 {
-		fmt.Println("\rNew Files Found:")
-	} else {
+	if len(takeFile) == 0 {
 		fmt.Println("\rNothing new")
+		logger.INFO("No new files found")
+		return
 	}
-	for _, val := range takeFile {
-		fmt.Println(val)
+
+	logger.INFO(strconv.Itoa(len(takeFile)) + " new files found")
+	// fmt.Println("\rNew Files Found:")
+
+	// fmt.Println("Checking via 'inchecker':")
+
+	logger.INFO("Run Console: " + "inchecker " + strings.Join(takeFile, " "))
+	_, _, err = cli.RunConsole("inchecker", takeFile...)
+	if err != nil {
+		logger.ERROR(err.Error())
 	}
-	fmt.Println("Checking via 'inchecker':")
-	cli.RunConsole("inchecker", takeFile...)
-	//os.Exit(1)
-	//wait := time.Second * 20
-	//time.Sleep(wait)
+
 }
 
 /*

@@ -21,8 +21,13 @@ const (
 var workdate string
 
 func Init() {
-	fmt.Print("Initiate 'fldr' module...\n")
-	workdate = utils.DateStamp()
+	//fmt.Print("Create directory: '", InPath(), "' \n")
+}
+
+func init() {
+	//fmt.Print("Initiate 'fldr' module...\n")
+	workdateTemp := utils.DateStamp()
+	workdate = workdateTemp
 	if _, err := os.Stat(InPath()); os.IsNotExist(err) {
 		os.Mkdir(InPath(), 0700)
 		fmt.Print("Create directory: '", InPath(), "' \n")
@@ -35,7 +40,8 @@ func Init() {
 		os.Mkdir(OutPath(), 0700)
 		fmt.Print("Create directory: '", OutPath(), "'\n")
 	}
-	fmt.Print("'fldr'...ok\n")
+
+	//fmt.Print("'fldr'...ok\n")
 }
 
 func Test() {

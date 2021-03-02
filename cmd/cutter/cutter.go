@@ -9,11 +9,12 @@ import (
 	"github.com/Galdoba/ffstuff/ediread"
 	"github.com/Galdoba/ffstuff/fldr"
 	"github.com/Galdoba/ffstuff/pkg/cli"
+	"github.com/Galdoba/ffstuff/pkg/logfile"
 )
 
 func main() {
 	fldr.Init()
-
+	logger := logfile.New(fldr.MuxPath()+"logfile.txt", logfile.LogLevelWARN)
 	edlFile := fldr.SelectEDL()
 	edi, err := ediread.NewEdlData(edlFile)
 	if err != nil {
@@ -45,9 +46,13 @@ func main() {
 
 	for _, task := range cliTasks {
 		fmt.Print("RUN:", task, "\n")
-		task.Run()
-
+		logger.INFO("Run Console: " + task.String())
+		taskErr := task.Run()
+		if taskErr != nil {
+			logger.ERROR(taskErr.Error())
+		}
 	}
+	logger.INFO("Cutting Complete")
 	clipmaker.ConcatClips(clipMap)
 }
 
