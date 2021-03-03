@@ -9,17 +9,19 @@ import (
 	"time"
 
 	"github.com/Galdoba/ffstuff/fldr"
+	"github.com/fatih/color"
+	"github.com/k0kubun/go-ansi"
 )
 
 const (
-	LogLevelALL = iota
-	LogLevelTRACE
-	LogLevelDEBUG
-	LogLevelINFO
-	LogLevelWARN
-	LogLevelERROR
-	LogLevelFATAL
-	LogLevelOFF
+	LogLevelALL   = 0
+	LogLevelTRACE = 1
+	LogLevelDEBUG = 2
+	LogLevelINFO  = 3
+	LogLevelWARN  = 4
+	LogLevelERROR = 5
+	LogLevelFATAL = 6
+	LogLevelOFF   = 7
 )
 
 func Test() {
@@ -79,9 +81,6 @@ func newEntry(eventDescription string, logLevel int) entry {
 }
 
 func (en entry) write(file string) error {
-	if en.eventImportance < loglimit {
-		return nil
-	}
 	importance := ""
 	switch en.eventImportance {
 	case 0:
@@ -108,7 +107,7 @@ func (en entry) write(file string) error {
 	if len(en.callerProgram) > n {
 		en.callerProgram = en.callerProgram[0:n]
 	}
-	event := en.timeStamp + " | " + en.callerProgram + " | " + importance + "|" + en.eventDescription + "\n"
+	event := en.timeStamp + " | " + en.callerProgram + " | " + importance + " | " + en.eventDescription + "\n"
 	f, err := os.OpenFile(file, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
 	if err != nil {
 		panic(err)
@@ -116,6 +115,20 @@ func (en entry) write(file string) error {
 	defer f.Close()
 	if _, err = f.WriteString(event); err != nil {
 		return err
+	}
+	if en.eventImportance >= loglimit {
+		color.Output = ansi.NewAnsiStdout()
+		switch en.eventImportance {
+		case 0, 1, 3:
+			color.White(event)
+		case 2:
+			color.Blue(event)
+		case 4:
+			color.Yellow(event)
+		default:
+			color.Red(event)
+		}
+		//fmt.Println(event)
 	}
 	return nil
 }
@@ -126,7 +139,8 @@ type logger struct {
 	file            string
 }
 
-func New(path string, level int) logger {
+//New -
+func New(path string, level int) Logger {
 	//logFile = path
 	//os.MkdirAll(confDir, os.ModePerm) - TODO: сделать создание папки если таковой нет
 	f, err := os.OpenFile(path, os.O_RDONLY, 0600)
@@ -140,24 +154,25 @@ func New(path string, level int) logger {
 		lgr.file = path
 		lgr.importanceLevel = level
 		lgr.INFO("Create this log file")
-		return lgr
+		return &lgr
 	}
 	defer f.Close()
 
 	lgr := logger{}
 	lgr.file = path
 	lgr.importanceLevel = level
-	return lgr
+	return &lgr
 }
 
+//Logger -
 type Logger interface {
-	ALL(string)
-	TRACE(string)
-	DEBUG(string)
-	INFO(string)
-	WARN(string)
-	ERROR(string)
-	FATAL(string)
+	ALL(string) error
+	TRACE(string) error
+	DEBUG(string) error
+	INFO(string) error
+	WARN(string) error
+	ERROR(string) error
+	FATAL(string) error
 	//OFF(string)
 }
 

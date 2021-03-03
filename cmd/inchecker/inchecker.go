@@ -4,16 +4,26 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/Galdoba/ffstuff/fldr"
 	"github.com/Galdoba/ffstuff/pkg/inchecker"
+	"github.com/Galdoba/ffstuff/pkg/logfile"
 )
 
 func main() {
+	logger := logfile.New(fldr.MuxPath()+"logfile.txt", logfile.LogLevelINFO)
 	checker := inchecker.NewChecker()
 	for _, path := range pathsReceived() {
 		checker.AddTask(path)
+		logger.TRACE("Checking: " + path)
 	}
-	checker.Check()
+	allErrors := checker.Check()
 	checker.Report()
+	if len(allErrors) == 0 {
+		logger.INFO("All files valid")
+	}
+	for _, err := range allErrors {
+		logger.WARN(err.Error())
+	}
 
 }
 

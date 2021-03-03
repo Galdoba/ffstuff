@@ -19,13 +19,14 @@ func main() {
 	edlFile := fldr.SelectEDL()
 	edi, err := ediread.NewEdlData(edlFile)
 	if err != nil {
-		fmt.Println(err)
+		//fmt.Println(err)
+		logger.ERROR(err.Error())
 	}
 
 	cliTasks := []cli.Task{}
 	clipMap := clipmaker.NewClipMap()
 	for _, clipData := range edi.Entry() {
-		fmt.Println(clipData)
+		//fmt.Println(clipData)
 		//////////////////////////////////
 		f, err := os.OpenFile(fldr.MuxPath()+"names.txt", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
 		if err != nil {
@@ -47,7 +48,7 @@ func main() {
 
 	for _, task := range cliTasks {
 		fmt.Print("RUN:", task, "\n")
-		logger.INFO("Run Console: " + task.String())
+		logger.INFO("Run: " + task.String())
 		taskErr := task.Run()
 		if taskErr != nil {
 			logger.ERROR(taskErr.Error())

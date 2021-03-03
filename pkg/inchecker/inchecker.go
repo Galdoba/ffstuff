@@ -7,8 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/fatih/color"
-	"github.com/k0kubun/go-ansi"
+	"github.com/Galdoba/ffstuff/pkg/namedata"
 
 	"github.com/malashin/ffinfo"
 )
@@ -30,6 +29,7 @@ const (
 //Checker - mounts InChecker interface
 type Checker struct {
 	pathList []string
+	//logger   logfile.Logger
 	data     map[string]*ffinfo.File
 	groups   map[string][]string
 	errorLog map[string][]error
@@ -41,6 +41,7 @@ func NewChecker() Checker {
 	ch.groups = make(map[string][]string)
 	ch.data = make(map[string]*ffinfo.File)
 	ch.errorLog = make(map[string][]error)
+	//ch.logger = logfile.New(fldr.MuxPath()+"logfile.txt", logfile.LogLevelINFO)
 	return ch
 }
 
@@ -57,13 +58,14 @@ func (ch *Checker) AddTask(path string) {
 		return
 	}
 	//ch.pathList = append(ch.pathList, path)
-	base, _, _ := decodeName(path)
+	base := namedata.RetrieveBase(path)
 	ch.groups[base] = append(ch.groups[base], path)
 	ch.data[path] = f
 }
 
 //Check - проверяет файлы на тему всех косяков о которых я додумался
-func (ch *Checker) Check() {
+func (ch *Checker) Check() []error {
+	var allErrors []error
 	for _, path := range ch.pathList {
 		if len(ch.errorLog[path]) != 0 {
 			//fmt.Println(ch.errorLog[path])
@@ -78,7 +80,12 @@ func (ch *Checker) Check() {
 			ch.checkFPS(path),
 			ch.checkSAR(path),
 		)
+		for _, err := range ch.errorLog[path] {
+			allErrors = append(allErrors, errors.New(path+" - "+err.Error()))
+			// 	fmt.Println(ch.errorLog[path])
+		}
 	}
+	return allErrors
 }
 
 func addError(allErrors ...error) []error {
@@ -93,20 +100,19 @@ func addError(allErrors ...error) []error {
 
 //Report - выводит результат проверки
 func (ch *Checker) Report() {
-	color.Output = ansi.NewAnsiStdout()
 	//	color.Cyan("TEXT")
 	for _, val := range ch.pathList {
-
+		fmt.Println(val)
 		if len(ch.errorLog[val]) == 0 {
-			fmt.Print(val, ": ")
-			color.Green("		ok")
+			//	fmt.Print(val, ": ")
+			//	color.Green("		ok")
 			continue
 		}
+
 		fmt.Print(val, ": ")
 		for _, err := range ch.errorLog[val] {
 			fmt.Print("\n	")
-			color.Red(err.Error())
-			//fmt.Print("\n")
+			err = errors.New(val + " - " + err.Error())
 		}
 	}
 }
@@ -115,7 +121,7 @@ func (ch *Checker) checkDuration(path string) error {
 	if collectInfo(ch.data[path], 0, ffinfoCodecType) == codecTypeVideo {
 		return nil
 	}
-	base, _, _ := decodeName(path)
+	base := namedata.RetrieveBase(path)
 	baseDuration := "0.0"
 	if len(ch.groups[base]) < 2 {
 		return nil
@@ -184,7 +190,7 @@ func (ch *Checker) checkPixFmt(path string) error {
 	for stream := 0; stream < len(ch.data[path].Streams); stream++ {
 		pixFmt := collectInfo(ch.data[path], stream, ffinfoPixFmt)
 		if pixFmt != expPixFmt {
-			return errors.New("Width/Height: " + pixFmt + " (expect " + expPixFmt + ")")
+			return errors.New("PixFmt: " + pixFmt + " (expect " + expPixFmt + ")")
 		}
 	}
 	return nil
@@ -198,7 +204,7 @@ func (ch *Checker) checkFPS(path string) error {
 	for stream := 0; stream < len(ch.data[path].Streams); stream++ {
 		fps := collectInfo(ch.data[path], stream, ffinfoFPS)
 		if fps != expFPS {
-			return errors.New("Width/Height: " + fps + " (expect " + expFPS + ")")
+			return errors.New("FPS: " + fps + " (expect " + expFPS + ")")
 		}
 	}
 	return nil
@@ -212,7 +218,10 @@ func (ch *Checker) checkSAR(path string) error {
 	for stream := 0; stream < len(ch.data[path].Streams); stream++ {
 		sar := collectInfo(ch.data[path], stream, ffinfoSAR)
 		if sar != expSar {
-			return errors.New("Width/Height: " + sar + " (expect " + expSar + ")")
+			if sar == "" {
+				return errors.New("SAR: no data")
+			}
+			return errors.New("SAR: " + sar + " (expect " + expSar + ")")
 		}
 	}
 	return nil
@@ -368,7 +377,7 @@ func nameBase(tags []string) (string, []string) {
 	base := ""
 	tags2 := []string{}
 	for i, val := range tags {
-		for _, tg := range knownTags() {
+		for _, tg := range namedata.KnownTags() {
 			if tg == val {
 				tags2 = append(tags2, tg)
 			}

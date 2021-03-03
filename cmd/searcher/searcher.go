@@ -88,7 +88,7 @@ func main() {
 
 	// fmt.Println("Checking via 'inchecker':")
 
-	logger.INFO("Run Console: " + "inchecker " + strings.Join(takeFile, " "))
+	logger.INFO("Run: " + "inchecker " + strings.Join(takeFile, " "))
 	_, _, err = cli.RunConsole("inchecker", takeFile...)
 	if err != nil {
 		logger.ERROR(err.Error())
