@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -21,57 +22,50 @@ import (
 var configMap map[string]string
 var takeFile []string
 var marker string
+var logger logfile.Logger
+var logLocation string
 
 func init() {
-	configMapTemp := make(map[string]string)
-	configMapTemp, err := config.Read()
+	err := errors.New("Initial obstract error")
+
+	configMap, err = config.Read() //CHECK config file
 	if err != nil {
-		fmt.Println(err)
-		if err.Error() == "Config file not found" {
+		switch err.Error() {
+		case "Config file not found":
 			fmt.Print("Creating config...")
 			_, err := config.Construct()
 			if err != nil {
-				fmt.Println(err)
-				os.Exit(3)
+				panic(err)
 			}
-			config.SetField("marker", ".ready")
+			config.SetField("marker", ".ready") //marker files
 			config.SetField("root", "UNDEFINED")
+			config.SetField("logLocation", "default")
 			fmt.Print("	done\n")
 		}
 	}
-	configMap = configMapTemp
 }
 
 func main() {
 	fldr.Init()
-	logger := logfile.New(fldr.MuxPath()+"logfile.txt", logfile.LogLevelWARN)
 
-	// configMap, configErr := config.Read()
-	// if configErr != nil {
-	// 	fmt.Println(configErr)
-	// 	os.Exit(4)
-	// }
 	takeFile = []string{}
-	// flag.Parse()
-	// fmt.Println(configMap)
-	// root := flag.Arg(0)
+
 	root := configMap["ROOT"]
 	if root == "UNDEFINED" {
-		fmt.Println("Enter path to root folder:")
-		fmt.Print("Root=")
-		str, err := user.InputStr()
-		if err != nil {
-			logger.WARN(err.Error())
-		}
-		config.SetField("ROOT", str)
-		root = str
+		fmt.Println("Search root undefined:")
+		fmt.Println("Set root in: " + config.ConfigFile())
+		fmt.Println("End Program")
+		os.Exit(3)
 	}
-	//fmt.Println("root =", root)
+
 	marker = configMap["MARKER"]
 
-	err := filepath.Walk(root, visit)
-	//fmt.Printf("filepath.Walk() returned %v\n", err)
-	if err != nil {
+	if configMap["LOGLOCATION"] == "default" {
+		logLocation = fldr.MuxPath() + "logfile.txt"
+	}
+	logger = logfile.New(logLocation, logfile.LogLevelWARN)
+
+	if err := filepath.Walk(root, visit); err != nil {
 		logger.ERROR(err.Error())
 	}
 	clearLine()
@@ -84,16 +78,28 @@ func main() {
 	}
 
 	logger.INFO(strconv.Itoa(len(takeFile)) + " new files found")
-	// fmt.Println("\rNew Files Found:")
 
-	// fmt.Println("Checking via 'inchecker':")
+	runInchecker(takeFile)
 
+}
+
+func runInchecker(takeFile []string) {
 	logger.INFO("Run: " + "inchecker " + strings.Join(takeFile, " "))
-	_, _, err = cli.RunConsole("inchecker", takeFile...)
+	_, _, err := cli.RunConsole("inchecker", takeFile...)
 	if err != nil {
 		logger.ERROR(err.Error())
 	}
+}
 
+func defineRoot() string {
+	fmt.Println("Enter path to root folder:")
+	fmt.Print("Root=")
+	str, err := user.InputStr()
+	if err != nil {
+		logger.WARN(err.Error())
+	}
+	config.SetField("ROOT", str)
+	return str
 }
 
 /*

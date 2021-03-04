@@ -141,8 +141,9 @@ type logger struct {
 
 //New -
 func New(path string, level int) Logger {
-	//logFile = path
-	//os.MkdirAll(confDir, os.ModePerm) - TODO: сделать создание папки если таковой нет
+	pathFolders := strings.Split(path, "\\")
+	dir := strings.Join(pathFolders[0:len(pathFolders)-1], "\\")
+	os.MkdirAll(dir, os.ModePerm)
 	f, err := os.OpenFile(path, os.O_RDONLY, 0600)
 	if err != nil {
 		fn, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)

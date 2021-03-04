@@ -5,6 +5,8 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -40,7 +42,6 @@ func init() {
 		os.Mkdir(OutPath(), 0700)
 		fmt.Print("Create directory: '", OutPath(), "'\n")
 	}
-
 	//fmt.Print("'fldr'...ok\n")
 }
 
@@ -121,4 +122,52 @@ func menu(question string, options ...string) (int, string) {
 	//fmt.Println(answerGl, options[answerGl])
 	return answerGl, options[answerGl]
 	//return a, text
+}
+
+/*
+
+
+
+
+ */
+func ExecutableBase() string {
+	processInit, err := os.Executable()
+	if err != nil {
+		fmt.Println(err)
+		panic(err)
+	}
+	processInit = filepath.Base(processInit)
+	processInit = strings.TrimSuffix(processInit, ".exe")
+	return processInit
+
+}
+
+func AutoPath(file string) string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		fmt.Println(err)
+	}
+	exe := ExecutableBase()
+	autoPath := home + "\\galdoba" + "\\" + exe + "\\" + file
+	return autoPath
+}
+
+func configPath() (string, string) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		fmt.Println(err)
+	}
+	exe, err := os.Executable()
+	if err != nil {
+		fmt.Println(err)
+	}
+	exe = filepath.Base(exe)
+	configDir := ""
+	switch runtime.GOOS {
+	case "windows":
+		exe = strings.TrimSuffix(exe, ".exe")
+		configDir = home + "\\config\\" + exe // + exe + ".config"
+
+	}
+	return configDir, exe + ".config"
 }

@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/Galdoba/ffstuff/pkg/namedata"
+	"github.com/fatih/color"
 
 	"github.com/malashin/ffinfo"
 )
@@ -100,18 +101,19 @@ func addError(allErrors ...error) []error {
 
 //Report - выводит результат проверки
 func (ch *Checker) Report() {
-	//	color.Cyan("TEXT")
+	//color.Cyan("TEXT")
+	fmt.Println("New Files:")
 	for _, val := range ch.pathList {
-		fmt.Println(val)
+		fmt.Print(val, ": ")
 		if len(ch.errorLog[val]) == 0 {
-			//	fmt.Print(val, ": ")
-			//	color.Green("		ok")
+
+			color.Green("		ok")
 			continue
 		}
-
-		fmt.Print(val, ": ")
+		color.Yellow("		Warning!")
+		//fmt.Print(val, ": ")
 		for _, err := range ch.errorLog[val] {
-			fmt.Print("\n	")
+			//fmt.Print("\n	")
 			err = errors.New(val + " - " + err.Error())
 		}
 	}
