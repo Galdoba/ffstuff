@@ -19,6 +19,15 @@ func RetrieveAll(path string) (string, string, []string) {
 	return base, ext, tags2
 }
 
+func RetrieveDirectory(path string) string {
+	pathData := strings.Split(path, "\\")
+	return strings.Join(pathData[0:len(pathData)-1], "\\")
+}
+
+func RetrieveShortName(path string) string {
+	return shortFileName(path)
+}
+
 func RetrieveBase(path string) string {
 	fileName := shortFileName(path)
 	tags, _ := splitName(fileName)

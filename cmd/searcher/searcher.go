@@ -13,6 +13,7 @@ import (
 
 	"github.com/Galdoba/ffstuff/fldr"
 	"github.com/Galdoba/ffstuff/pkg/cli"
+	"github.com/Galdoba/ffstuff/pkg/grabber"
 
 	"github.com/Galdoba/devtools/cli/user"
 	"github.com/Galdoba/ffstuff/pkg/config"
@@ -24,6 +25,7 @@ var takeFile []string
 var marker string
 var logger logfile.Logger
 var logLocation string
+var afterCheck bool
 
 func init() {
 	err := errors.New("Initial obstract error")
@@ -47,7 +49,7 @@ func init() {
 
 func main() {
 	fldr.Init()
-
+	argsReceived()
 	takeFile = []string{}
 
 	root := configMap["ROOT"]
@@ -80,6 +82,22 @@ func main() {
 	logger.INFO(strconv.Itoa(len(takeFile)) + " new files found")
 
 	runInchecker(takeFile)
+	for _, val := range takeFile {
+		if strings.Contains(val, ".srt") {
+			if err := grabber.CopyFile(val, "d:\\SENDER\\"); err != nil {
+				logger.ERROR(err.Error())
+			} else {
+				logger.TRACE(val + " copied to d:\\SENDER\\")
+			}
+			continue
+		}
+		if err := grabber.CopyFile(val, fldr.InPath()); err != nil {
+			logger.ERROR(err.Error())
+		} else {
+			logger.TRACE(val + " copied to " + fldr.InPath())
+		}
+
+	}
 
 }
 
@@ -100,6 +118,33 @@ func defineRoot() string {
 	}
 	config.SetField("ROOT", str)
 	return str
+}
+
+func argsReceived() {
+	for _, val := range os.Args {
+		val = strings.ToLower(val)
+		switch val {
+		case "--incheck", "-c":
+			afterCheck = true
+		case "--help", "-h":
+			printHelp()
+		}
+	}
+
+}
+
+func printHelp() {
+	fmt.Print("Searcher walk all directories under the ROOT, and search any '[base].ready' files.\n")
+	fmt.Print("After that it constructs result list of paths containing '[base]' in their names.\n")
+	fmt.Print("This list can be used as arguments for other ffstuff aplications.\n")
+	fmt.Print("\n")
+	fmt.Print("ROOT=", configMap["ROOT"], "\n")
+	fmt.Print("\n")
+	fmt.Print("Keys:\n")
+	fmt.Print(" -h, --help      -   show this message\n")
+	fmt.Print(" -c, --incheck   -   run inchecker module on all files in result list\n")
+	fmt.Print(" -g, --grab      -   run grabber module on all files in result list\n")
+	os.Exit(0)
 }
 
 /*
