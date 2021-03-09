@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/Galdoba/ffstuff/pkg/namedata"
@@ -48,6 +50,7 @@ func CopyFile(source string, destination string) error {
 
 	go copyContent(source, destination)
 	doneCopying := false
+	sourceSize := srcInfo.Size()
 	time.Sleep(time.Second)
 	for !doneCopying {
 		copyFile, err := os.Stat(destination + srcBase)
@@ -55,13 +58,17 @@ func CopyFile(source string, destination string) error {
 		// fmt.Println(err)
 		// fmt.Println(copyFile)
 		// fmt.Println("---")
-		prc := (copyFile.Size() * 100) / srcInfo.Size()
-		fmt.Print("Copy progress: ", prc, "%\r")
+		copySize := copyFile.Size()
+
+		prc := (copySize * 100) / sourceSize
+		//		fmt.Print("Copy progress: ", prc, "%\r")
+		fmt.Print("Progress: ", prc, " %  |  ", size2GbString(copySize), " / ", size2GbString(sourceSize), " Gb\r")
+		//drawProgress(copyFile.Size(), srcInfo.Size())
 		if err != nil {
 			fmt.Println(err)
 		}
 		time.Sleep(time.Millisecond * 1500)
-		if copyFile.Size() >= srcInfo.Size() {
+		if copySize >= sourceSize {
 			doneCopying = true
 			fmt.Println("")
 		}
@@ -89,4 +96,26 @@ func copyContent(source, destination string) error {
 		return err
 	}
 	return nil
+}
+
+func drawProgress(c, max int64) {
+	bar := []string{}
+	var i int64
+	for i < 50 {
+		bar = append(bar, "-")
+		i++
+	}
+	lim := max / c
+	i = 0
+	for i < lim {
+		bar[i] = "+"
+		i++
+	}
+	fmt.Print(strings.Join(bar, ""), "\r")
+}
+
+func size2GbString(bts int64) string {
+	gbt := float64(bts) / 1073741824.0
+	gbtStr := strconv.FormatFloat(gbt, 'f', 2, 64)
+	return gbtStr
 }
