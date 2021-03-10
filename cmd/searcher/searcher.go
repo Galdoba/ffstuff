@@ -70,7 +70,7 @@ func main() {
 	if err := filepath.Walk(root, visit); err != nil {
 		logger.ERROR(err.Error())
 	}
-	clearLine()
+	fmt.Println("")
 
 	/////////NEXT STAGE TEST
 	if len(takeFile) == 0 {

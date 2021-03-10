@@ -10,11 +10,12 @@ import (
 	"time"
 
 	"github.com/Galdoba/ffstuff/pkg/namedata"
+	"github.com/ricochet2200/go-disk-usage/du"
 )
 
 //CopyFile - takes file path, and making a copy of the file in the destination directory
 func CopyFile(source string, destination string) error {
-	//source Checks
+
 	srcInfo, errS := os.Stat(source)
 	if errS != nil {
 		return errors.New("Source: " + errS.Error())
@@ -29,6 +30,9 @@ func CopyFile(source string, destination string) error {
 	}
 	if !destInfo.IsDir() {
 		return errors.New("Destination is not a directory: " + destInfo.Name())
+	}
+	if !destinationSpaceAvailable(destination, srcInfo.Size()) {
+		return errors.New("Not enough space on drive " + namedata.RetrieveDrive(destination))
 	}
 	//check earlirer copies
 	srcBase := namedata.RetrieveShortName(source)
@@ -47,22 +51,17 @@ func CopyFile(source string, destination string) error {
 		return err
 	}
 	defer out.Close()
-
+	fmt.Println("Copying: " + srcBase)
 	go copyContent(source, destination)
 	doneCopying := false
 	sourceSize := srcInfo.Size()
 	time.Sleep(time.Second)
 	for !doneCopying {
 		copyFile, err := os.Stat(destination + srcBase)
-
-		// fmt.Println(err)
-		// fmt.Println(copyFile)
-		// fmt.Println("---")
 		copySize := copyFile.Size()
-
-		prc := (copySize * 100) / sourceSize
+		//prc := (copySize * 100) / sourceSize
 		//		fmt.Print("Copy progress: ", prc, "%\r")
-		fmt.Print("Progress: ", prc, " %  |  ", size2GbString(copySize), " / ", size2GbString(sourceSize), " Gb\r")
+		fmt.Print("Progress: ", size2GbString(copySize), " / ", size2GbString(sourceSize), " Gb\r")
 		//drawProgress(copyFile.Size(), srcInfo.Size())
 		if err != nil {
 			fmt.Println(err)
@@ -90,7 +89,7 @@ func copyContent(source, destination string) error {
 		return err
 	}
 	defer out.Close()
-	fmt.Println("Start Copy " + srcBase + " to " + destination)
+	//fmt.Println("Start Copy " + srcBase + " to " + destination)
 	_, err = io.Copy(out, in)
 	if err != nil {
 		return err
@@ -118,4 +117,14 @@ func size2GbString(bts int64) string {
 	gbt := float64(bts) / 1073741824.0
 	gbtStr := strconv.FormatFloat(gbt, 'f', 2, 64)
 	return gbtStr
+}
+
+func destinationSpaceAvailable(destPath string, copySize int64) bool {
+	drive := namedata.RetrieveDrive(destPath)
+	usage := du.NewDiskUsage(drive)
+	freeSpace := int64(usage.Available())
+	if freeSpace > copySize {
+		return true
+	}
+	return false
 }

@@ -1,6 +1,8 @@
 package namedata
 
-import "strings"
+import (
+	"strings"
+)
 
 /*
 from Name:
@@ -46,6 +48,11 @@ func RetrieveTags(path string) []string {
 	tags, _ := splitName(fileName)
 	_, tags2 := nameBase(tags)
 	return tags2
+}
+
+func RetrieveDrive(path string) string {
+	data := strings.Split(path, "\\")
+	return data[0]
 }
 
 func shortFileName(path string) string {
