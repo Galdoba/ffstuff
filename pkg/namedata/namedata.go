@@ -23,7 +23,7 @@ func RetrieveAll(path string) (string, string, []string) {
 
 func RetrieveDirectory(path string) string {
 	pathData := strings.Split(path, "\\")
-	return strings.Join(pathData[0:len(pathData)-1], "\\")
+	return strings.Join(pathData[0:len(pathData)-1], "\\") + "\\"
 }
 
 func RetrieveShortName(path string) string {

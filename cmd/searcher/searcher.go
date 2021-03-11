@@ -11,6 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Galdoba/ffstuff/pkg/scanner"
+
 	"github.com/Galdoba/ffstuff/fldr"
 	"github.com/Galdoba/ffstuff/pkg/cli"
 	"github.com/Galdoba/ffstuff/pkg/grabber"
@@ -52,6 +54,16 @@ func main() {
 	argsReceived()
 	takeFile = []string{}
 
+	results, err := scanner.Scan("\\\\192.168.31.4\\root\\EDIT\\", ".ready")
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	for i, val := range results {
+		fmt.Println(i, val)
+	}
+
+	//os.Exit(5)
+
 	root := configMap["ROOT"]
 	if root == "UNDEFINED" {
 		fmt.Println("Search root undefined:")
@@ -66,6 +78,8 @@ func main() {
 		logLocation = fldr.MuxPath() + "logfile.txt"
 	}
 	logger = logfile.New(logLocation, logfile.LogLevelWARN)
+
+	//takeFile, err = scan.ScanReady(root, marker)
 
 	if err := filepath.Walk(root, visit); err != nil {
 		logger.ERROR(err.Error())
@@ -82,6 +96,10 @@ func main() {
 	logger.INFO(strconv.Itoa(len(takeFile)) + " new files found")
 
 	runInchecker(takeFile)
+	for _, val := range takeFile {
+		fmt.Println("Can take", val)
+	}
+	//os.Exit(2)
 	for _, val := range takeFile {
 		if strings.Contains(val, ".srt") {
 			if err := grabber.CopyFile(val, "d:\\SENDER\\"); err != nil {
@@ -101,12 +119,24 @@ func main() {
 
 }
 
-func runInchecker(takeFile []string) {
-	logger.INFO("Run: " + "inchecker " + strings.Join(takeFile, " "))
+func runInchecker(takeFile []string) []string {
+	validFiles := []string{}
+	// logger.INFO("Run: " + "inchecker " + strings.Join(takeFile, " "))
+	// for _, file := range takeFile {
+	// 	_, _, err := cli.RunConsole("inchecker", file)
+	// 	if err != nil {
+	// 		logger.ERROR(err.Error())
+	// 		continue
+	// 	}
+	// 	logger.TRACE("valid: " + file)
+	// 	validFiles = append(validFiles, file)
+	// }
+	// return validFiles
 	_, _, err := cli.RunConsole("inchecker", takeFile...)
 	if err != nil {
 		logger.ERROR(err.Error())
 	}
+	return validFiles
 }
 
 func defineRoot() string {

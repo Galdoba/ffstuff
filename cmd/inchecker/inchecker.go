@@ -19,7 +19,7 @@ func main() {
 	allErrors := checker.Check()
 	checker.Report()
 	if len(allErrors) == 0 {
-		logger.INFO("All files valid")
+		//logger.INFO("All files valid")
 	}
 	for _, err := range allErrors {
 		logger.WARN(err.Error())
