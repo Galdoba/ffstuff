@@ -56,12 +56,13 @@ func (ch *Checker) AddTask(path string) {
 	f, err := ffinfo.Probe(path)
 	if err != nil {
 		ch.errorLog[path] = append(ch.errorLog[path], err)
+		fmt.Println(f)
 		return
 	}
 	//ch.pathList = append(ch.pathList, path)
 	base := namedata.RetrieveBase(path)
 	ch.groups[base] = append(ch.groups[base], path)
-	ch.data[path] = f
+
 }
 
 //Check - проверяет файлы на тему всех косяков о которых я додумался

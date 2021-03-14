@@ -11,6 +11,10 @@ import (
 	"github.com/Galdoba/utils"
 )
 
+const (
+	FieldUndefined = "UNDEFINED"
+)
+
 type ConfigConstructor struct {
 }
 
@@ -55,7 +59,7 @@ func Construct() (File, error) {
 }
 
 //ConfigFile - return standard config file path
-func ConfigFile() string {
+func StandardPath() string {
 	dir, file := configPath()
 	return dir + "\\" + file
 }
@@ -113,6 +117,24 @@ func Read() (configMap map[string]string, err error) {
 	//
 
 	return keyVal, nil
+}
+
+func Verify() error {
+	dataMap, err := Read()
+	if err != nil {
+		return err
+	}
+	und := "Field(s) undefined: "
+	for key, val := range dataMap {
+		if val == FieldUndefined {
+			und += key + ", "
+		}
+	}
+	if und != "Field(s) undefined: " {
+		und = strings.TrimSuffix(und, ", ")
+		return errors.New(und)
+	}
+	return nil
 }
 
 //Load - search and return config value by key

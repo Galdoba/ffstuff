@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	"github.com/Galdoba/devtools/cli/user"
-	"github.com/Galdoba/utils"
 )
 
 const (
@@ -27,21 +26,22 @@ func Init() {
 }
 
 func init() {
+
 	//fmt.Print("Initiate 'fldr' module...\n")
-	workdateTemp := utils.DateStamp()
-	workdate = workdateTemp
-	if _, err := os.Stat(InPath()); os.IsNotExist(err) {
-		os.Mkdir(InPath(), 0700)
-		fmt.Print("Create directory: '", InPath(), "' \n")
-	}
-	if _, err := os.Stat(MuxPath()); os.IsNotExist(err) {
-		os.Mkdir(MuxPath(), 0700)
-		fmt.Print("Create directory: '", MuxPath(), "'\n")
-	}
-	if _, err := os.Stat(OutPath()); os.IsNotExist(err) {
-		os.Mkdir(OutPath(), 0700)
-		fmt.Print("Create directory: '", OutPath(), "'\n")
-	}
+	// workdateTemp := utils.DateStamp()
+	// workdate = workdateTemp
+	// if _, err := os.Stat(InPath()); os.IsNotExist(err) {
+	// 	os.Mkdir(InPath(), 0700)
+	// 	fmt.Print("Create directory: '", InPath(), "' \n")
+	// }
+	// if _, err := os.Stat(MuxPath()); os.IsNotExist(err) {
+	// 	os.Mkdir(MuxPath(), 0700)
+	// 	fmt.Print("Create directory: '", MuxPath(), "'\n")
+	// }
+	// if _, err := os.Stat(OutPath()); os.IsNotExist(err) {
+	// 	os.Mkdir(OutPath(), 0700)
+	// 	fmt.Print("Create directory: '", OutPath(), "'\n")
+	// }
 	//fmt.Print("'fldr'...ok\n")
 }
 

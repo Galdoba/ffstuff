@@ -67,7 +67,7 @@ func main() {
 	root := configMap["ROOT"]
 	if root == "UNDEFINED" {
 		fmt.Println("Search root undefined:")
-		fmt.Println("Set root in: " + config.ConfigFile())
+		fmt.Println("Set root in: " + config.StandardPath())
 		fmt.Println("End Program")
 		os.Exit(3)
 	}
