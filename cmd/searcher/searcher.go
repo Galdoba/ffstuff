@@ -15,7 +15,6 @@ import (
 
 	"github.com/Galdoba/ffstuff/fldr"
 	"github.com/Galdoba/ffstuff/pkg/cli"
-	"github.com/Galdoba/ffstuff/pkg/grabber"
 
 	"github.com/Galdoba/devtools/cli/user"
 	"github.com/Galdoba/ffstuff/pkg/config"
@@ -100,22 +99,22 @@ func main() {
 		fmt.Println("Can take", val)
 	}
 	//os.Exit(2)
-	for _, val := range takeFile {
-		if strings.Contains(val, ".srt") {
-			if err := grabber.CopyFile(val, "d:\\SENDER\\"); err != nil {
-				logger.ERROR(err.Error())
-			} else {
-				logger.TRACE(val + " copied to d:\\SENDER\\")
-			}
-			continue
-		}
-		if err := grabber.CopyFile(val, fldr.InPath()); err != nil {
-			logger.ERROR(err.Error())
-		} else {
-			logger.TRACE(val + " copied to " + fldr.InPath())
-		}
+	// for _, val := range takeFile {
+	// 	if strings.Contains(val, ".srt") {
+	// 		if err := grabber.CopyFile(val, "d:\\SENDER\\"); err != nil {
+	// 			logger.ERROR(err.Error())
+	// 		} else {
+	// 			logger.TRACE(val + " copied to d:\\SENDER\\")
+	// 		}
+	// 		continue
+	// 	}
+	// 	if err := grabber.CopyFile(val, fldr.InPath()); err != nil {
+	// 		logger.ERROR(err.Error())
+	// 	} else {
+	// 		logger.TRACE(val + " copied to " + fldr.InPath())
+	// 	}
 
-	}
+	// }
 
 }
 

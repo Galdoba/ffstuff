@@ -11,12 +11,13 @@ import (
 	"strings"
 
 	"github.com/Galdoba/devtools/cli/user"
+	"github.com/Galdoba/utils"
 )
 
 const (
-	inFolder  = "f:\\Work\\petr_proj\\___IN\\IN_" //TODO: запихнуть эти адресса в конфиг
-	muxFolder = "e:\\_OUT\\MUX_"                  //
-	outFolder = "d:\\SENDER\\DONE_"               //
+	inFolder  = "d:\\IN\\IN_"   //TODO: запихнуть эти адресса в конфиг
+	muxFolder = "d:\\MUX\\MUX_" //
+	outFolder = "d:\\OUT\\OUT_" //
 )
 
 var workdate string
@@ -28,8 +29,8 @@ func Init() {
 func init() {
 
 	//fmt.Print("Initiate 'fldr' module...\n")
-	// workdateTemp := utils.DateStamp()
-	// workdate = workdateTemp
+	workdateTemp := utils.DateStamp()
+	workdate = workdateTemp
 	// if _, err := os.Stat(InPath()); os.IsNotExist(err) {
 	// 	os.Mkdir(InPath(), 0700)
 	// 	fmt.Print("Create directory: '", InPath(), "' \n")
@@ -81,7 +82,7 @@ func SelectEDL() string {
 
 func filesByExtention(extention string) []string {
 	var names []string
-	files, err := ioutil.ReadDir(InPath() + ".")
+	files, err := ioutil.ReadDir(InPath()) //InPath() +
 	if err != nil {
 		log.Fatal(err)
 	}
