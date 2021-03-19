@@ -10,13 +10,17 @@ import (
 )
 
 func main() {
+	fmt.Println("Create at:", fldr.MuxPath()+"logfile.txt")
 	logger := logfile.New(fldr.MuxPath()+"logfile.txt", logfile.LogLevelINFO)
+	fmt.Println("GO INCHECKER")
 	checker := inchecker.NewChecker()
 	for _, path := range pathsReceived() {
 		checker.AddTask(path)
 		logger.TRACE("Checking: " + path)
 	}
+	fmt.Println("GO INCHECKER CHECK")
 	allErrors := checker.Check()
+	fmt.Println("GO INCHECKER REPORT")
 	checker.Report()
 	if len(allErrors) == 0 {
 		//logger.INFO("All files valid")
@@ -24,7 +28,7 @@ func main() {
 	for _, err := range allErrors {
 		logger.WARN(err.Error())
 	}
-
+	fmt.Println("END")
 }
 
 func pathsReceived() []string {

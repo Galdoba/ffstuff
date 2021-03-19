@@ -120,17 +120,17 @@ func main() {
 
 func runInchecker(takeFile []string) []string {
 	validFiles := []string{}
-	// logger.INFO("Run: " + "inchecker " + strings.Join(takeFile, " "))
-	// for _, file := range takeFile {
-	// 	_, _, err := cli.RunConsole("inchecker", file)
-	// 	if err != nil {
-	// 		logger.ERROR(err.Error())
-	// 		continue
-	// 	}
-	// 	logger.TRACE("valid: " + file)
-	// 	validFiles = append(validFiles, file)
-	// }
-	// return validFiles
+	logger.INFO("Run: " + "inchecker " + strings.Join(takeFile, " "))
+	for _, file := range takeFile {
+		_, _, err := cli.RunConsole("inchecker", file)
+		if err != nil {
+			logger.ERROR(err.Error())
+			continue
+		}
+		logger.TRACE("valid: " + file)
+		validFiles = append(validFiles, file)
+	}
+	return validFiles
 	_, _, err := cli.RunConsole("inchecker", takeFile...)
 	if err != nil {
 		logger.ERROR(err.Error())

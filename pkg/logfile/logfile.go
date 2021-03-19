@@ -148,6 +148,7 @@ func New(path string, level int) Logger {
 	if err != nil {
 		fn, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
 		if err != nil {
+			fmt.Println(err.Error())
 			panic(err)
 		}
 		defer fn.Close()
