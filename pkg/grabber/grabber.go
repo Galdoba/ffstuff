@@ -66,7 +66,7 @@ func CopyFile(source string, destination string) error {
 		if err != nil {
 			fmt.Println(err)
 		}
-		time.Sleep(time.Millisecond * 1500)
+		time.Sleep(time.Millisecond * 1000)
 		if copySize >= sourceSize {
 			doneCopying = true
 			fmt.Println("")
@@ -127,4 +127,15 @@ func destinationSpaceAvailable(destPath string, copySize int64) bool {
 		return true
 	}
 	return false
+}
+
+func VerifyDestination(destination string) error {
+	destInfo, errD := os.Stat(destination)
+	if errD != nil {
+		return errors.New("Destination: " + errD.Error())
+	}
+	if !destInfo.IsDir() {
+		return errors.New("Destination is not a directory: " + destInfo.Name())
+	}
+	return errD
 }

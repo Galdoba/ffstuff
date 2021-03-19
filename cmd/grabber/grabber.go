@@ -12,6 +12,7 @@ import (
 	"github.com/Galdoba/ffstuff/pkg/logfile"
 	"github.com/Galdoba/ffstuff/pkg/namedata"
 	"github.com/Galdoba/ffstuff/pkg/scanner"
+	"github.com/urfave/cli"
 )
 
 /*
@@ -63,39 +64,45 @@ func init() {
 }
 
 func main() {
-	copyList := []string{}
-	mainDestDir := configMap["INPATH"]
-	if mainDestDir == "default" {
-		mainDestDir = fldr.InPath()
+	if err := config.Verify(); err != nil {
+		fmt.Println(err.Error())
+		return
 	}
-	secondaryDestDir := configMap["OUTPATH"]
-	if secondaryDestDir == "default" {
-		secondaryDestDir = fldr.OutPath()
+	conf, _ := config.Read()
+	dest := conf["OUTPATH"]
+	if dest == "default" {
+		dest = fldr.InPath()
 	}
-	//fmt.Println("START GRABBER")
-	//fmt.Println("GRABBER ARGUMENTS:")
-	for _, arg := range argsReceived() {
-		//	fmt.Println(i, arg)
-		switch describeArg(arg) {
-		case 0:
-			copyList = append(copyList, scanForAssociatedFiles(arg)...)
-		case 1:
-			printHelp()
-
-		}
+	app := cli.NewApp()
+	app.Version = "v 0.0.1"
+	app.Name = "grabber"
+	app.Usage = "dowloads files and sort it to working directories"
+	app.Commands = []*cli.Command{
+		//////////////////////////////////////
+		{
+			Name:  "only",
+			Usage: "Download only those files, that was received as arguments",
+			Action: func(c *cli.Context) error {
+				paths := c.Args().Slice() //	path := c.String("path") //*cli.Context.String(key) - вызывает флаг с именем key и возвращает значение Value
+				for _, path := range paths {
+					fmt.Println("GRABBER DOWNLOADING FILE:", path)
+					err := grabber.CopyFile(path, dest)
+					fmt.Println(err)
+					if err != nil {
+						fmt.Println(err.Error())
+					}
+				}
+				return nil
+			},
+		},
 	}
-
-	for _, file := range copyList {
-		fmt.Println("GRABBING", file)
-
-		if err := grabber.CopyFile(file, mainDestDir); err != nil {
-			fmt.Println("Grabber Error:", err.Error())
-		}
+	args := os.Args
+	if len(args) < 2 {
+		//args = append(args, "help") //Принудительно зовем помощь если нет других аргументов
 	}
-
-	// logger := logfile.New(fldr.MuxPath()+"logfile.txt", logfile.LogLevelINFO)
-	// args := os.Args
-	//fmt.Println("END GRABBER")
+	if err := app.Run(args); err != nil {
+		fmt.Println(err.Error())
+	}
 }
 
 func argsReceived() []string {

@@ -10,9 +10,7 @@ import (
 )
 
 func main() {
-	fmt.Println("Create at:", fldr.MuxPath()+"logfile.txt")
 	logger := logfile.New(fldr.MuxPath()+"logfile.txt", logfile.LogLevelINFO)
-	fmt.Println("GO INCHECKER")
 	checker := inchecker.NewChecker()
 	for _, path := range pathsReceived() {
 		checker.AddTask(path)

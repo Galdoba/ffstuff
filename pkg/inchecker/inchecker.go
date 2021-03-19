@@ -69,10 +69,13 @@ func (ch *Checker) AddTask(path string) {
 func (ch *Checker) Check() []error {
 	var allErrors []error
 	for _, path := range ch.pathList {
+		fmt.Println("CHECK:", path)
 		if len(ch.errorLog[path]) != 0 {
-			//fmt.Println(ch.errorLog[path])
+			fmt.Println(ch.errorLog[path])
+			fmt.Println(ch.errorLog)
 			continue
 		}
+		fmt.Println("ERR:", path)
 		ch.errorLog[path] = addError(
 			ch.checkLayout(path),
 			ch.checkChannels(path),
