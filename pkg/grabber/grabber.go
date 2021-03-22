@@ -59,9 +59,10 @@ func CopyFile(source string, destination string) error {
 	for !doneCopying {
 		copyFile, err := os.Stat(destination + srcBase)
 		copySize := copyFile.Size()
-		//prc := (copySize * 100) / sourceSize
+		prc := (copySize * 100) / sourceSize
 		//		fmt.Print("Copy progress: ", prc, "%\r")
-		fmt.Print("Progress: ", size2GbString(copySize), " / ", size2GbString(sourceSize), " Gb\r")
+		downloadbar(int(prc))
+		//fmt.Print("Progress: ", size2GbString(copySize), " / ", size2GbString(sourceSize), " Gb\r")
 		//drawProgress(copyFile.Size(), srcInfo.Size())
 		if err != nil {
 			fmt.Println(err)
@@ -138,4 +139,20 @@ func VerifyDestination(destination string) error {
 		return errors.New("Destination is not a directory: " + destInfo.Name())
 	}
 	return errD
+}
+
+func downloadbar(now int) {
+	if now > 100 || now < 0 {
+		return
+	}
+	s := ""
+	for i := 0; i < 100; i++ {
+		if i <= now {
+			s += string(rune(9608))
+			continue
+		}
+		s += string(rune(9617))
+	}
+	s += "\r"
+	fmt.Print(s)
 }
