@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -11,13 +12,18 @@ import (
 
 func main() {
 
+	// str, rtr, err := cli.RunConsole("inchecker", "\\\\nas\\ROOT\\EDIT\\21_02_20\\Ya_podaryu_tebe_pobedu_AUDIORUS51.m4a")
+	// fmt.Println(str)
+	// fmt.Println(rtr)
+	// fmt.Println(err)
+
 	// fmt.Println("")
 	// fmt.Print(string(rune(9617))) // ░
 	// fmt.Print(string(rune(9618))) //   ▒
 	// fmt.Print(string(rune(9608))) //█
 	// fmt.Print(string(rune(9612))) //▌
 	// fmt.Print(string(rune(9619))) // ▓
-	// os.Exit(6)
+	os.Exit(6)
 	fmt.Print(string(rune(9617)))
 	fmt.Println("Start")
 	//list, err := scanner.ListContent("\\\\nas\\ROOT\\EDIT\\_sony\\Breaking_Bad_s01\\")

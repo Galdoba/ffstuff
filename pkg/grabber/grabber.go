@@ -55,6 +55,9 @@ func CopyFile(source string, destination string) error {
 	go copyContent(source, destination)
 	doneCopying := false
 	sourceSize := srcInfo.Size()
+	if sourceSize == 0 {
+		return errors.New("source size = 0 bytes")
+	}
 	time.Sleep(time.Second)
 	for !doneCopying {
 		copyFile, err := os.Stat(destination + srcBase)
@@ -73,7 +76,6 @@ func CopyFile(source string, destination string) error {
 			fmt.Println("")
 		}
 	}
-	fmt.Println("End Copy")
 
 	return nil
 }

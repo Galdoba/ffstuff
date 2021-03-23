@@ -80,7 +80,7 @@ func main() {
 	app.Commands = []*cli.Command{
 		//////////////////////////////////////
 		{
-			Name:  "only",
+			Name:  "takeonly",
 			Usage: "Download only those files, that was received as arguments",
 			Action: func(c *cli.Context) error {
 				paths := c.Args().Slice() //	path := c.String("path") //*cli.Context.String(key) - вызывает флаг с именем key и возвращает значение Value
@@ -92,6 +92,24 @@ func main() {
 						fmt.Println(err.Error())
 					}
 				}
+				return nil
+			},
+		},
+		////////////////////////////////////
+		{
+			Name:  "takenew",
+			Usage: "Call Scanner to get list of new and ready files",
+			Action: func(c *cli.Context) error {
+
+				//paths := c.Args().Slice() //	path := c.String("path") //*cli.Context.String(key) - вызывает флаг с именем key и возвращает значение Value
+				// for _, path := range paths {
+				// 	fmt.Println("GRABBER DOWNLOADING FILE:", path)
+				// 	err := grabber.CopyFile(path, dest)
+				// 	fmt.Println(err)
+				// 	if err != nil {
+				// 		fmt.Println(err.Error())
+				// 	}
+				// }
 				return nil
 			},
 		},

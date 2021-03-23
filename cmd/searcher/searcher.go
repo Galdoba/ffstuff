@@ -13,6 +13,7 @@ import (
 
 	"github.com/Galdoba/ffstuff/pkg/grabber"
 	"github.com/Galdoba/ffstuff/pkg/scanner"
+	"github.com/Galdoba/utils"
 
 	"github.com/Galdoba/ffstuff/fldr"
 	"github.com/Galdoba/ffstuff/pkg/cli"
@@ -52,17 +53,6 @@ func init() {
 func main() {
 	fldr.Init()
 	argsReceived()
-	takeFile = []string{}
-
-	results, err := scanner.Scan("\\\\192.168.31.4\\root\\EDIT\\", ".ready")
-	if err != nil {
-		fmt.Println(err.Error())
-	}
-	for i, val := range results {
-		fmt.Println(i, val)
-	}
-
-	//os.Exit(5)
 
 	root := configMap["ROOT"]
 	if root == "UNDEFINED" {
@@ -79,33 +69,34 @@ func main() {
 	}
 	logger = logfile.New(logLocation, logfile.LogLevelWARN)
 
-	//takeFile, err = scan.ScanReady(root, marker)
-
-	if err := filepath.Walk(root, visit); err != nil {
+	takeFile, err := scanner.Scan(root, marker)
+	fileList := scanner.ListReady(takeFile)
+	// if err := filepath.Walk(root, visit); err != nil {
+	if err != nil {
 		logger.ERROR(err.Error())
 	}
 	fmt.Println("")
 
 	/////////NEXT STAGE TEST
-	if len(takeFile) == 0 {
+	if len(fileList) == 0 {
 		fmt.Println("\rNothing new")
 		logger.INFO("No new files found")
 		return
 	}
 
-	logger.INFO(strconv.Itoa(len(takeFile)) + " new files found")
+	logger.INFO(strconv.Itoa(len(fileList)) + " new files found")
 
 	//runInchecker(takeFile)
-	for _, val := range takeFile {
+	for _, val := range fileList {
 		fmt.Println("Can take", val)
 	}
 	//os.Exit(2)
-	for _, val := range takeFile {
+	for _, val := range fileList {
 		if strings.Contains(val, ".srt") {
-			if err := grabber.CopyFile(val, "d:\\SENDER\\"); err != nil {
+			if err := grabber.CopyFile(val, "d:\\OUT\\OUT_"+utils.DateStamp()); err != nil {
 				logger.ERROR(err.Error())
 			} else {
-				logger.TRACE(val + " copied to d:\\SENDER\\")
+				logger.TRACE(val + " copied to d:\\OUT\\OUT_" + utils.DateStamp())
 			}
 			continue
 		}

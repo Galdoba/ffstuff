@@ -16,17 +16,18 @@ func main() {
 		checker.AddTask(path)
 		logger.TRACE("Checking: " + path)
 	}
-	fmt.Println("GO INCHECKER CHECK")
 	allErrors := checker.Check()
-	fmt.Println("GO INCHECKER REPORT")
 	checker.Report()
 	if len(allErrors) == 0 {
-		//logger.INFO("All files valid")
+		if len(pathsReceived()) > 1 {
+			logger.INFO("All files valid")
+		}
+		os.Exit(0)
 	}
 	for _, err := range allErrors {
 		logger.WARN(err.Error())
 	}
-	fmt.Println("END")
+	os.Exit(1)
 }
 
 func pathsReceived() []string {

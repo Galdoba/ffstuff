@@ -47,6 +47,7 @@ func NewChecker() Checker {
 }
 
 func (ch *Checker) AddTask(path string) {
+	//fmt.Println("Adding", path)
 	ch.pathList = append(ch.pathList, path)
 	_, err := fileExists(path)
 	if err != nil {
@@ -56,9 +57,10 @@ func (ch *Checker) AddTask(path string) {
 	f, err := ffinfo.Probe(path)
 	if err != nil {
 		ch.errorLog[path] = append(ch.errorLog[path], err)
-		fmt.Println(f)
+		//fmt.Println(f)
 		return
 	}
+	ch.data[path] = f
 	//ch.pathList = append(ch.pathList, path)
 	base := namedata.RetrieveBase(path)
 	ch.groups[base] = append(ch.groups[base], path)
@@ -69,13 +71,11 @@ func (ch *Checker) AddTask(path string) {
 func (ch *Checker) Check() []error {
 	var allErrors []error
 	for _, path := range ch.pathList {
-		fmt.Println("CHECK:", path)
 		if len(ch.errorLog[path]) != 0 {
 			fmt.Println(ch.errorLog[path])
 			fmt.Println(ch.errorLog)
 			continue
 		}
-		fmt.Println("ERR:", path)
 		ch.errorLog[path] = addError(
 			ch.checkLayout(path),
 			ch.checkChannels(path),
@@ -106,7 +106,6 @@ func addError(allErrors ...error) []error {
 //Report - выводит результат проверки
 func (ch *Checker) Report() {
 	//color.Cyan("TEXT")
-	fmt.Println("New Files:")
 	for _, val := range ch.pathList {
 		fmt.Print(val, ": ")
 		if len(ch.errorLog[val]) == 0 {
