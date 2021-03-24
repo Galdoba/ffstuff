@@ -6,11 +6,18 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Galdoba/ffstuff/pkg/config"
 	"github.com/Galdoba/ffstuff/pkg/namedata"
 	"github.com/Galdoba/ffstuff/pkg/scanner"
 )
 
 func main() {
+
+	c, err := config.ReadProgramConfig("ffstuff")
+	fmt.Println(err)
+	fmt.Println(c.Program)
+	fmt.Println(c.Field)
+	fmt.Println(c.Path)
 
 	// str, rtr, err := cli.RunConsole("inchecker", "\\\\nas\\ROOT\\EDIT\\21_02_20\\Ya_podaryu_tebe_pobedu_AUDIORUS51.m4a")
 	// fmt.Println(str)

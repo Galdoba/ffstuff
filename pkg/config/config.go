@@ -102,10 +102,8 @@ func Read() (configMap map[string]string, err error) {
 	defer f.Close()
 	keyVal := make(map[string]string)
 	for _, ln := range utils.LinesFromTXT(f.Name()) {
-		kv := strings.Split(ln, "=")
-		if len(kv) == 2 {
-			keyVal[kv[0]] = kv[1]
-		}
+		k, v := parseKeyValYAML(ln)
+		keyVal[k] = v
 	}
 	//TODO: проверить есть ли файл
 	// return Err.Ошибки доступа и наличия файла
@@ -117,6 +115,15 @@ func Read() (configMap map[string]string, err error) {
 	//
 
 	return keyVal, nil
+}
+
+//parseKeyValYAML - Keys are separated from values by a colon+space. Indented blocks, common in YAML data files, use indentation and new lines to separate the key/value pairs.
+func parseKeyValYAML(s string) (string, string) {
+	kv := strings.Split(s, ": ")
+	if len(kv) == 2 {
+		return kv[0], kv[1]
+	}
+	return "", ""
 }
 
 func Verify() error {
@@ -178,3 +185,55 @@ func SetField(key, val string) error {
 	}
 	return nil
 }
+
+type Config struct {
+	Program string
+	Path    string
+	Field   map[string]string
+}
+
+func ReadProgramConfig(program string) (Config, error) {
+	conf := Config{}
+	conf.Program = program
+	conf.Field = make(map[string]string)
+	dir, file := configPathLocked(program)
+	conf.Path = dir + "\\" + file
+	f, err := os.OpenFile(conf.Path, os.O_RDONLY, 0600)
+	if err != nil {
+		fmt.Println(err.Error())
+		errStr := err.Error()
+		if strings.Contains(errStr, "cannot find the file") {
+			return conf, errors.New("Config file not found")
+		}
+		if strings.Contains(errStr, "cannot find the path") {
+			return conf, errors.New("Config file not found")
+		}
+	}
+	defer f.Close()
+	for _, ln := range utils.LinesFromTXT(f.Name()) {
+		k, v := parseKeyValYAML(ln)
+		conf.Field[k] = v
+	}
+	delete(conf.Field, "")
+	return conf, nil
+}
+
+func configPathLocked(programName string) (string, string) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	configDir := ""
+	switch runtime.GOOS {
+	case "windows":
+
+		configDir = home + "\\config\\" + programName // + exe + ".config"
+
+	}
+	return configDir, programName + ".config"
+}
+
+/*
+UserHome/Dev/Prog/
+*/

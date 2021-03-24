@@ -11,16 +11,21 @@ import (
 	"strings"
 
 	"github.com/Galdoba/devtools/cli/user"
+	"github.com/Galdoba/ffstuff/constant"
+	"github.com/Galdoba/ffstuff/pkg/config"
 	"github.com/Galdoba/utils"
 )
 
-const (
-	inFolder  = "d:\\IN\\IN_"   //TODO: запихнуть эти адресса в конфиг
-	muxFolder = "d:\\MUX\\MUX_" //
-	outFolder = "d:\\OUT\\OUT_" //
-)
+// const (
+// 	inFolder  = "d:\\IN\\IN_"   //TODO: запихнуть эти адресса в конфиг
+// 	muxFolder = "d:\\MUX\\MUX_" //
+// 	outFolder = "d:\\OUT\\OUT_" //
+// )
 
 var workdate string
+var inFolder string
+var muxFolder string
+var outFolder string
 
 func Init() {
 	//fmt.Print("Create directory: '", InPath(), "' \n")
@@ -31,6 +36,16 @@ func init() {
 	//fmt.Print("Initiate 'fldr' module...\n")
 	workdateTemp := utils.DateStamp()
 	workdate = workdateTemp
+	conf, err := config.ReadProgramConfig("ffstuff")
+	if err != nil {
+		fmt.Println("fldr init()")
+		fmt.Println(err)
+		panic(err)
+	}
+	inFolder = conf.Field[constant.InPath]
+	muxFolder = conf.Field[constant.MuxPath]
+	outFolder = conf.Field[constant.OutPath]
+
 	// if _, err := os.Stat(InPath()); os.IsNotExist(err) {
 	// 	os.Mkdir(InPath(), 0700)
 	// 	fmt.Print("Create directory: '", InPath(), "' \n")
@@ -52,17 +67,17 @@ func Test() {
 
 //InPath - Возвращает сегодняшнюю папку для скачивания
 func InPath() string {
-	return inFolder + utils.DateStamp() + "\\"
+	return inFolder + "\\IN_" + utils.DateStamp() + "\\"
 }
 
 //MuxPath - Возвращает сегодняшнюю папку для мукса
 func MuxPath() string {
-	return muxFolder + utils.DateStamp() + "\\"
+	return muxFolder + "\\MUX_" + utils.DateStamp() + "\\"
 }
 
 //OutPath - Возвращает сегодняшнюю папку для проверки/отправки
 func OutPath() string {
-	return outFolder + utils.DateStamp() + "\\"
+	return outFolder + "\\OUT_" + utils.DateStamp() + "\\"
 }
 
 // func SelectEDL() string {

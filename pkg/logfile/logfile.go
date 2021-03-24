@@ -141,14 +141,19 @@ type logger struct {
 
 //New -
 func New(path string, level int) Logger {
+
 	pathFolders := strings.Split(path, "\\")
 	dir := strings.Join(pathFolders[0:len(pathFolders)-1], "\\")
 	os.MkdirAll(dir, os.ModePerm)
+
 	f, err := os.OpenFile(path, os.O_RDONLY, 0600)
+
 	if err != nil {
+		//fmt.Println(err)
 		fn, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
+		//fmt.Println("Create log file:", path)
 		if err != nil {
-			fmt.Println(err.Error())
+			fmt.Println(err)
 			panic(err)
 		}
 		defer fn.Close()

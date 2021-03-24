@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+
 	"io/ioutil"
 	"log"
 	"os"
@@ -11,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Galdoba/ffstuff/constant"
 	"github.com/Galdoba/ffstuff/pkg/grabber"
 	"github.com/Galdoba/ffstuff/pkg/scanner"
 	"github.com/Galdoba/utils"
@@ -33,19 +35,24 @@ var afterCheck bool
 func init() {
 	err := errors.New("Initial obstract error")
 
-	configMap, err = config.Read() //CHECK config file
+	conf, err := config.ReadProgramConfig("ffstuff")
+	if err != nil {
+		fmt.Println(err)
+	}
+	configMap = conf.Field
 	if err != nil {
 		switch err.Error() {
 		case "Config file not found":
-			fmt.Print("Creating config...")
-			_, err := config.Construct()
-			if err != nil {
-				panic(err)
-			}
-			config.SetField("marker", ".ready") //marker files
-			config.SetField("root", "UNDEFINED")
-			config.SetField("logLocation", "default")
-			fmt.Print("	done\n")
+			fmt.Print("Expecting config file in:\n", conf.Path)
+			os.Exit(1)
+			// _, err := config.Construct()
+			// if err != nil {
+			// 	panic(err)
+			// }
+			// config.SetField("marker", ".ready") //marker files
+			// config.SetField("root", "UNDEFINED")
+			// config.SetField("logLocation", "default")
+			// fmt.Print("	done\n")
 		}
 	}
 }
@@ -54,17 +61,19 @@ func main() {
 	fldr.Init()
 	argsReceived()
 
-	root := configMap["ROOT"]
-	if root == "UNDEFINED" {
-		fmt.Println("Search root undefined:")
-		fmt.Println("Set root in: " + config.StandardPath())
-		fmt.Println("End Program")
-		os.Exit(3)
+	root := configMap[constant.SearchRoot]
+	f, err := os.Stat(root)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
 	}
+	if !f.IsDir() {
+		fmt.Println(f.Name(), "is not directory")
+		os.Exit(2)
+	}
+	marker = configMap[constant.SearchMarker]
 
-	marker = configMap["MARKER"]
-
-	if configMap["LOGLOCATION"] == "default" {
+	if configMap[constant.LogDirectory] == "default" {
 		logLocation = fldr.MuxPath() + "logfile.txt"
 	}
 	logger = logfile.New(logLocation, logfile.LogLevelWARN)
@@ -85,7 +94,7 @@ func main() {
 	}
 
 	logger.INFO(strconv.Itoa(len(fileList)) + " new files found")
-
+	fileList = sortResults(fileList)
 	//runInchecker(takeFile)
 	for _, val := range fileList {
 		fmt.Println("Can take", val)
@@ -263,4 +272,27 @@ func timeStr(tVal int64) string {
 	}
 
 	return tStr
+}
+
+func sortResults(list []string) []string {
+	sorted := []string{}
+	for _, val := range list {
+		if strings.Contains(val, ".ready") {
+			sorted = append(sorted, val)
+		}
+	}
+	for _, val := range list {
+		if strings.Contains(val, "_Proxy_") {
+			sorted = append(sorted, val)
+		}
+	}
+	for _, val := range list {
+		if strings.Contains(val, ".m4a") {
+			sorted = append(sorted, val)
+		}
+	}
+	for _, val := range list {
+		sorted = utils.AppendUniqueStr(sorted, val)
+	}
+	return sorted
 }
