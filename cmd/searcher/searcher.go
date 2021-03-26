@@ -1,40 +1,32 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 
-	"io/ioutil"
-	"log"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/Galdoba/ffstuff/constant"
-	"github.com/Galdoba/ffstuff/pkg/grabber"
-	"github.com/Galdoba/ffstuff/pkg/scanner"
-	"github.com/Galdoba/utils"
-
-	"github.com/Galdoba/ffstuff/fldr"
-	"github.com/Galdoba/ffstuff/pkg/cli"
-
 	"github.com/Galdoba/devtools/cli/user"
+	"github.com/Galdoba/ffstuff/constant"
+	"github.com/Galdoba/ffstuff/fldr"
+	"github.com/Galdoba/utils"
+	"github.com/urfave/cli"
+
+	fcli "github.com/Galdoba/ffstuff/pkg/cli"
+	"github.com/Galdoba/ffstuff/pkg/scanner"
+
 	"github.com/Galdoba/ffstuff/pkg/config"
 	"github.com/Galdoba/ffstuff/pkg/logfile"
 )
 
 var configMap map[string]string
-var takeFile []string
-var marker string
+
 var logger logfile.Logger
 var logLocation string
-var afterCheck bool
 
 func init() {
-	err := errors.New("Initial obstract error")
-
 	conf, err := config.ReadProgramConfig("ffstuff")
 	if err != nil {
 		fmt.Println(err)
@@ -45,98 +37,126 @@ func init() {
 		case "Config file not found":
 			fmt.Print("Expecting config file in:\n", conf.Path)
 			os.Exit(1)
-			// _, err := config.Construct()
-			// if err != nil {
-			// 	panic(err)
-			// }
-			// config.SetField("marker", ".ready") //marker files
-			// config.SetField("root", "UNDEFINED")
-			// config.SetField("logLocation", "default")
-			// fmt.Print("	done\n")
 		}
 	}
 }
 
 func main() {
-	fldr.Init()
-	argsReceived()
+	// fldr.Init()
+	// argsReceived()
 
+	// root := configMap[constant.SearchRoot]
+	// f, err := os.Stat(root)
+	// if err != nil {
+	// 	fmt.Println(err)
+	// 	os.Exit(1)
+	// }
+	// if !f.IsDir() {
+	// 	fmt.Println(f.Name(), "is not directory")
+	// 	os.Exit(2)
+	// }
+	// marker = configMap[constant.SearchMarker]
+
+	// if configMap[constant.LogDirectory] == "default" {
+	// 	logLocation = fldr.MuxPath() + "logfile.txt"
+	// }
+	// logger = logfile.New(logLocation, logfile.LogLevelWARN)
+
+	// takeFile, err := scanner.Scan(root, marker)
+	// fileList := scanner.ListReady(takeFile)
+	// // if err := filepath.Walk(root, visit); err != nil {
+	// if err != nil {
+	// 	logger.ERROR(err.Error())
+	// }
+	// fmt.Println("")
+
+	// /////////NEXT STAGE TEST
+	// if len(fileList) == 0 {
+	// 	fmt.Println("\rNothing new")
+	// 	logger.INFO("No new files found")
+	// 	return
+	// }
+
+	// logger.INFO(strconv.Itoa(len(fileList)) + " new files found")
+	// fileList = sortResults(fileList)
+	// //runInchecker(takeFile)
+	// for _, val := range fileList {
+	// 	fmt.Println("Can take", val)
+	// }
+
+	//os.Exit(0)
+	//autoGrab := false
 	root := configMap[constant.SearchRoot]
-	f, err := os.Stat(root)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-	if !f.IsDir() {
-		fmt.Println(f.Name(), "is not directory")
-		os.Exit(2)
-	}
-	marker = configMap[constant.SearchMarker]
-
+	marker := configMap[constant.SearchMarker]
 	if configMap[constant.LogDirectory] == "default" {
 		logLocation = fldr.MuxPath() + "logfile.txt"
 	}
 	logger = logfile.New(logLocation, logfile.LogLevelWARN)
-
-	takeFile, err := scanner.Scan(root, marker)
-	fileList := scanner.ListReady(takeFile)
-	// if err := filepath.Walk(root, visit); err != nil {
-	if err != nil {
-		logger.ERROR(err.Error())
+	app := cli.NewApp()
+	app.Version = "v 0.0.1"
+	app.Name = "searcher"
+	app.Usage = "Scans root directory and all subdirectories to create list of files that matches queary"
+	app.Flags = []cli.Flag{
+		&cli.BoolFlag{
+			Name:  "grab",
+			Usage: "If flag is active grabber will try to download all results",
+			Value: false,
+		},
 	}
-	fmt.Println("")
+	app.Commands = []*cli.Command{
+		//////////////////////////////////////
+		{
+			Name:  "new",
+			Usage: "Searches all files in the root which associated with marker",
+			Action: func(c *cli.Context) error {
+				takeFile, err := scanner.Scan(root, marker)
+				if err != nil {
+					fmt.Println(err)
 
-	/////////NEXT STAGE TEST
-	if len(fileList) == 0 {
-		fmt.Println("\rNothing new")
-		logger.INFO("No new files found")
-		return
-	}
-
-	logger.INFO(strconv.Itoa(len(fileList)) + " new files found")
-	fileList = sortResults(fileList)
-	//runInchecker(takeFile)
-	for _, val := range fileList {
-		fmt.Println("Can take", val)
-	}
-	//os.Exit(2)
-	for _, val := range fileList {
-		if strings.Contains(val, ".srt") {
-			if err := grabber.CopyFile(val, "d:\\OUT\\OUT_"+utils.DateStamp()); err != nil {
-				logger.ERROR(err.Error())
-			} else {
-				logger.TRACE(val + " copied to d:\\OUT\\OUT_" + utils.DateStamp())
-			}
-			continue
-		}
-		if err := grabber.CopyFile(val, fldr.InPath()); err != nil {
-			logger.ERROR(err.Error())
-		} else {
-			logger.TRACE(val + " copied to " + fldr.InPath())
-		}
+					return err
+				}
+				fileList := scanner.ListReady(takeFile)
+				logger.INFO(strconv.Itoa(len(fileList)) + " new files found")
+				fileList = sortResults(fileList)
+				for _, val := range fileList {
+					fmt.Println(val)
+					fcli.RunConsole("grabber", "only", val)
+				}
+				fmt.Print("Flag is |", app.Flags[0].String())
+				return nil
+			},
+		},
+		//////////////////////////////////////
 
 	}
-
+	args := os.Args
+	if len(args) < 2 {
+		args = append(args, "help") //Принудительно зовем помощь если нет других аргументов
+	}
+	if err := app.Run(args); err != nil {
+		fmt.Println(err.Error())
+	}
 }
 
 func runInchecker(takeFile []string) []string {
 	validFiles := []string{}
 	logger.INFO("Run: " + "inchecker " + strings.Join(takeFile, " "))
 	for _, file := range takeFile {
-		_, _, err := cli.RunConsole("inchecker", file)
+		_, _, err := fcli.RunConsole("inchecker", file)
 		if err != nil {
 			logger.ERROR(err.Error())
+
 			continue
 		}
 		logger.TRACE("valid: " + file)
 		validFiles = append(validFiles, file)
 	}
 	return validFiles
-	_, _, err := cli.RunConsole("inchecker", takeFile...)
-	if err != nil {
-		logger.ERROR(err.Error())
-	}
-	return validFiles
+	// _, _, err := cli.RunConsole("inchecker", takeFile...)
+	// if err != nil {
+	// 	logger.ERROR(err.Error())
+	// }
+	// return validFiles
 }
 
 func defineRoot() string {
@@ -150,18 +170,18 @@ func defineRoot() string {
 	return str
 }
 
-func argsReceived() {
-	for _, val := range os.Args {
-		val = strings.ToLower(val)
-		switch val {
-		case "--incheck", "-c":
-			afterCheck = true
-		case "--help", "-h":
-			printHelp()
-		}
-	}
+// func argsReceived() {
+// 	for _, val := range os.Args {
+// 		val = strings.ToLower(val)
+// 		switch val {
+// 		case "--incheck", "-c":
+// 			afterCheck = true
+// 		case "--help", "-h":
+// 			printHelp()
+// 		}
+// 	}
 
-}
+// }
 
 func printHelp() {
 	fmt.Print("Searcher walk all directories under the ROOT, and search any '[base].ready' files.\n")
@@ -192,28 +212,28 @@ search -repeat=60 -incheck -grab -until:202127020900
 
 */
 
-func visit(path string, f os.FileInfo, err error) error {
-	if f.IsDir() {
-		clearLine()
-		fmt.Print("\rSearch: ", path)
-	}
-	if !strings.Contains(f.Name(), marker) {
-		return nil
-	}
-	dir, base := filepath.Split(path)
-	base = strings.TrimSuffix(base, marker)
-	files, err := ioutil.ReadDir(dir)
-	if err != nil {
-		log.Fatal(err)
-	}
+// func visit(path string, f os.FileInfo, err error) error {
+// 	if f.IsDir() {
+// 		clearLine()
+// 		fmt.Print("\rSearch: ", path)
+// 	}
+// 	if !strings.Contains(f.Name(), marker) {
+// 		return nil
+// 	}
+// 	dir, base := filepath.Split(path)
+// 	base = strings.TrimSuffix(base, marker)
+// 	files, err := ioutil.ReadDir(dir)
+// 	if err != nil {
+// 		log.Fatal(err)
+// 	}
 
-	for _, fl := range files {
-		if strings.Contains(fl.Name(), base) && !strings.Contains(fl.Name(), marker) {
-			takeFile = append(takeFile, dir+fl.Name())
-		}
-	}
-	return nil
-}
+// 	for _, fl := range files {
+// 		if strings.Contains(fl.Name(), base) && !strings.Contains(fl.Name(), marker) {
+// 			takeFile = append(takeFile, dir+fl.Name())
+// 		}
+// 	}
+// 	return nil
+// }
 
 func clearLine() {
 	clr := ""
@@ -296,3 +316,50 @@ func sortResults(list []string) []string {
 	}
 	return sorted
 }
+
+/*
+
+:process
+set f_fullname=%~1
+set f_path=%~p1
+set f_name=%~n1
+set f_ext=%~x1
+
+
+rem ffmpeg -i %f_name%.ac3 -map 0:0 -acodec ac3 -ab 640k %f_name%.ac3
+rem ffmpeg -i eng_%f_name%.ac3 -map 0:0 -acodec ac3 -ab 640k eng_%f_name%.ac3
+
+rem mkvmerge -o "\\192.168.32.3\root\#KIRILL\%f_name%_ar6e2.mkv" -d 0 --language 0:rus --default-track 0:1 -A ="%f_name%.mp4" -a 0 --language 0:rus --default-track 0:1 ="%f_name%.ac3" -a 0 --language 0:eng --default-track 0:0 ="eng_%f_name%.ac3"
+rem -s 0 --language 0:rus --default-track 0:0 ="%f_name%.srt"
+
+rem ffmpeg -i "%f_name%.mp4" -i "%f_name%.ac3" -i "eng_%f_name%.ac3" -i "%f_name%.srt" -map 0:v -map 1:a -map 2:a -map 3:s -codec copy -codec:s mov_text -metadata:s:a:0 language=rus -metadata:s:a:1 language=eng -metadata:s:s:0 language=rus "1232_%f_name%_ar6e2_sr.mp4"
+
+ffmpeg ^
+-i "%f_name%.mp4" ^
+-i "%f_name%_rus20.ac3" ^
+-i "%f_name%_eng51.ac3" ^
+-i "%f_name%.srt" ^
+-codec copy -codec:s mov_text ^
+    -map 0:v ^
+    -map 1:a -metadata:s:a:0 language=rus ^
+    -map 2:a -metadata:s:a:1 language=eng ^
+    -map 3:s -metadata:s:s:0 language=rus ^
+"\\192.168.32.3\ROOT\#PETR\toCheck\%f_name%_ar2e6.mp4"
+
+
+
+exit /b 0
+
+rem ffmpeg ^
+rem -i "%f_name%.mp4" ^
+rem -i "%f_name%_rus20.ac3" ^
+rem -i "%f_name%_eng51.ac3" ^
+rem -i "%f_name%.srt" ^
+rem -codec copy -codec:s mov_text ^
+rem     -map 0:v ^
+rem     -map 1:a -metadata:s:a:0 language=rus ^
+rem     -map 2:a -metadata:s:a:1 language=eng ^
+rem     -map 3:s -metadata:s:s:0 language=rus ^
+rem "\\192.168.32.3\ROOT\#PETR\toCheck\%f_name%_ar2e6.mp4"
+
+*/

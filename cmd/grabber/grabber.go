@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/Galdoba/ffstuff/fldr"
+	"github.com/Galdoba/ffstuff/constant"
 	"github.com/Galdoba/ffstuff/pkg/config"
 	"github.com/Galdoba/ffstuff/pkg/grabber"
 	"github.com/Galdoba/ffstuff/pkg/logfile"
@@ -35,46 +35,34 @@ TZ:
 
 */
 
-type mode struct {
-	logging bool
-	vocal   bool
-}
-
 var configMap map[string]string
-var moduleMode mode
 var logger logfile.Logger
 
 func init() {
 	err := errors.New("Initial obstract error")
-	configMap, err = config.Read() //CHECK config file
+
+	conf, err := config.ReadProgramConfig("ffstuff")
+	if err != nil {
+		fmt.Println(err)
+	}
+	configMap = conf.Field
 	if err != nil {
 		switch err.Error() {
 		case "Config file not found":
-			fmt.Println("Creating config...")
-			_, err := config.Construct()
-			if err != nil {
-				panic(err)
-			}
-			//config.SetField("marker", ".ready") //marker files
-			config.SetField("INPATH", "default")
-			config.SetField("OUTPATH", "default")
-			config.SetField("LOGLOCATION", "default")
+			fmt.Print("Expecting config file in:\n", conf.Path)
+			os.Exit(1)
 		}
 	}
 }
 
 func main() {
-	if err := config.Verify(); err != nil {
-		fmt.Println(err.Error())
-		return
-	}
-	conf, _ := config.Read()
-	dest := conf["OUTPATH"]
-	if dest == "default" {
-		dest = fldr.InPath()
-	}
+	searchRoot := configMap[constant.SearchRoot]
+	searchMarker := configMap[constant.SearchMarker]
+	dest := configMap[constant.InPath]
+	logger = logfile.New(configMap[constant.MuxPath]+"logfile.txt", logfile.LogLevelDEBUG)
+
 	app := cli.NewApp()
-	app.Version = "v 0.0.1"
+	app.Version = "v 0.0.2"
 	app.Name = "grabber"
 	app.Usage = "dowloads files and sort it to working directories"
 	app.Commands = []*cli.Command{
@@ -87,7 +75,6 @@ func main() {
 				for _, path := range paths {
 					fmt.Println("GRABBER DOWNLOADING FILE:", path)
 					err := grabber.CopyFile(path, dest)
-					fmt.Println(err)
 					if err != nil {
 						fmt.Println(err.Error())
 					}
@@ -100,6 +87,16 @@ func main() {
 			Name:  "takenew",
 			Usage: "Call Scanner to get list of new and ready files",
 			Action: func(c *cli.Context) error {
+				takeFile, err := scanner.Scan(searchRoot, searchMarker)
+				if err != nil {
+					fmt.Println(err)
+					return err
+				}
+				fileList := scanner.ListReady(takeFile)
+
+				for _, path := range fileList {
+					grabber.CopyFile(path, dest)
+				}
 
 				//paths := c.Args().Slice() //	path := c.String("path") //*cli.Context.String(key) - вызывает флаг с именем key и возвращает значение Value
 				// for _, path := range paths {
@@ -116,27 +113,11 @@ func main() {
 	}
 	args := os.Args
 	if len(args) < 2 {
-		//args = append(args, "help") //Принудительно зовем помощь если нет других аргументов
+		args = append(args, "help") //Принудительно зовем помощь если нет других аргументов
 	}
 	if err := app.Run(args); err != nil {
 		fmt.Println(err.Error())
 	}
-}
-
-func argsReceived() []string {
-	outArgs := []string{}
-	for i, val := range os.Args {
-		if len(os.Args) == 1 {
-			fmt.Println("No аrguments received. Pass '-h' to get Help")
-			os.Exit(0)
-		}
-		if i == 0 {
-			continue
-		}
-
-		outArgs = append(outArgs, val)
-	}
-	return outArgs
 }
 
 func describeArg(arg string) int {

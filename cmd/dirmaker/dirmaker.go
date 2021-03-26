@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/Galdoba/ffstuff/constant"
 	"github.com/Galdoba/ffstuff/fldr"
 	"github.com/Galdoba/ffstuff/pkg/config"
 	"github.com/Galdoba/utils"
@@ -14,24 +15,35 @@ import (
 //dirmaker new [directory]
 //dirmaker daily
 
+var configMap map[string]string
+
 func init() {
-	file, err := os.Stat(config.StandardPath())
-	if err == nil {
-		return
+	// file, err := os.Stat(config.StandardPath())
+	// if err == nil {
+	// 	return
+	// }
+	// config.Construct()
+	// config.SetField("INROOT", config.FieldUndefined)
+	// config.SetField("MUXROOT", config.FieldUndefined)
+	// config.SetField("OUTROOT", config.FieldUndefined)
+	// fmt.Println("Please set root folders in", file.Name())
+	//err := errors.New("Initial obstract error")
+
+	conf, err := config.ReadProgramConfig("ffstuff")
+	if err != nil {
+		fmt.Println(err)
 	}
-	config.Construct()
-	config.SetField("INROOT", config.FieldUndefined)
-	config.SetField("MUXROOT", config.FieldUndefined)
-	config.SetField("OUTROOT", config.FieldUndefined)
-	fmt.Println("Please set root folders in", file.Name())
+	configMap = conf.Field
+	if err != nil {
+		switch err.Error() {
+		case "Config file not found":
+			fmt.Print("Expecting config file in:\n", conf.Path)
+			os.Exit(1)
+		}
+	}
 }
 
 func main() {
-	if err := config.Verify(); err != nil {
-		fmt.Println(err.Error())
-		return
-	}
-	conf, _ := config.Read()
 	app := cli.NewApp()
 	app.Version = "v 0.0.1"
 	app.Name = "dirmaker"
@@ -58,10 +70,10 @@ func main() {
 			Usage: "Create today's work directories",
 			Action: func(c *cli.Context) error {
 				paths := []string{
-					conf["INROOT"] + "\\IN_" + utils.DateStamp(),
-					conf["INROOT"] + "\\IN_" + utils.DateStamp() + "\\proxy",
-					conf["MUXROOT"] + "\\MUX_" + utils.DateStamp(),
-					conf["OUTROOT"] + "\\OUT_" + utils.DateStamp(),
+					configMap[constant.InPath] + "IN_" + utils.DateStamp() + "\\",
+					configMap[constant.InPath] + "IN_" + utils.DateStamp() + "\\proxy\\",
+					configMap[constant.MuxPath] + "MUX_" + utils.DateStamp() + "\\",
+					configMap[constant.OutPath] + "OUT_" + utils.DateStamp() + "\\",
 				}
 				for _, path := range paths {
 					dir := fldr.New("",

@@ -139,7 +139,7 @@ type logger struct {
 	file            string
 }
 
-//New -
+//New - принимает путь в котором будет находиться файл и минимальный уровень сообщений которые будут выводиться на терминал во время логирования
 func New(path string, level int) Logger {
 
 	pathFolders := strings.Split(path, "\\")
