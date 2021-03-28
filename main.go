@@ -7,14 +7,14 @@ import (
 	"time"
 
 	"github.com/Galdoba/ffstuff/pkg/config"
-	"github.com/Galdoba/ffstuff/pkg/logfile"
+	"github.com/Galdoba/ffstuff/pkg/muxer"
 	"github.com/Galdoba/ffstuff/pkg/namedata"
 	"github.com/Galdoba/ffstuff/pkg/scanner"
 )
 
 func main() {
 
-	logfile.Test()
+	muxer.MuxA2("d:\\IN\\IN_2021-03-29\\s1_e08_Zorro's_ride_into_terror_HD.mp4", "d:\\IN\\IN_2021-03-29\\s1_e08_Zorro's_ride_into_terror_AUDIOENG20.ac3")
 
 	os.Exit(6)
 	c, err := config.ReadProgramConfig("ffstuff")
