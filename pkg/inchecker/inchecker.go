@@ -60,7 +60,7 @@ func (ch *Checker) AddTask(path string) {
 		//fmt.Println(f)
 		return
 	}
-	ch.data[path] = f
+	ch.data[path] = &f
 	//ch.pathList = append(ch.pathList, path)
 	base := namedata.RetrieveBase(path)
 	ch.groups[base] = append(ch.groups[base], path)

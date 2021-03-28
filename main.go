@@ -7,12 +7,16 @@ import (
 	"time"
 
 	"github.com/Galdoba/ffstuff/pkg/config"
+	"github.com/Galdoba/ffstuff/pkg/logfile"
 	"github.com/Galdoba/ffstuff/pkg/namedata"
 	"github.com/Galdoba/ffstuff/pkg/scanner"
 )
 
 func main() {
 
+	logfile.Test()
+
+	os.Exit(6)
 	c, err := config.ReadProgramConfig("ffstuff")
 	fmt.Println(err)
 	fmt.Println(c.Program)

@@ -4,14 +4,15 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/Galdoba/ffstuff/constant"
 	"github.com/Galdoba/ffstuff/pkg/config"
 	"github.com/Galdoba/ffstuff/pkg/grabber"
 	"github.com/Galdoba/ffstuff/pkg/logfile"
-	"github.com/Galdoba/ffstuff/pkg/namedata"
 	"github.com/Galdoba/ffstuff/pkg/scanner"
+	"github.com/Galdoba/utils"
 	"github.com/urfave/cli"
 )
 
@@ -58,13 +59,22 @@ func init() {
 func main() {
 	searchRoot := configMap[constant.SearchRoot]
 	searchMarker := configMap[constant.SearchMarker]
-	dest := configMap[constant.InPath]
-	logger = logfile.New(configMap[constant.MuxPath]+"logfile.txt", logfile.LogLevelDEBUG)
+	dest := configMap[constant.InPath] + "IN_" + utils.DateStamp() + "\\"
+	logPath := configMap[constant.MuxPath] + "MUX_" + utils.DateStamp() + "\\logfile.txt"
+	logger = logfile.New(logPath, logfile.LogLevelINFO)
 
 	app := cli.NewApp()
 	app.Version = "v 0.0.2"
 	app.Name = "grabber"
 	app.Usage = "dowloads files and sort it to working directories"
+	app.Flags = []cli.Flag{
+		&cli.BoolFlag{
+			Name:  "vocal",
+			Usage: "If flag is active grabber set logLevel to TRACE (level INFO is set by default)",
+			Value: false,
+		},
+	}
+
 	app.Commands = []*cli.Command{
 		//////////////////////////////////////
 		{
@@ -72,6 +82,7 @@ func main() {
 			Usage: "Download only those files, that was received as arguments",
 			Action: func(c *cli.Context) error {
 				paths := c.Args().Slice() //	path := c.String("path") //*cli.Context.String(key) - вызывает флаг с именем key и возвращает значение Value
+
 				for _, path := range paths {
 					fmt.Println("GRABBER DOWNLOADING FILE:", path)
 					err := grabber.CopyFile(path, dest)
@@ -87,6 +98,9 @@ func main() {
 			Name:  "takenew",
 			Usage: "Call Scanner to get list of new and ready files",
 			Action: func(c *cli.Context) error {
+				if c.Bool("vocal") {
+					logger.ShoutWhen(logfile.LogLevelALL)
+				}
 				takeFile, err := scanner.Scan(searchRoot, searchMarker)
 				if err != nil {
 					fmt.Println(err)
@@ -96,8 +110,9 @@ func main() {
 
 				for _, path := range fileList {
 					grabber.CopyFile(path, dest)
+					logger.TRACE("downloaded from:" + path)
 				}
-
+				logger.INFO(strconv.Itoa(len(fileList)) + " files downloaded")
 				//paths := c.Args().Slice() //	path := c.String("path") //*cli.Context.String(key) - вызывает флаг с именем key и возвращает значение Value
 				// for _, path := range paths {
 				// 	fmt.Println("GRABBER DOWNLOADING FILE:", path)
@@ -135,32 +150,4 @@ func describeArg(arg string) int {
 		return 1
 	}
 	return actionCode
-}
-
-func scanForAssociatedFiles(readyFile string) []string {
-	directory := namedata.RetrieveDirectory(readyFile)
-	base := namedata.RetrieveBase(readyFile)
-	found, err := scanner.Scan(directory, base)
-	fmt.Println("---", found)
-	if err != nil {
-		fmt.Println(err)
-	}
-	return found
-}
-
-func printHelp() {
-	fmt.Println("'grabber' отвечает за скачивание и распределение входящих файлов по папкам.")
-	fmt.Println("")
-	fmt.Println("Типовая команда для использования в консоли:")
-	fmt.Println("grabber \\\\nas\\ROOT\\EDIT\\21_02_20\\Critical_Thinking.ready")
-	fmt.Println("")
-	fmt.Println("Принцип работы:")
-	fmt.Println("Отталкиваясь от имени ready-файла (аргумент) grabber ищет все файлы в этой же папке с повторяющейся базой имени,")
-	fmt.Println("после чего все закачивает в папку входящих (берется из конфига или модуля 'fldr')")
-	fmt.Println("")
-	fmt.Println("Keys:")
-	fmt.Println("-a, --all   -  запускает модуль 'scanner' который ищет все ready файлы и использует их как аргументы")
-	fmt.Println("-v, --valid -  запускает модуль 'inchecker' перед скачиванием и скачивает только если нет ошибок")
-	fmt.Println("-p, --proxy -  скачивает только прокси и звук")
-
 }

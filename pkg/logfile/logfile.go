@@ -26,13 +26,18 @@ const (
 
 func Test() {
 	fmt.Println("START LOG TEST")
+
+	logger := New(fldr.MuxPath()+"logfile.txt", LogLevelINFO)
 	fmt.Println("process =", process)
 	fmt.Println("logFile =", logFile)
 	fmt.Println("loglimit =", loglimit)
-	logger := New(fldr.MuxPath()+"logfile.txt", 7)
+	logger.ALL("All message")
 	logger.TRACE("Trace message")
 	logger.DEBUG("Debug message")
 	logger.INFO("Info message")
+	logger.WARN("Warn message")
+	logger.ERROR("Error message")
+	logger.FATAL("Fatal message")
 	fmt.Println("END LOG TEST")
 }
 
@@ -41,7 +46,7 @@ var logFile string
 var loglimit int
 
 func init() {
-	loglimit = LogLevelDEBUG
+	//loglimit = LogLevelDEBUG
 	// processInit, err := os.Executable()
 	// if err != nil {
 	// 	fmt.Println(err)
@@ -80,26 +85,36 @@ func newEntry(eventDescription string, logLevel int) entry {
 	return en
 }
 
-func (en entry) write(file string) error {
-	importance := ""
-	switch en.eventImportance {
+func (en entry) String() string {
+	return en.timeStamp + " | " + en.callerProgram + " | " + importanceStr(en.eventImportance) + " | " + en.eventDescription + "\n"
+}
+
+func importanceStr(imp int) string {
+	str := ""
+	switch imp {
 	case 0:
-		importance = "ALL  "
+		str = "ALL  "
 	case 1:
-		importance = "TRACE"
+		str = "TRACE"
 	case 2:
-		importance = "DEBUG"
+		str = "DEBUG"
 	case 3:
-		importance = "INFO "
+		str = "INFO "
 	case 4:
-		importance = "WARN "
+		str = "WARN "
 	case 5:
-		importance = "ERROR"
+		str = "ERROR"
 	case 6:
-		importance = "FATAL"
+		str = "FATAL"
 	case 7:
-		importance = "OFF  "
+		str = "OFF  "
 	}
+	return str
+}
+
+func (en entry) write(file string) error {
+	//importance := importanceStr(en.eventImportance)
+
 	n := 12
 	for len(en.callerProgram) < n {
 		en.callerProgram = en.callerProgram + " "
@@ -107,35 +122,36 @@ func (en entry) write(file string) error {
 	if len(en.callerProgram) > n {
 		en.callerProgram = en.callerProgram[0:n]
 	}
-	event := en.timeStamp + " | " + en.callerProgram + " | " + importance + " | " + en.eventDescription + "\n"
+	//event := en.timeStamp + " | " + en.callerProgram + " | " + importance + " | " + en.eventDescription + "\n"
 	f, err := os.OpenFile(file, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
 	if err != nil {
 		panic(err)
 	}
 	defer f.Close()
-	if _, err = f.WriteString(event); err != nil {
+	if _, err = f.WriteString(en.String()); err != nil {
 		return err
 	}
-	if en.eventImportance >= loglimit {
-		color.Output = ansi.NewAnsiStdout()
-		switch en.eventImportance {
-		case 0, 1, 3:
-			color.White(event)
-		case 2:
-			color.Blue(event)
-		case 4:
-			color.Yellow(event)
-		default:
-			color.Red(event)
-		}
-		//fmt.Println(event)
-	}
+	// if en.eventImportance >= loglimit {
+	// 	color.Output = ansi.NewAnsiStdout()
+	// 	switch en.eventImportance {
+	// 	case 0, 1, 3:
+	// 		color.White(event)
+	// 	case 2:
+	// 		color.Blue(event)
+	// 	case 4:
+	// 		color.Yellow(event)
+	// 	default:
+	// 		color.Red(event)
+	// 	}
+	// 	//fmt.Println(event)
+	// }
 	return nil
 }
 
 type logger struct {
 	program         string
 	importanceLevel int
+	shoutLevel      int //степень важности события необходимая для вывода в терминал
 	file            string
 }
 
@@ -168,6 +184,7 @@ func New(path string, level int) Logger {
 	lgr := logger{}
 	lgr.file = path
 	lgr.importanceLevel = level
+	lgr.shoutLevel = LogLevelINFO
 	return &lgr
 }
 
@@ -180,6 +197,7 @@ type Logger interface {
 	WARN(string) error
 	ERROR(string) error
 	FATAL(string) error
+	ShoutWhen(int)
 	//OFF(string)
 }
 
@@ -188,6 +206,7 @@ func (l *logger) ALL(eventDescription string) error {
 	if err := en.write(l.file); err != nil {
 		return err
 	}
+	shout(en, l)
 	return nil
 }
 
@@ -196,6 +215,7 @@ func (l *logger) TRACE(eventDescription string) error {
 	if err := en.write(l.file); err != nil {
 		return err
 	}
+	shout(en, l)
 	return nil
 }
 
@@ -204,6 +224,7 @@ func (l *logger) DEBUG(eventDescription string) error {
 	if err := en.write(l.file); err != nil {
 		return err
 	}
+	shout(en, l)
 	return nil
 }
 
@@ -212,6 +233,7 @@ func (l *logger) INFO(eventDescription string) error {
 	if err := en.write(l.file); err != nil {
 		return err
 	}
+	shout(en, l)
 	return nil
 }
 
@@ -220,6 +242,7 @@ func (l *logger) WARN(eventDescription string) error {
 	if err := en.write(l.file); err != nil {
 		return err
 	}
+	shout(en, l)
 	return nil
 }
 
@@ -228,6 +251,7 @@ func (l *logger) ERROR(eventDescription string) error {
 	if err := en.write(l.file); err != nil {
 		return err
 	}
+	shout(en, l)
 	return nil
 }
 
@@ -236,5 +260,35 @@ func (l *logger) FATAL(eventDescription string) error {
 	if err := en.write(l.file); err != nil {
 		return err
 	}
+	shout(en, l)
 	return nil
+}
+
+func (l *logger) ShoutWhen(lvl int) {
+	switch lvl {
+	default:
+		return
+	case 0, 1, 2, 3, 4, 5, 6, 7:
+		l.shoutLevel = lvl
+	}
+}
+
+// func SetLogLimit(lvl int) {
+// 	loglimit = lvl
+// }
+
+func shout(en entry, l *logger) {
+	if en.eventImportance >= l.shoutLevel {
+		color.Output = ansi.NewAnsiStdout()
+		switch en.eventImportance {
+		case 0, 1, 3:
+			color.White(en.String())
+		case 2:
+			color.Blue(en.String())
+		case 4:
+			color.Yellow(en.String())
+		default:
+			color.Red(en.String())
+		}
+	}
 }

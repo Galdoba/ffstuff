@@ -122,7 +122,7 @@ func main() {
 					fmt.Println(val)
 					fcli.RunConsole("grabber", "only", val)
 				}
-				fmt.Print("Flag is |", app.Flags[0].String())
+				//fmt.Print("Flag is |", app.Flags[0].String())
 				return nil
 			},
 		},
