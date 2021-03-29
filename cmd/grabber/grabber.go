@@ -41,7 +41,6 @@ var logger logfile.Logger
 
 func init() {
 	err := errors.New("Initial obstract error")
-
 	conf, err := config.ReadProgramConfig("ffstuff")
 	if err != nil {
 		fmt.Println(err)
@@ -59,7 +58,7 @@ func init() {
 func main() {
 	searchRoot := configMap[constant.SearchRoot]
 	searchMarker := configMap[constant.SearchMarker]
-	dest := configMap[constant.InPath] + "IN_" + utils.DateStamp() + "\\"
+	//dest := configMap[constant.InPath] + "IN_" + utils.DateStamp() + "\\"
 	logPath := configMap[constant.MuxPath] + "MUX_" + utils.DateStamp() + "\\logfile.txt"
 	logger = logfile.New(logPath, logfile.LogLevelINFO)
 
@@ -82,9 +81,12 @@ func main() {
 			Usage: "Download only those files, that was received as arguments",
 			Action: func(c *cli.Context) error {
 				paths := c.Args().Slice() //	path := c.String("path") //*cli.Context.String(key) - вызывает флаг с именем key и возвращает значение Value
-
+				dest := configMap[constant.InPath] + "IN_" + utils.DateStamp() + "\\"
 				for _, path := range paths {
 					fmt.Println("GRABBER DOWNLOADING FILE:", path)
+					if strings.Contains(path, "_Proxy_") {
+						dest = dest + "proxy\\"
+					}
 					err := grabber.CopyFile(path, dest)
 					if err != nil {
 						fmt.Println(err.Error())
@@ -98,6 +100,7 @@ func main() {
 			Name:  "takenew",
 			Usage: "Call Scanner to get list of new and ready files",
 			Action: func(c *cli.Context) error {
+
 				if c.Bool("vocal") {
 					logger.ShoutWhen(logfile.LogLevelALL)
 				}
@@ -107,8 +110,11 @@ func main() {
 					return err
 				}
 				fileList := scanner.ListReady(takeFile)
-
 				for _, path := range fileList {
+					dest := configMap[constant.InPath] + "IN_" + utils.DateStamp() + "\\"
+					if strings.Contains(path, "_Proxy_") {
+						dest = dest + "proxy\\"
+					}
 					grabber.CopyFile(path, dest)
 					logger.TRACE("downloaded from:" + path)
 				}
@@ -133,21 +139,4 @@ func main() {
 	if err := app.Run(args); err != nil {
 		fmt.Println(err.Error())
 	}
-}
-
-func describeArg(arg string) int {
-	actionCode := -999
-	switch arg {
-	default:
-		if strings.Contains(arg, ".ready") {
-			//fmt.Println(arg, "- Valid argument: grabber will call scanner and download all associated files to InFolder")
-			//fmt.Println("In this case:", scanForAssociatedFiles(arg))
-			return 0
-		}
-		fmt.Println(arg, "- Invalid argument: grabber will ignore it")
-	case "-h", "--help":
-		//fmt.Println("This flag prints help text and exits program")
-		return 1
-	}
-	return actionCode
 }

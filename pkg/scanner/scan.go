@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"os/user"
 	"path/filepath"
 	"strings"
 
@@ -109,6 +110,12 @@ func ListReady(readyfiles []string) []string {
 	sorted := []string{}
 	for _, val := range resSl {
 		if strings.Contains(val, ".ready") {
+			// fmt.Println(val)
+			// dmarker, err := downloadingMarker(val)
+			// if err != nil {
+			// 	fmt.Println(err)
+			// }
+			// os.Rename(val, dmarker)
 			sorted = append(sorted, val)
 		}
 	}
@@ -126,4 +133,15 @@ func ListReady(readyfiles []string) []string {
 		sorted = utils.AppendUniqueStr(sorted, val)
 	}
 	return resSl
+}
+
+func downloadingMarker(path string) (string, error) {
+	trimmed := strings.TrimSuffix(path, ".ready")
+	if trimmed == path {
+		return path, errors.New("cannot trim marker")
+	}
+	cu, _ := user.Current()
+	username := cu.Name
+
+	return trimmed + ".downloadingBY" + username, nil
 }

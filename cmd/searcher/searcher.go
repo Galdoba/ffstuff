@@ -91,9 +91,9 @@ func main() {
 	if configMap[constant.LogDirectory] == "default" {
 		logLocation = fldr.MuxPath() + "logfile.txt"
 	}
-	logger = logfile.New(logLocation, logfile.LogLevelWARN)
+	logger = logfile.New(logLocation, logfile.LogLevelINFO)
 	app := cli.NewApp()
-	app.Version = "v 0.0.1"
+	app.Version = "v 0.0.2"
 	app.Name = "searcher"
 	app.Usage = "Scans root directory and all subdirectories to create list of files that matches queary"
 	app.Flags = []cli.Flag{
@@ -102,25 +102,44 @@ func main() {
 			Usage: "If flag is active grabber will try to download all results",
 			Value: false,
 		},
+		&cli.BoolFlag{
+			Name:  "vocal",
+			Usage: "If flag is active grabber set logLevel to ALL (level INFO is set by default)",
+			Value: false,
+		},
 	}
+
 	app.Commands = []*cli.Command{
 		//////////////////////////////////////
 		{
 			Name:  "new",
 			Usage: "Searches all files in the root which associated with marker",
 			Action: func(c *cli.Context) error {
+				if c.Bool("vocal") {
+					logger.ShoutWhen(logfile.LogLevelALL)
+				}
 				takeFile, err := scanner.Scan(root, marker)
 				if err != nil {
 					fmt.Println(err)
-
 					return err
 				}
 				fileList := scanner.ListReady(takeFile)
-				logger.INFO(strconv.Itoa(len(fileList)) + " new files found")
-				fileList = sortResults(fileList)
 				for _, val := range fileList {
-					fmt.Println(val)
-					fcli.RunConsole("grabber", "only", val)
+					logger.TRACE("new file found: " + val)
+				}
+				logger.INFO(strconv.Itoa(len(fileList)) + " new files found")
+
+				if c.Bool("grab") {
+					fileList = sortResults(fileList)
+					for _, val := range fileList {
+						prog := "grabber"
+						args := []string{}
+						if c.Bool("vocal") {
+							args = append(args, "--vocal")
+						}
+						args = append(args, "only", val)
+						fcli.RunConsole(prog, args...)
+					}
 				}
 				//fmt.Print("Flag is |", app.Flags[0].String())
 				return nil

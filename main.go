@@ -13,7 +13,15 @@ import (
 )
 
 func main() {
+	// HOME\cache\ffstuff\
 
+	/*
+		searcher - list
+
+
+	*/
+
+	os.Exit(6)
 	muxer.MuxA2("d:\\IN\\IN_2021-03-29\\s1_e08_Zorro's_ride_into_terror_HD.mp4", "d:\\IN\\IN_2021-03-29\\s1_e08_Zorro's_ride_into_terror_AUDIOENG20.ac3")
 
 	os.Exit(6)

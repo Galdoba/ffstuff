@@ -31,7 +31,7 @@ const (
 type Checker struct {
 	pathList []string
 	//logger   logfile.Logger
-	data     map[string]*ffinfo.File
+	data     map[string]ffinfo.File
 	groups   map[string][]string
 	errorLog map[string][]error
 }
@@ -40,7 +40,7 @@ type Checker struct {
 func NewChecker() Checker {
 	ch := Checker{}
 	ch.groups = make(map[string][]string)
-	ch.data = make(map[string]*ffinfo.File)
+	ch.data = make(map[string]ffinfo.File)
 	ch.errorLog = make(map[string][]error)
 	//ch.logger = logfile.New(fldr.MuxPath()+"logfile.txt", logfile.LogLevelINFO)
 	return ch
@@ -60,7 +60,7 @@ func (ch *Checker) AddTask(path string) {
 		//fmt.Println(f)
 		return
 	}
-	ch.data[path] = &f
+	ch.data[path] = *f
 	//ch.pathList = append(ch.pathList, path)
 	base := namedata.RetrieveBase(path)
 	ch.groups[base] = append(ch.groups[base], path)
@@ -263,7 +263,7 @@ func knownTags() []string {
 	}
 }
 
-func collectInfo(f *ffinfo.File, stream int, key string) string {
+func collectInfo(f ffinfo.File, stream int, key string) string {
 	key = strings.ToLower(key)
 	key = strings.ReplaceAll(key, " ", "_")
 	switch key {
