@@ -5,12 +5,12 @@ import (
 	"os"
 
 	"github.com/Galdoba/ffstuff/fldr"
+	"github.com/Galdoba/ffstuff/pkg/glog"
 	"github.com/Galdoba/ffstuff/pkg/inchecker"
-	"github.com/Galdoba/ffstuff/pkg/logfile"
 )
 
 func main() {
-	logger := logfile.New(fldr.MuxPath()+"logfile.txt", logfile.LogLevelINFO)
+	logger := glog.New(fldr.MuxPath()+"logfile.txt", glog.LogLevelINFO)
 	checker := inchecker.NewChecker()
 	for _, path := range pathsReceived() {
 		checker.AddTask(path)

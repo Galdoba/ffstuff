@@ -9,8 +9,8 @@ import (
 
 	"github.com/Galdoba/ffstuff/constant"
 	"github.com/Galdoba/ffstuff/pkg/config"
+	"github.com/Galdoba/ffstuff/pkg/glog"
 	"github.com/Galdoba/ffstuff/pkg/grabber"
-	"github.com/Galdoba/ffstuff/pkg/logfile"
 	"github.com/Galdoba/ffstuff/pkg/scanner"
 	"github.com/Galdoba/utils"
 	"github.com/urfave/cli"
@@ -37,7 +37,7 @@ TZ:
 */
 
 var configMap map[string]string
-var logger logfile.Logger
+var logger glog.Logger
 
 func init() {
 	err := errors.New("Initial obstract error")
@@ -59,8 +59,8 @@ func main() {
 	searchRoot := configMap[constant.SearchRoot]
 	searchMarker := configMap[constant.SearchMarker]
 	//dest := configMap[constant.InPath] + "IN_" + utils.DateStamp() + "\\"
-	logPath := configMap[constant.MuxPath] + "MUX_" + utils.DateStamp() + "\\logfile.txt"
-	logger = logfile.New(logPath, logfile.LogLevelINFO)
+	logPath := configMap[constant.MuxPath] + "MUX_" + utils.DateStamp() + "\\glog.txt"
+	logger = glog.New(logPath, glog.LogLevelINFO)
 
 	app := cli.NewApp()
 	app.Version = "v 0.0.2"
@@ -102,7 +102,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 
 				if c.Bool("vocal") {
-					logger.ShoutWhen(logfile.LogLevelALL)
+					logger.ShoutWhen(glog.LogLevelALL)
 				}
 				takeFile, err := scanner.Scan(searchRoot, searchMarker)
 				if err != nil {

@@ -14,7 +14,7 @@ import (
 
 func main() {
 	// HOME\cache\ffstuff\
-
+	muxer.Test()
 	/*
 		searcher - list
 

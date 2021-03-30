@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Galdoba/devtools/cli/user"
 	"github.com/Galdoba/ffstuff/constant"
 	"github.com/Galdoba/ffstuff/fldr"
 	"github.com/Galdoba/utils"
@@ -18,12 +17,12 @@ import (
 	"github.com/Galdoba/ffstuff/pkg/scanner"
 
 	"github.com/Galdoba/ffstuff/pkg/config"
-	"github.com/Galdoba/ffstuff/pkg/logfile"
+	"github.com/Galdoba/ffstuff/pkg/glog"
 )
 
 var configMap map[string]string
 
-var logger logfile.Logger
+var logger glog.Logger
 var logLocation string
 
 func init() {
@@ -42,56 +41,12 @@ func init() {
 }
 
 func main() {
-	// fldr.Init()
-	// argsReceived()
-
-	// root := configMap[constant.SearchRoot]
-	// f, err := os.Stat(root)
-	// if err != nil {
-	// 	fmt.Println(err)
-	// 	os.Exit(1)
-	// }
-	// if !f.IsDir() {
-	// 	fmt.Println(f.Name(), "is not directory")
-	// 	os.Exit(2)
-	// }
-	// marker = configMap[constant.SearchMarker]
-
-	// if configMap[constant.LogDirectory] == "default" {
-	// 	logLocation = fldr.MuxPath() + "logfile.txt"
-	// }
-	// logger = logfile.New(logLocation, logfile.LogLevelWARN)
-
-	// takeFile, err := scanner.Scan(root, marker)
-	// fileList := scanner.ListReady(takeFile)
-	// // if err := filepath.Walk(root, visit); err != nil {
-	// if err != nil {
-	// 	logger.ERROR(err.Error())
-	// }
-	// fmt.Println("")
-
-	// /////////NEXT STAGE TEST
-	// if len(fileList) == 0 {
-	// 	fmt.Println("\rNothing new")
-	// 	logger.INFO("No new files found")
-	// 	return
-	// }
-
-	// logger.INFO(strconv.Itoa(len(fileList)) + " new files found")
-	// fileList = sortResults(fileList)
-	// //runInchecker(takeFile)
-	// for _, val := range fileList {
-	// 	fmt.Println("Can take", val)
-	// }
-
-	//os.Exit(0)
-	//autoGrab := false
 	root := configMap[constant.SearchRoot]
 	marker := configMap[constant.SearchMarker]
 	if configMap[constant.LogDirectory] == "default" {
-		logLocation = fldr.MuxPath() + "logfile.txt"
+		logLocation = fldr.MuxPath() + "glog.txt"
 	}
-	logger = logfile.New(logLocation, logfile.LogLevelINFO)
+	logger = glog.New(logLocation, glog.LogLevelINFO)
 	app := cli.NewApp()
 	app.Version = "v 0.0.2"
 	app.Name = "searcher"
@@ -116,7 +71,7 @@ func main() {
 			Usage: "Searches all files in the root which associated with marker",
 			Action: func(c *cli.Context) error {
 				if c.Bool("vocal") {
-					logger.ShoutWhen(logfile.LogLevelALL)
+					logger.ShoutWhen(glog.LogLevelALL)
 				}
 				takeFile, err := scanner.Scan(root, marker)
 				if err != nil {
@@ -137,7 +92,7 @@ func main() {
 						if c.Bool("vocal") {
 							args = append(args, "--vocal")
 						}
-						args = append(args, "only", val)
+						args = append(args, "takeonly", val)
 						fcli.RunConsole(prog, args...)
 					}
 				}
@@ -178,44 +133,6 @@ func runInchecker(takeFile []string) []string {
 	// return validFiles
 }
 
-func defineRoot() string {
-	fmt.Println("Enter path to root folder:")
-	fmt.Print("Root=")
-	str, err := user.InputStr()
-	if err != nil {
-		logger.WARN(err.Error())
-	}
-	config.SetField("ROOT", str)
-	return str
-}
-
-// func argsReceived() {
-// 	for _, val := range os.Args {
-// 		val = strings.ToLower(val)
-// 		switch val {
-// 		case "--incheck", "-c":
-// 			afterCheck = true
-// 		case "--help", "-h":
-// 			printHelp()
-// 		}
-// 	}
-
-// }
-
-func printHelp() {
-	fmt.Print("Searcher walk all directories under the ROOT, and search any '[base].ready' files.\n")
-	fmt.Print("After that it constructs result list of paths containing '[base]' in their names.\n")
-	fmt.Print("This list can be used as arguments for other ffstuff aplications.\n")
-	fmt.Print("\n")
-	fmt.Print("ROOT=", configMap["ROOT"], "\n")
-	fmt.Print("\n")
-	fmt.Print("Keys:\n")
-	fmt.Print(" -h, --help      -   show this message\n")
-	fmt.Print(" -c, --incheck   -   run inchecker module on all files in result list\n")
-	fmt.Print(" -g, --grab      -   run grabber module on all files in result list\n")
-	os.Exit(0)
-}
-
 /*
 
 search -new
@@ -230,29 +147,6 @@ search -repeat=60 -incheck -grab -until:202127020900
 
 
 */
-
-// func visit(path string, f os.FileInfo, err error) error {
-// 	if f.IsDir() {
-// 		clearLine()
-// 		fmt.Print("\rSearch: ", path)
-// 	}
-// 	if !strings.Contains(f.Name(), marker) {
-// 		return nil
-// 	}
-// 	dir, base := filepath.Split(path)
-// 	base = strings.TrimSuffix(base, marker)
-// 	files, err := ioutil.ReadDir(dir)
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
-
-// 	for _, fl := range files {
-// 		if strings.Contains(fl.Name(), base) && !strings.Contains(fl.Name(), marker) {
-// 			takeFile = append(takeFile, dir+fl.Name())
-// 		}
-// 	}
-// 	return nil
-// }
 
 func clearLine() {
 	clr := ""

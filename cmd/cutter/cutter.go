@@ -9,12 +9,12 @@ import (
 	"github.com/Galdoba/ffstuff/ediread"
 	"github.com/Galdoba/ffstuff/fldr"
 	"github.com/Galdoba/ffstuff/pkg/cli"
-	"github.com/Galdoba/ffstuff/pkg/logfile"
+	"github.com/Galdoba/ffstuff/pkg/glog"
 )
 
 func main() {
 	fldr.Init()
-	logger := logfile.New(fldr.MuxPath()+"logfile.txt", logfile.LogLevelWARN)
+	logger := glog.New(fldr.MuxPath()+"logfile.txt", glog.LogLevelWARN)
 	logger.INFO("Start cutting")
 	edlFile := fldr.SelectEDL()
 	edi, err := ediread.NewEdlData(edlFile)

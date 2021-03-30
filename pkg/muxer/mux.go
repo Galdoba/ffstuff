@@ -4,6 +4,7 @@ import (
 	"github.com/Galdoba/ffstuff/fldr"
 	"github.com/Galdoba/ffstuff/pkg/cli"
 	"github.com/Galdoba/ffstuff/pkg/namedata"
+	"github.com/Galdoba/utils"
 )
 
 /*
@@ -22,36 +23,12 @@ rem "\\192.168.32.3\ROOT\#PETR\toCheck\%f_name%_ar2e6.mp4"
 
 */
 
-func commonPrefix(sl ...string) string {
-	leastLen := 10000000
-	for _, v := range sl {
-		if len(v) < leastLen {
-			leastLen = len(v)
-		}
-	}
-	common := ""
-	dif := false
-	for i := 0; i < leastLen; i++ {
-		if dif {
-			break
-		}
-		examine := ""
-		for in, v := range sl {
-			if string(v[in]) != string(sl[0][in]) {
-				dif = true
-				break
-			}
-			examine = string(sl[0][i])
-		}
-		if !dif {
-			common += examine
-		}
-	}
-	return common
+func Test() {
+
 }
 
 func MuxA2(video, audio1 string) {
-	base := commonPrefix(video, audio1)
+	base := utils.CommonPrefix(video, audio1)
 	base = namedata.RetrieveShortName(base)
 	prog := "ffmpeg"
 	args := []string{
