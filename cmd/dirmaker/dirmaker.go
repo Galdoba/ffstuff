@@ -45,7 +45,7 @@ func init() {
 
 func main() {
 	app := cli.NewApp()
-	app.Version = "v 0.0.1"
+	app.Version = "v 0.0.2"
 	app.Name = "dirmaker"
 	app.Usage = "checks, creates and (TODO: Deletes) directories"
 	app.Commands = []*cli.Command{
@@ -67,7 +67,7 @@ func main() {
 		//////////////////////////////////////
 		{
 			Name:  "daily",
-			Usage: "Create today's work directories",
+			Usage: "Create today's work directories and daily files",
 			Action: func(c *cli.Context) error {
 				paths := []string{
 					configMap[constant.InPath] + "IN_" + utils.DateStamp() + "\\",
@@ -81,6 +81,8 @@ func main() {
 					)
 					dir.Make()
 				}
+				ensureFileExistiense(configMap[constant.MuxPath] + "MUX_" + utils.DateStamp() + "\\" + "muxlist.txt")
+
 				return nil
 			},
 		},
@@ -93,4 +95,13 @@ func main() {
 	if err := app.Run(args); err != nil {
 		fmt.Println(err.Error())
 	}
+}
+
+func ensureFileExistiense(path string) error {
+	_, err := os.Stat(path)
+	if os.IsNotExist(err) {
+		os.OpenFile(path, os.O_RDONLY|os.O_CREATE, 0666)
+	}
+	_, err = os.Stat(path)
+	return err
 }

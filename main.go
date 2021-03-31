@@ -6,30 +6,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Galdoba/ffstuff/pkg/config"
-	"github.com/Galdoba/ffstuff/pkg/muxer"
 	"github.com/Galdoba/ffstuff/pkg/namedata"
 	"github.com/Galdoba/ffstuff/pkg/scanner"
 )
 
 func main() {
-	// HOME\cache\ffstuff\
-	muxer.Test()
-	/*
-		searcher - list
 
-
-	*/
-
-	os.Exit(6)
-	muxer.MuxA2("d:\\IN\\IN_2021-03-29\\s1_e08_Zorro's_ride_into_terror_HD.mp4", "d:\\IN\\IN_2021-03-29\\s1_e08_Zorro's_ride_into_terror_AUDIOENG20.ac3")
-
-	os.Exit(6)
-	c, err := config.ReadProgramConfig("ffstuff")
+	err := os.Rename("d:\\MUX\\MUX_2021-03-31\\testFile.txt", "d:\\MUX\\MUX_2021-03-31\\testFileRENAMED.txt")
 	fmt.Println(err)
-	fmt.Println(c.Program)
-	fmt.Println(c.Field)
-	fmt.Println(c.Path)
 
 	// str, rtr, err := cli.RunConsole("inchecker", "\\\\nas\\ROOT\\EDIT\\21_02_20\\Ya_podaryu_tebe_pobedu_AUDIORUS51.m4a")
 	// fmt.Println(str)
@@ -77,14 +61,46 @@ func downloadbar(now int) {
 	if now > 100 || now < 0 {
 		return
 	}
-	s := ""
-	for i := 0; i < 100; i++ {
-		if i <= now {
+	s := "["
+	for i := 0; i < 25; i++ {
+		if i < now/4 {
 			s += string(rune(9608))
 			continue
 		}
-		s += string(rune(9617))
+		if now == 100 {
+			s += string(rune(9608))
+			continue
+		}
+		if i == now/4 {
+			s += string(rune(9612))
+			continue
+		}
+
+		s += " "
 	}
-	s += "\r"
+	s += "]"
 	fmt.Print(s)
 }
+
+/*
+10
+██████████ 10%
+
+20
+████████████████████ 5%
+25
+█████████████████████████ 4%
+30
+██████████████████████████████ 4%
+40
+[█████████████████████████████████████▌  ] 2.5%
+50
+██████████████████████████████████████████████████ 2%
+
+[1234567890123456789012345678901234567890]
+[progress: 100.0%]
+
+if now%4 >= 2 {
+				s += string(rune(9612))
+				continue
+*/

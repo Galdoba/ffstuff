@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/Galdoba/ffstuff/constant"
+	"github.com/Galdoba/ffstuff/fldr"
 	"github.com/Galdoba/ffstuff/pkg/config"
 	"github.com/Galdoba/ffstuff/pkg/glog"
 	"github.com/Galdoba/ffstuff/pkg/grabber"
@@ -86,6 +87,9 @@ func main() {
 					fmt.Println("GRABBER DOWNLOADING FILE:", path)
 					if strings.Contains(path, "_Proxy_") {
 						dest = dest + "proxy\\"
+					}
+					if strings.Contains(path, ".srt") {
+						dest = fldr.MuxPath()
 					}
 					err := grabber.CopyFile(path, dest)
 					if err != nil {
