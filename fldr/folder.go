@@ -67,17 +67,17 @@ func Test() {
 
 //InPath - Возвращает сегодняшнюю папку для скачивания
 func InPath() string {
-	return inFolder + "\\IN_" + utils.DateStamp() + "\\"
+	return inFolder + "IN_" + utils.DateStamp() + "\\"
 }
 
 //MuxPath - Возвращает сегодняшнюю папку для мукса
 func MuxPath() string {
-	return muxFolder + "\\MUX_" + utils.DateStamp() + "\\"
+	return muxFolder + "MUX_" + utils.DateStamp() + "\\"
 }
 
 //OutPath - Возвращает сегодняшнюю папку для проверки/отправки
 func OutPath() string {
-	return outFolder + "\\OUT_" + utils.DateStamp() + "\\"
+	return outFolder + "OUT_" + utils.DateStamp() + "\\"
 }
 
 // func SelectEDL() string {

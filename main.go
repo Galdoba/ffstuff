@@ -6,14 +6,36 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Galdoba/ffstuff/fldr"
+	"github.com/Galdoba/ffstuff/pkg/glog"
+	"github.com/Galdoba/ffstuff/pkg/muxer"
 	"github.com/Galdoba/ffstuff/pkg/namedata"
 	"github.com/Galdoba/ffstuff/pkg/scanner"
 )
 
 func main() {
-
-	err := os.Rename("d:\\MUX\\MUX_2021-03-31\\testFile.txt", "d:\\MUX\\MUX_2021-03-31\\testFileRENAMED.txt")
-	fmt.Println(err)
+	logger := glog.New(fldr.MuxPath()+"testLog.txt", 2)
+	tasks, err := muxer.MuxList()
+	if err != nil {
+		logger.ERROR(err.Error())
+		fmt.Println(err)
+	}
+	for i, task := range tasks {
+		fmt.Print("Task ", i, "/", len(tasks), ":\n")
+		files, muxTask, err := muxer.ChooseMuxer(task)
+		if err != nil {
+			logger.ERROR(err.Error())
+			fmt.Println(err)
+			continue
+		}
+		err = muxer.Run(muxTask, files)
+		if err != nil {
+			logger.ERROR(err.Error())
+			fmt.Println(err)
+		}
+		logger.TRACE("Task Complete: " + task)
+	}
+	logger.INFO("Muxig Complete")
 
 	// str, rtr, err := cli.RunConsole("inchecker", "\\\\nas\\ROOT\\EDIT\\21_02_20\\Ya_podaryu_tebe_pobedu_AUDIORUS51.m4a")
 	// fmt.Println(str)

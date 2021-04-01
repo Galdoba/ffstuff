@@ -1,14 +1,38 @@
 package muxer
 
+/*
+-функции мукса много раз повторяются из расчета "пусть будет наглядно"
+
+*/
+
 import (
 	"bufio"
+	"errors"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/Galdoba/ffstuff/fldr"
 	"github.com/Galdoba/ffstuff/pkg/cli"
 	"github.com/Galdoba/ffstuff/pkg/namedata"
 	"github.com/Galdoba/utils"
+)
+
+const (
+	MuxerA2    = "ar2"
+	MuxerA6    = "ar6"
+	MuxerA2E2  = "ar2e2"
+	MuxerA2E6  = "ar2e6"
+	MuxerA6E2  = "ar6e2"
+	MuxerA6E6  = "ar6e6"
+	MuxerA2s   = "ar2_sr"
+	MuxerA6s   = "ar6_sr"
+	MuxerA2E2s = "ar2e2_sr"
+	MuxerA2E6s = "ar2e6_sr"
+	MuxerA6E2s = "ar6e2_sr"
+	MuxerA6E6s = "ar6e6_sr"
+	MuxerNA    = ""
+	MuxerSKIP  = "ST"
 )
 
 /*
@@ -39,10 +63,12 @@ func Test() {
 	//Rename input files
 }
 
-func MuxList() []string {
+func MuxList() ([]string, error) {
 	file, err := os.Open(fldr.MuxPath() + "muxlist.txt")
 	if err != nil {
-		log.Fatal(err)
+		if os.IsNotExist(err) {
+			return []string{}, err
+		}
 	}
 	defer file.Close()
 	list := []string{}
@@ -50,22 +76,120 @@ func MuxList() []string {
 	for scanner.Scan() {
 		list = append(list, scanner.Text())
 	}
-
 	if err := scanner.Err(); err != nil {
 		log.Fatal(err)
 	}
-	return list
+	return list, scanner.Err()
+}
+
+func ChooseMuxer(task string) ([]string, string, error) {
+	data := strings.Split(task, " ")
+	if data[0] == "" {
+		return []string{}, MuxerSKIP, nil
+	}
+	if len(data) < 2 {
+		return []string{}, MuxerNA, errors.New("muxer not assigned")
+	}
+	switch data[1] {
+	default:
+		return []string{}, MuxerSKIP, errors.New("muxer not recognised")
+	case MuxerA2, MuxerA6, MuxerA2E2, MuxerA2E6, MuxerA6E2, MuxerA6E6, MuxerA2s, MuxerA6s, MuxerA2E2s, MuxerA2E6s, MuxerA6E2s, MuxerA6E6s:
+		paths := defineFiles(task)
+		return paths, data[1], nil
+	}
+}
+
+func Run(muxerTask string, files []string) error {
+	if err := assertInputFiles(files...); err != nil {
+		return err
+	}
+	switch muxerTask {
+	default:
+		return errors.New("undefined muxer task")
+	case MuxerA2:
+		return MuxA2(files[0], files[1])
+	case MuxerA6:
+		return MuxA6(files[0], files[1])
+	case MuxerA2E2:
+		return MuxA2E2(files[0], files[1], files[2])
+	case MuxerA2E6:
+		return MuxA2E6(files[0], files[1], files[2])
+	case MuxerA6E2:
+		return MuxA6E2(files[0], files[1], files[2])
+	case MuxerA6E6:
+		return MuxA6E6(files[0], files[1], files[2])
+	case MuxerA2s:
+		return MuxA2s(files[0], files[1], files[2])
+	case MuxerA6s:
+		return MuxA6s(files[0], files[1], files[2])
+	case MuxerA2E2s:
+		return MuxA2E2s(files[0], files[1], files[2], files[3])
+	case MuxerA2E6s:
+		return MuxA2E6s(files[0], files[1], files[2], files[3])
+	case MuxerA6E2s:
+		return MuxA6E2s(files[0], files[1], files[2], files[3])
+	case MuxerA6E6s:
+		return MuxA6E6s(files[0], files[1], files[2], files[3])
+	}
+
+}
+
+func defineFiles(task string) []string {
+	data := strings.Split(task, " ")
+	paths := []string{fldr.MuxPath() + data[0]}
+	base := strings.TrimSuffix(data[0], ".mp4")
+	base = fldr.MuxPath() + base
+	switch data[1] {
+	case MuxerA2:
+		paths = append(paths, base+"_rus20.ac3")
+	case MuxerA6:
+		paths = append(paths, base+"_rus51.ac3")
+	case MuxerA2E2:
+		paths = append(paths, base+"_rus20.ac3")
+		paths = append(paths, base+"_eng20.ac3")
+	case MuxerA2E6:
+		paths = append(paths, base+"_rus20.ac3")
+		paths = append(paths, base+"_eng51.ac3")
+	case MuxerA6E2:
+		paths = append(paths, base+"_rus51.ac3")
+		paths = append(paths, base+"_eng20.ac3")
+	case MuxerA6E6:
+		paths = append(paths, base+"_rus51.ac3")
+		paths = append(paths, base+"_eng51.ac3")
+	case MuxerA2s:
+		paths = append(paths, base+"_rus20.ac3")
+		paths = append(paths, base+".srt")
+	case MuxerA6s:
+		paths = append(paths, base+"_rus51.ac3")
+		paths = append(paths, base+".srt")
+	case MuxerA2E2s:
+		paths = append(paths, base+"_rus20.ac3")
+		paths = append(paths, base+"_eng20.ac3")
+		paths = append(paths, base+".srt")
+	case MuxerA2E6s:
+		paths = append(paths, base+"_rus20.ac3")
+		paths = append(paths, base+"_eng51.ac3")
+		paths = append(paths, base+".srt")
+	case MuxerA6E2s:
+		paths = append(paths, base+"_rus51.ac3")
+		paths = append(paths, base+"_eng20.ac3")
+		paths = append(paths, base+".srt")
+	case MuxerA6E6s:
+		paths = append(paths, base+"_rus51.ac3")
+		paths = append(paths, base+"_eng51.ac3")
+		paths = append(paths, base+".srt")
+	}
+	return paths
 }
 
 func MuxA2(video, audio1 string) error {
 	base := utils.CommonPrefix(video, audio1)
 	base = namedata.RetrieveShortName(base)
-	//dir := namedata.RetrieveDirectory() -
 	prog := "ffmpeg"
 	args := []string{
 		"-i", video,
 		"-i", audio1,
-		"-codec", "copy", "-codec:s", "mov_text",
+		"-codec", "copy",
 		"-map", "0:v",
 		"-map", "1:a", "-metadata:s:a:0", "language=rus",
 		fldr.OutPath() + base + "_ar2.mp4",
@@ -81,11 +205,213 @@ func MuxA6(video, audio1 string) error {
 	args := []string{
 		"-i", video,
 		"-i", audio1,
-		"-codec", "copy", "-codec:s", "mov_text",
+		"-codec", "copy",
 		"-map", "0:v",
 		"-map", "1:a", "-metadata:s:a:0", "language=rus",
 		fldr.OutPath() + base + "_ar6.mp4",
 	}
 	_, _, err := cli.RunConsole(prog, args...)
 	return err
+}
+
+func MuxA2E2(video, audio1, audio2 string) error {
+	base := utils.CommonPrefix(video, audio1, audio2)
+	base = namedata.RetrieveShortName(base)
+	prog := "ffmpeg"
+	args := []string{
+		"-i", video,
+		"-i", audio1,
+		"-i", audio2,
+		"-codec", "copy",
+		"-map", "0:v",
+		"-map", "1:a", "-metadata:s:a:0", "language=rus",
+		"-map", "2:a", "-metadata:s:a:1", "language=eng",
+		fldr.OutPath() + base + "_ar2e2.mp4",
+	}
+	_, _, err := cli.RunConsole(prog, args...)
+	return err
+}
+
+func MuxA2E6(video, audio1, audio2 string) error {
+	base := utils.CommonPrefix(video, audio1, audio2)
+	base = namedata.RetrieveShortName(base)
+	prog := "ffmpeg"
+	args := []string{
+		"-i", video,
+		"-i", audio1,
+		"-i", audio2,
+		"-codec", "copy",
+		"-map", "0:v",
+		"-map", "1:a", "-metadata:s:a:0", "language=rus",
+		"-map", "2:a", "-metadata:s:a:1", "language=eng",
+		fldr.OutPath() + base + "_ar2e6.mp4",
+	}
+	_, _, err := cli.RunConsole(prog, args...)
+	return err
+}
+
+func MuxA6E2(video, audio1, audio2 string) error {
+	base := utils.CommonPrefix(video, audio1, audio2)
+	base = namedata.RetrieveShortName(base)
+	prog := "ffmpeg"
+	args := []string{
+		"-i", video,
+		"-i", audio1,
+		"-i", audio2,
+		"-codec", "copy",
+		"-map", "0:v",
+		"-map", "1:a", "-metadata:s:a:0", "language=rus",
+		"-map", "2:a", "-metadata:s:a:1", "language=eng",
+		fldr.OutPath() + base + "_ar6e2.mp4",
+	}
+	_, _, err := cli.RunConsole(prog, args...)
+	return err
+}
+
+func MuxA6E6(video, audio1, audio2 string) error {
+	base := utils.CommonPrefix(video, audio1, audio2)
+	base = namedata.RetrieveShortName(base)
+	prog := "ffmpeg"
+	args := []string{
+		"-i", video,
+		"-i", audio1,
+		"-i", audio2,
+		"-codec", "copy",
+		"-map", "0:v",
+		"-map", "1:a", "-metadata:s:a:0", "language=rus",
+		"-map", "2:a", "-metadata:s:a:1", "language=eng",
+		fldr.OutPath() + base + "_ar6e6.mp4",
+	}
+	_, _, err := cli.RunConsole(prog, args...)
+	return err
+}
+
+////////////////////
+func MuxA2s(video, audio1, subs string) error {
+	base := utils.CommonPrefix(video, audio1)
+	base = namedata.RetrieveShortName(base)
+	prog := "ffmpeg"
+	args := []string{
+		"-i", video,
+		"-i", audio1,
+		"-i", subs,
+		"-codec", "copy", "-codec:s", "mov_text",
+		"-map", "0:v",
+		"-map", "1:a", "-metadata:s:a:0", "language=rus",
+		"-map", "2:s", "-metadata:s:s:0", "language=rus",
+		fldr.OutPath() + base + "_ar2_sr.mp4",
+	}
+	_, _, err := cli.RunConsole(prog, args...)
+	return err
+}
+
+func MuxA6s(video, audio1, subs string) error {
+	base := utils.CommonPrefix(video, audio1)
+	base = namedata.RetrieveShortName(base)
+	prog := "ffmpeg"
+	args := []string{
+		"-i", video,
+		"-i", audio1,
+		"-i", subs,
+		"-codec", "copy", "-codec:s", "mov_text",
+		"-map", "0:v",
+		"-map", "1:a", "-metadata:s:a:0", "language=rus",
+		"-map", "2:s", "-metadata:s:s:0", "language=rus",
+		fldr.OutPath() + base + "_ar6_sr.mp4",
+	}
+	_, _, err := cli.RunConsole(prog, args...)
+	return err
+}
+
+func MuxA2E2s(video, audio1, audio2, subs string) error {
+	base := utils.CommonPrefix(video, audio1, audio2)
+	base = namedata.RetrieveShortName(base)
+	prog := "ffmpeg"
+	args := []string{
+		"-i", video,
+		"-i", audio1,
+		"-i", audio2,
+		"-i", subs,
+		"-codec", "copy", "-codec:s", "mov_text",
+		"-map", "0:v",
+		"-map", "1:a", "-metadata:s:a:0", "language=rus",
+		"-map", "2:a", "-metadata:s:a:1", "language=eng",
+		"-map", "3:s", "-metadata:s:s:0", "language=rus",
+		fldr.OutPath() + base + "_ar2e2_sr.mp4",
+	}
+	_, _, err := cli.RunConsole(prog, args...)
+	return err
+}
+
+func MuxA2E6s(video, audio1, audio2, subs string) error {
+	base := utils.CommonPrefix(video, audio1, audio2)
+	base = namedata.RetrieveShortName(base)
+	prog := "ffmpeg"
+	args := []string{
+		"-i", video,
+		"-i", audio1,
+		"-i", audio2,
+		"-i", subs,
+		"-codec", "copy", "-codec:s", "mov_text",
+		"-map", "0:v",
+		"-map", "1:a", "-metadata:s:a:0", "language=rus",
+		"-map", "2:a", "-metadata:s:a:1", "language=eng",
+		"-map", "3:s", "-metadata:s:s:0", "language=rus",
+		fldr.OutPath() + base + "_ar2e6_sr.mp4",
+	}
+	_, _, err := cli.RunConsole(prog, args...)
+	return err
+}
+
+func MuxA6E2s(video, audio1, audio2, subs string) error {
+	base := utils.CommonPrefix(video, audio1, audio2)
+	base = namedata.RetrieveShortName(base)
+	prog := "ffmpeg"
+	args := []string{
+		"-i", video,
+		"-i", audio1,
+		"-i", audio2,
+		"-i", subs,
+		"-codec", "copy", "-codec:s", "mov_text",
+		"-map", "0:v",
+		"-map", "1:a", "-metadata:s:a:0", "language=rus",
+		"-map", "2:a", "-metadata:s:a:1", "language=eng",
+		"-map", "3:s", "-metadata:s:s:0", "language=rus",
+		fldr.OutPath() + base + "_ar6e2_sr.mp4",
+	}
+	_, _, err := cli.RunConsole(prog, args...)
+	return err
+}
+
+func MuxA6E6s(video, audio1, audio2, subs string) error {
+	base := utils.CommonPrefix(video, audio1, audio2, subs)
+	base = namedata.RetrieveShortName(base)
+	prog := "ffmpeg"
+	args := []string{
+		"-i", video,
+		"-i", audio1,
+		"-i", audio2,
+		"-i", subs,
+		"-codec", "copy", "-codec:s", "mov_text",
+		"-map", "0:v",
+		"-map", "1:a", "-metadata:s:a:0", "language=rus",
+		"-map", "2:a", "-metadata:s:a:1", "language=eng",
+		"-map", "3:s", "-metadata:s:s:0", "language=rus",
+		fldr.OutPath() + base + "_ar6e6_sr.mp4",
+	}
+	_, _, err := cli.RunConsole(prog, args...)
+	return err
+}
+
+func assertInputFiles(filePath ...string) error {
+	for _, path := range filePath {
+		_, err := os.Stat(path)
+		if err != nil {
+			if os.IsNotExist(err) {
+				return errors.New("File not found: " + path)
+			}
+			return err
+		}
+	}
+	return nil
 }

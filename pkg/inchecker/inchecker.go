@@ -241,9 +241,9 @@ func compareDuration(baseDuration, fileDuration string) error {
 	if err != nil {
 		return err
 	}
-	if fDur-bDur > 0.5 || fDur-bDur < -0.5 {
+	if fDur-bDur > 0.385 || fDur-bDur < -0.385 {
 		fl := fDur - bDur
-		flStr := strconv.FormatFloat(fl, 'f', 6, 64)
+		flStr := strconv.FormatFloat(fl, 'f', 3, 64)
 		return errors.New("Duration mismatch: " + flStr + " seconds")
 	}
 	return nil
@@ -408,4 +408,15 @@ func fileExists(path string) (bool, error) {
 		// Schrodinger: file may or may not exist. See err for details.
 		return false, errors.New("Schrodinger: file may or may not exist. See err for details")
 	}
+}
+
+func MediaDuration(path string) (float64, error) {
+	ch := NewChecker()
+	ch.AddTask(path)
+	duration := ch.data[path].Format.Duration
+	fDur, err := strconv.ParseFloat(duration, 'f')
+	if err != nil {
+		return 0.0, err
+	}
+	return fDur, nil
 }
