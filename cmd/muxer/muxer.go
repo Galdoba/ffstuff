@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	logger := glog.New(fldr.MuxPath()+"testLog.txt", glog.LogLevelINFO)
+	logger := glog.New(fldr.MuxPath()+"logfile.txt", glog.LogLevelINFO)
 	tasks, err := muxer.MuxList()
 	if err != nil {
 		logger.ERROR(err.Error())

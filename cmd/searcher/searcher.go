@@ -44,7 +44,7 @@ func main() {
 	root := configMap[constant.SearchRoot]
 	marker := configMap[constant.SearchMarker]
 	if configMap[constant.LogDirectory] == "default" {
-		logLocation = fldr.MuxPath() + "glog.txt"
+		logLocation = fldr.MuxPath() + "log.txt"
 	}
 	logger = glog.New(logLocation, glog.LogLevelINFO)
 	app := cli.NewApp()
@@ -55,16 +55,14 @@ func main() {
 		&cli.BoolFlag{
 			Name:  "grab",
 			Usage: "If flag is active grabber will try to download all results",
-			Value: false,
 		},
 		&cli.BoolFlag{
 			Name:  "vocal",
 			Usage: "If flag is active grabber set logLevel to ALL (level INFO is set by default)",
-			Value: false,
 		},
 	}
 
-	app.Commands = []*cli.Command{
+	app.Commands = []cli.Command{
 		//////////////////////////////////////
 		{
 			Name:  "new",

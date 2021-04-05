@@ -48,13 +48,13 @@ func main() {
 	app.Version = "v 0.0.2"
 	app.Name = "dirmaker"
 	app.Usage = "checks, creates and (TODO: Deletes) directories"
-	app.Commands = []*cli.Command{
+	app.Commands = []cli.Command{
 		//////////////////////////////////////
 		{
 			Name:  "new",
 			Usage: "Create one or more new directories",
 			Action: func(c *cli.Context) error {
-				paths := c.Args().Slice() //	path := c.String("path") //*cli.Context.String(key) - вызывает флаг с именем key и возвращает значение Value
+				paths := c.Args().Tail() //	path := c.String("path") //*cli.Context.String(key) - вызывает флаг с именем key и возвращает значение Value
 				for _, path := range paths {
 					dir := fldr.New("",
 						fldr.Set(fldr.AddressFormula, path),

@@ -71,17 +71,17 @@ func main() {
 		&cli.BoolFlag{
 			Name:  "vocal",
 			Usage: "If flag is active grabber set logLevel to TRACE (level INFO is set by default)",
-			Value: false,
 		},
 	}
 
-	app.Commands = []*cli.Command{
+	app.Commands = []cli.Command{
 		//////////////////////////////////////
 		{
 			Name:  "takeonly",
 			Usage: "Download only those files, that was received as arguments",
 			Action: func(c *cli.Context) error {
-				paths := c.Args().Slice() //	path := c.String("path") //*cli.Context.String(key) - вызывает флаг с именем key и возвращает значение Value
+				//paths := c.Args().Slice() //	path := c.String("path") //*cli.Context.String(key) - вызывает флаг с именем key и возвращает значение Value
+				paths := c.Args().Tail()
 				dest := configMap[constant.InPath] + "IN_" + utils.DateStamp() + "\\"
 				for _, path := range paths {
 					fmt.Println("GRABBER DOWNLOADING FILE:", path)
