@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Galdoba/ffstuff/pkg/disk"
 	"github.com/Galdoba/ffstuff/pkg/namedata"
-	"github.com/ricochet2200/go-disk-usage/du"
 )
 
 //CopyFile - takes file path, and making a copy of the file in the destination directory
@@ -124,7 +124,8 @@ func size2GbString(bts int64) string {
 
 func destinationSpaceAvailable(destPath string, copySize int64) bool {
 	drive := namedata.RetrieveDrive(destPath)
-	usage := du.NewDiskUsage(drive)
+	//usage := du.NewDiskUsage(drive)
+	usage := disk.Usage(drive)
 	freeSpace := int64(usage.Available())
 	if freeSpace > copySize {
 		return true

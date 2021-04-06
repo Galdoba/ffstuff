@@ -6,7 +6,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/Galdoba/ffstuff/constant"
 	"github.com/Galdoba/ffstuff/fldr"
@@ -110,27 +109,6 @@ func main() {
 	}
 }
 
-func runInchecker(takeFile []string) []string {
-	validFiles := []string{}
-	logger.INFO("Run: " + "inchecker " + strings.Join(takeFile, " "))
-	for _, file := range takeFile {
-		_, _, err := fcli.RunConsole("inchecker", file)
-		if err != nil {
-			logger.ERROR(err.Error())
-
-			continue
-		}
-		logger.TRACE("valid: " + file)
-		validFiles = append(validFiles, file)
-	}
-	return validFiles
-	// _, _, err := cli.RunConsole("inchecker", takeFile...)
-	// if err != nil {
-	// 	logger.ERROR(err.Error())
-	// }
-	// return validFiles
-}
-
 /*
 
 search -new
@@ -146,67 +124,13 @@ search -repeat=60 -incheck -grab -until:202127020900
 
 */
 
-func clearLine() {
-	clr := ""
-	for len(clr) < 196 {
-		clr += " "
-	}
-	fmt.Print("\r" + clr)
-}
-
-func timeValue(t time.Time) int64 {
-	y, m, d := t.Date()
-	hh, mm, ss := t.Clock()
-	valClock := int64(ss) + int64(mm*100) + int64(hh*10000)
-	valDate := int64(d*1000000) + int64(m*100000000) + int64(y*10000000000)
-	return valDate + valClock
-}
-
-func timeStr(tVal int64) string {
-	tStr := ""
-	// sec := int(tVal % 100)
-	// tStr = strconv.Itoa(sec)
-	// if sec < 10 {
-	// 	tStr = "0" + tStr
-	// }
-	min := int(tVal%10000) / 100
-	tStr = strconv.Itoa(min) /*+ ":"*/ + tStr
-	if min < 10 {
-		tStr = "0" + tStr
-	}
-	hr := int(tVal%1000000) / 10000
-	tStr = strconv.Itoa(hr) + ":" + tStr
-	if hr < 10 {
-		tStr = "0" + tStr
-	}
-
-	day := int(tVal%100000000) / 1000000
-	tStr = strconv.Itoa(day) + " " + tStr
-	if day < 10 {
-		tStr = "0" + tStr
-	}
-	mon := int(tVal%10000000000) / 100000000
-	tStr = strconv.Itoa(mon) + "." + tStr
-	if mon < 10 {
-		tStr = "0" + tStr
-	}
-	yr := int(tVal%100000000000000) / 10000000000
-	tStr = strconv.Itoa(yr) + "." + tStr
-	if yr < 10 {
-		tStr = "0" + tStr
-	}
-	if yr < 100 {
-		tStr = "0" + tStr
-	}
-	if yr < 1000 {
-		tStr = "0" + tStr
-	}
-
-	return tStr
-}
-
 func sortResults(list []string) []string {
 	sorted := []string{}
+	for _, val := range list {
+		if strings.Contains(val, ".srt") {
+			sorted = append(sorted, val)
+		}
+	}
 	for _, val := range list {
 		if strings.Contains(val, ".ready") {
 			sorted = append(sorted, val)

@@ -28,7 +28,7 @@ func main() {
 	for _, clipData := range edi.Entry() {
 		//fmt.Println(clipData)
 		//////////////////////////////////
-		f, err := os.OpenFile(fldr.MuxPath()+"names.txt", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
+		f, err := os.OpenFile(fldr.MuxPath()+"cutterOutputNames.txt", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
 		if err != nil {
 			panic(err)
 		}
