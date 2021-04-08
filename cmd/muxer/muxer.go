@@ -15,7 +15,7 @@ func main() {
 		logger.ERROR(err.Error())
 	}
 	for i, task := range tasks {
-		fmt.Print("Task ", i, "/", len(tasks), ":\n")
+		fmt.Print("Task ", i+1, "/", len(tasks), ":\n")
 		files, muxTask, err := muxer.ChooseMuxer(task)
 		if err != nil {
 			logger.ERROR(err.Error())

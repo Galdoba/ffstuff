@@ -19,20 +19,20 @@ import (
 )
 
 const (
-	MuxerA2    = "ar2"
-	MuxerA6    = "ar6"
-	MuxerA2E2  = "ar2e2"
-	MuxerA2E6  = "ar2e6"
-	MuxerA6E2  = "ar6e2"
-	MuxerA6E6  = "ar6e6"
-	MuxerA2s   = "ar2_sr"
-	MuxerA6s   = "ar6_sr"
-	MuxerA2E2s = "ar2e2_sr"
-	MuxerA2E6s = "ar2e6_sr"
-	MuxerA6E2s = "ar6e2_sr"
-	MuxerA6E6s = "ar6e6_sr"
-	MuxerNA    = ""
-	MuxerSKIP  = "ST"
+	MuxerAR2    = "ar2"
+	MuxerA6     = "ar6"
+	MuxerAR2E2  = "ar2e2"
+	MuxerAR2E6  = "ar2e6"
+	MuxerA6E2   = "ar6e2"
+	MuxerA6E6   = "ar6e6"
+	MuxerAR2s   = "ar2_sr"
+	MuxerA6s    = "ar6_sr"
+	MuxerAR2E2s = "ar2e2_sr"
+	MuxerAR2E6s = "ar2e6_sr"
+	MuxerA6E2s  = "ar6e2_sr"
+	MuxerA6E6s  = "ar6e6_sr"
+	MuxerNA     = ""
+	MuxerSKIP   = "ST"
 )
 
 /*
@@ -93,7 +93,7 @@ func ChooseMuxer(task string) ([]string, string, error) {
 	switch data[1] {
 	default:
 		return []string{}, MuxerSKIP, errors.New("muxer not recognised")
-	case MuxerA2, MuxerA6, MuxerA2E2, MuxerA2E6, MuxerA6E2, MuxerA6E6, MuxerA2s, MuxerA6s, MuxerA2E2s, MuxerA2E6s, MuxerA6E2s, MuxerA6E6s:
+	case MuxerAR2, MuxerA6, MuxerAR2E2, MuxerAR2E6, MuxerA6E2, MuxerA6E6, MuxerAR2s, MuxerA6s, MuxerAR2E2s, MuxerAR2E6s, MuxerA6E2s, MuxerA6E6s:
 		paths := defineFiles(task)
 		return paths, data[1], nil
 	}
@@ -106,25 +106,25 @@ func Run(muxerTask string, files []string) error {
 	switch muxerTask {
 	default:
 		return errors.New("undefined muxer task")
-	case MuxerA2:
+	case MuxerAR2:
 		return MuxA2(files[0], files[1])
 	case MuxerA6:
 		return MuxA6(files[0], files[1])
-	case MuxerA2E2:
+	case MuxerAR2E2:
 		return MuxA2E2(files[0], files[1], files[2])
-	case MuxerA2E6:
+	case MuxerAR2E6:
 		return MuxA2E6(files[0], files[1], files[2])
 	case MuxerA6E2:
 		return MuxA6E2(files[0], files[1], files[2])
 	case MuxerA6E6:
 		return MuxA6E6(files[0], files[1], files[2])
-	case MuxerA2s:
+	case MuxerAR2s:
 		return MuxA2s(files[0], files[1], files[2])
 	case MuxerA6s:
 		return MuxA6s(files[0], files[1], files[2])
-	case MuxerA2E2s:
+	case MuxerAR2E2s:
 		return MuxA2E2s(files[0], files[1], files[2], files[3])
-	case MuxerA2E6s:
+	case MuxerAR2E6s:
 		return MuxA2E6s(files[0], files[1], files[2], files[3])
 	case MuxerA6E2s:
 		return MuxA6E2s(files[0], files[1], files[2], files[3])
@@ -140,14 +140,14 @@ func defineFiles(task string) []string {
 	base := strings.TrimSuffix(data[0], ".mp4")
 	base = fldr.MuxPath() + base
 	switch data[1] {
-	case MuxerA2:
+	case MuxerAR2:
 		paths = append(paths, base+"_rus20.ac3")
 	case MuxerA6:
 		paths = append(paths, base+"_rus51.ac3")
-	case MuxerA2E2:
+	case MuxerAR2E2:
 		paths = append(paths, base+"_rus20.ac3")
 		paths = append(paths, base+"_eng20.ac3")
-	case MuxerA2E6:
+	case MuxerAR2E6:
 		paths = append(paths, base+"_rus20.ac3")
 		paths = append(paths, base+"_eng51.ac3")
 	case MuxerA6E2:
@@ -156,17 +156,17 @@ func defineFiles(task string) []string {
 	case MuxerA6E6:
 		paths = append(paths, base+"_rus51.ac3")
 		paths = append(paths, base+"_eng51.ac3")
-	case MuxerA2s:
+	case MuxerAR2s:
 		paths = append(paths, base+"_rus20.ac3")
 		paths = append(paths, base+".srt")
 	case MuxerA6s:
 		paths = append(paths, base+"_rus51.ac3")
 		paths = append(paths, base+".srt")
-	case MuxerA2E2s:
+	case MuxerAR2E2s:
 		paths = append(paths, base+"_rus20.ac3")
 		paths = append(paths, base+"_eng20.ac3")
 		paths = append(paths, base+".srt")
-	case MuxerA2E6s:
+	case MuxerAR2E6s:
 		paths = append(paths, base+"_rus20.ac3")
 		paths = append(paths, base+"_eng51.ac3")
 		paths = append(paths, base+".srt")

@@ -60,7 +60,7 @@ func main() {
 	searchRoot := configMap[constant.SearchRoot]
 	searchMarker := configMap[constant.SearchMarker]
 	//dest := configMap[constant.InPath] + "IN_" + utils.DateStamp() + "\\"
-	logPath := configMap[constant.MuxPath] + "MUX_" + utils.DateStamp() + "\\glog.txt"
+	logPath := configMap[constant.MuxPath] + "MUX_" + utils.DateStamp() + "\\logfile.txt"
 	logger = glog.New(logPath, glog.LogLevelINFO)
 
 	app := cli.NewApp()
