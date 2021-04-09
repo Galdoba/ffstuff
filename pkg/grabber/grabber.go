@@ -14,7 +14,11 @@ import (
 )
 
 //CopyFile - takes file path, and making a copy of the file in the destination directory
-func CopyFile(source string, destination string) error {
+func CopyFile(source string, destination string, flags ...bool) error {
+	vocal := false
+	if len(flags) > 0 {
+		vocal = flags[0]
+	}
 
 	srcInfo, errS := os.Stat(source)
 	if errS != nil {
@@ -51,7 +55,10 @@ func CopyFile(source string, destination string) error {
 		return err
 	}
 	defer out.Close()
-	fmt.Println("Copying: " + srcBase)
+	if vocal {
+		fmt.Println("Copying: " + srcBase)
+	}
+
 	go copyContent(source, destination)
 	doneCopying := false
 	sourceSize := srcInfo.Size()
@@ -59,12 +66,22 @@ func CopyFile(source string, destination string) error {
 		return errors.New("source size = 0 bytes")
 	}
 	time.Sleep(time.Second)
+
+	speedArray := []int64{}
 	for !doneCopying {
 		copyFile, err := os.Stat(destination + srcBase)
 		copySize := copyFile.Size()
-		prc := (copySize * 100) / sourceSize
+
+		//prc := (copySize * 100) / sourceSize
 		//		fmt.Print("Copy progress: ", prc, "%\r")
-		downloadbar(int(prc))
+
+		if vocal {
+			speedArray = append(speedArray, copySize)
+			for len(speedArray) > 10 {
+				speedArray = speedArray[1:]
+			}
+			fmt.Print(downloadbar(copySize, sourceSize, speedArray))
+		}
 		//fmt.Print("Progress: ", size2GbString(copySize), " / ", size2GbString(sourceSize), " Gb\r")
 		//drawProgress(copyFile.Size(), srcInfo.Size())
 		if err != nil {
@@ -122,6 +139,12 @@ func size2GbString(bts int64) string {
 	return gbtStr
 }
 
+func size2MbString(bts int64) string {
+	gbt := float64(bts) / 1048576.0
+	gbtStr := strconv.FormatFloat(gbt, 'f', 2, 64)
+	return gbtStr
+}
+
 func destinationSpaceAvailable(destPath string, copySize int64) bool {
 	drive := namedata.RetrieveDrive(destPath)
 	//usage := du.NewDiskUsage(drive)
@@ -144,18 +167,64 @@ func VerifyDestination(destination string) error {
 	return errD
 }
 
-func downloadbar(now int) {
-	if now > 100 || now < 0 {
-		return
+func downloadbar(bts, size int64, speedArray []int64) string {
+	str := ""
+	if size == 0 {
+		size = 1
 	}
-	s := ""
-	for i := 0; i < 100; i++ {
-		if i <= now {
-			s += string(rune(9608))
-			continue
+
+	prc := float64(bts) / float64(size/100)
+	prcStr := strconv.FormatFloat(prc, 'f', 3, 64)
+	str += "[ "
+	if prc < 100 {
+		str += " "
+		if prc < 10 {
+			str += " "
 		}
-		s += string(rune(9617))
 	}
-	s += "\r"
-	fmt.Print(s)
+	str += prcStr + "% ] | "
+	//return str
+
+	str += "Downloaded: " + size2GbString(bts) + "/" + size2GbString(size) + " Gb | "
+	speed := (speedArray[len(speedArray)-1] - speedArray[0]) / int64(len(speedArray))
+	str += "Speed: " + size2MbString(speed) + " Mb/s"
+	str += " | " + etaStr(bts, size, speed) + "                "
+	str += "\r"
+	return str
+
+}
+
+func etaStr(bts, size, speed int64) string {
+	if speed == 0 {
+		speed = 100000000000
+	}
+	left := size - bts
+	secs := left / speed
+	return secondsStamp(secs)
+}
+
+func secondsStamp(seconds int64) string {
+	var hh int64
+	hh = seconds / 3600
+
+	mm := (seconds - (hh * 3600)) / 60
+	for mm > 60 {
+		hh++
+		mm -= 60
+	}
+	ss := seconds % 60
+	hStr := strconv.Itoa(int(hh))
+	mStr := strconv.Itoa(int(mm))
+	sStr := strconv.Itoa(int(ss))
+	if len(hStr) < 2 {
+		hStr = "0" + hStr
+	}
+	if len(mStr) < 2 {
+		mStr = "0" + mStr
+	}
+	if len(sStr) < 2 {
+		sStr = "0" + sStr
+	}
+	return hStr + ":" + mStr + ":" + sStr
+
 }

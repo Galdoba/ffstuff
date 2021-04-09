@@ -105,7 +105,7 @@ func main() {
 			Usage: "Call Scanner to get list of new and ready files",
 			Action: func(c *cli.Context) error {
 
-				if c.Bool("vocal") {
+				if c.GlobalBool("vocal") {
 					logger.ShoutWhen(glog.LogLevelALL)
 				}
 				takeFile, err := scanner.Scan(searchRoot, searchMarker)
@@ -119,7 +119,7 @@ func main() {
 					if strings.Contains(path, "_Proxy_") {
 						dest = dest + "proxy\\"
 					}
-					grabber.CopyFile(path, dest)
+					grabber.CopyFile(path, dest, c.GlobalBool("vocal"))
 					logger.TRACE("downloaded from:" + path)
 				}
 				logger.INFO(strconv.Itoa(len(fileList)) + " files downloaded")
