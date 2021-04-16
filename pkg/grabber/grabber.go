@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/Galdoba/ffstuff/pkg/disk"
+	"github.com/Galdoba/ffstuff/pkg/glog"
 	"github.com/Galdoba/ffstuff/pkg/namedata"
 )
 
@@ -109,7 +110,6 @@ func copyContent(source, destination string) error {
 		return err
 	}
 	defer out.Close()
-	//fmt.Println("Start Copy " + srcBase + " to " + destination)
 	_, err = io.Copy(out, in)
 	if err != nil {
 		return err
@@ -184,8 +184,11 @@ func downloadbar(bts, size int64, speedArray []int64) string {
 	}
 	str += prcStr + "% ] | "
 	//return str
-
-	str += "Downloaded: " + size2GbString(bts) + "/" + size2GbString(size) + " Gb | "
+	dnCounter := size2GbString(bts) + "/" + size2GbString(size)
+	for len(dnCounter) < 11 {
+		dnCounter = " " + dnCounter
+	}
+	str += "Downloaded: " + dnCounter + " Gb | "
 	speed := (speedArray[len(speedArray)-1] - speedArray[0]) / int64(len(speedArray))
 	str += "Speed: " + size2MbString(speed) + " Mb/s"
 	str += " | " + etaStr(bts, size, speed) + "                "
@@ -227,4 +230,93 @@ func secondsStamp(seconds int64) string {
 	}
 	return hStr + ":" + mStr + ":" + sStr
 
+}
+
+type localLogger interface {
+	//glog.Logger
+	LogError(error) error
+}
+
+func LogWith(l glog.Logger, err error) error {
+	if err != nil {
+		l.ERROR(err.Error())
+		return err
+	}
+	return nil
+}
+
+func Download(logger glog.Logger, source, destination string) error {
+	if strings.Contains(source, ".ready") {
+		logger.TRACE("skip " + source)
+		return nil
+	}
+	srcInfo, errS := os.Stat(source)
+	if errS != nil {
+		return LogWith(logger, errors.New("source: "+errS.Error()))
+	}
+	if !srcInfo.Mode().IsRegular() { // cannot copy non-regular files (e.g., directories, symlinks, devices, etc.)
+		return LogWith(logger, errors.New("cannot copy source: "+srcInfo.Name()+" ("+srcInfo.Mode().String()+")"))
+	}
+	//destinations checks
+	destInfo, errD := os.Stat(destination)
+	if errD != nil {
+		return LogWith(logger, errors.New("destination: "+errD.Error()))
+	}
+	if !destInfo.IsDir() {
+		return LogWith(logger, errors.New("Destination is not a directory: "+destInfo.Name()))
+	}
+	if !destinationSpaceAvailable(destination, srcInfo.Size()) {
+		return LogWith(logger, errors.New("Not enough space on drive "+namedata.RetrieveDrive(destination)))
+	}
+	//check earlirer copies
+	srcBase := namedata.RetrieveShortName(source)
+	copyInfo, err := os.Stat(destination + srcBase)
+	if err == nil {
+		logger.TRACE("copy exists: " + destination + srcBase)
+		if srcInfo.Size() != copyInfo.Size() {
+			LogWith(logger, errors.New("file sizes does not match"))
+		}
+		return nil
+	}
+	//copy
+	in, err := os.Open(source)
+	if err != nil {
+		return LogWith(logger, err)
+	}
+	defer in.Close()
+	out, err := os.Create(destination + srcBase)
+	if err != nil {
+		return LogWith(logger, err)
+	}
+	defer out.Close()
+
+	go copyContent(source, destination)
+	logger.INFO(namedata.RetrieveShortName(source) + " --> " + destination)
+	doneCopying := false
+	sourceSize := srcInfo.Size()
+	if sourceSize == 0 {
+		return LogWith(logger, errors.New("source size = 0 bytes"))
+	}
+	time.Sleep(time.Second)
+	speedArray := []int64{}
+	for !doneCopying {
+		copyFile, err := os.Stat(destination + srcBase)
+		copySize := copyFile.Size()
+		speedArray = append(speedArray, copySize)
+		for len(speedArray) > 10 {
+			speedArray = speedArray[1:]
+		}
+		if err != nil {
+			LogWith(logger, err)
+		}
+		time.Sleep(time.Millisecond * 1000)
+		msg := downloadbar(copySize, sourceSize, speedArray)
+		if copySize >= sourceSize {
+			doneCopying = true
+			msg = downloadbar(copySize, sourceSize, speedArray) + "\n"
+		}
+		fmt.Print(msg)
+		//logger.TRACE(msg)
+	}
+	return nil
 }

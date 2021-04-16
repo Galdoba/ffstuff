@@ -6,6 +6,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/Galdoba/ffstuff/constant"
 	"github.com/Galdoba/ffstuff/fldr"
@@ -72,6 +73,10 @@ func main() {
 			Name:  "vocal",
 			Usage: "If flag is active grabber set logLevel to TRACE (level INFO is set by default)",
 		},
+		&cli.BoolFlag{
+			Name:  "loop",
+			Usage: "If flag is active grabber will restart in 1 minute",
+		},
 	}
 
 	app.Commands = []cli.Command{
@@ -104,34 +109,40 @@ func main() {
 			Name:  "takenew",
 			Usage: "Call Scanner to get list of new and ready files",
 			Action: func(c *cli.Context) error {
-
+				restart := true
 				if c.GlobalBool("vocal") {
 					logger.ShoutWhen(glog.LogLevelALL)
 				}
-				takeFile, err := scanner.Scan(searchRoot, searchMarker)
-				if err != nil {
-					fmt.Println(err)
-					return err
-				}
-				fileList := scanner.ListReady(takeFile)
-				for _, path := range fileList {
-					dest := configMap[constant.InPath] + "IN_" + utils.DateStamp() + "\\"
-					if strings.Contains(path, "_Proxy_") {
-						dest = dest + "proxy\\"
+				for restart {
+					switch c.GlobalBool("loop") {
+					case true:
+						restart = true
+					case false:
+						restart = false
 					}
-					grabber.CopyFile(path, dest, c.GlobalBool("vocal"))
-					logger.TRACE("downloaded from:" + path)
+					takeFile, err := scanner.Scan(searchRoot, searchMarker)
+					if err != nil {
+						fmt.Println(err)
+						return err
+					}
+					fileList := scanner.ListReady(takeFile)
+					logger.INFO(strconv.Itoa(len(fileList)) + " files detected")
+					for _, path := range fileList {
+						dest := configMap[constant.InPath] + "IN_" + utils.DateStamp() + "\\"
+						if strings.Contains(path, "_Proxy_") {
+							dest = dest + "proxy\\"
+						}
+						//grabber.CopyFile(path, dest, c.GlobalBool("vocal"))
+						logger.TRACE("Start downloading:")
+						grabber.Download(logger, path, dest)
+
+					}
+
+					logger.INFO(strconv.Itoa(len(fileList)) + " files downloaded")
+					if restart {
+						time.Sleep(time.Second * 60)
+					}
 				}
-				logger.INFO(strconv.Itoa(len(fileList)) + " files downloaded")
-				//paths := c.Args().Slice() //	path := c.String("path") //*cli.Context.String(key) - вызывает флаг с именем key и возвращает значение Value
-				// for _, path := range paths {
-				// 	fmt.Println("GRABBER DOWNLOADING FILE:", path)
-				// 	err := grabber.CopyFile(path, dest)
-				// 	fmt.Println(err)
-				// 	if err != nil {
-				// 		fmt.Println(err.Error())
-				// 	}
-				// }
 				return nil
 			},
 		},
