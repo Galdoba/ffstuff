@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/Galdoba/ffstuff/fldr"
 	"github.com/Galdoba/ffstuff/pkg/glog"
@@ -13,6 +14,9 @@ func main() {
 	logger := glog.New(fldr.MuxPath()+"logfile.txt", glog.LogLevelINFO)
 	checker := inchecker.NewChecker()
 	for _, path := range pathsReceived() {
+		if strings.Contains(path, ".ready") {
+			continue
+		}
 		checker.AddTask(path)
 		logger.TRACE("Checking: " + path)
 	}

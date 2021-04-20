@@ -17,6 +17,7 @@ const (
 	codecTypeVideo      = "video"
 	codecTypeAudio      = "audio"
 	ffinfoCodecType     = "codec_type"
+	ffinfoCodecName     = "codec_name"
 	ffinfoChannels      = "channels"
 	ffinfoChannelLayout = "channel_layout"
 	ffinfoWidth         = "width"
@@ -29,7 +30,8 @@ const (
 
 //Checker - mounts InChecker interface
 type Checker struct {
-	pathList []string
+	flagVocal bool
+	pathList  []string
 	//logger   logfile.Logger
 	data     map[string]ffinfo.File
 	groups   map[string][]string
@@ -71,12 +73,15 @@ func (ch *Checker) AddTask(path string) {
 func (ch *Checker) Check() []error {
 	var allErrors []error
 	for _, path := range ch.pathList {
+		//f := ch.data[path]				DEBUG: принтует все сожержимое файла
+		//fmt.Println(f.String())
 		if len(ch.errorLog[path]) != 0 {
 			fmt.Println(ch.errorLog[path])
 			fmt.Println(ch.errorLog)
 			continue
 		}
 		ch.errorLog[path] = addError(
+			ch.checkCodecName(path),
 			ch.checkLayout(path),
 			ch.checkChannels(path),
 			ch.checkDuration(path),
@@ -145,15 +150,36 @@ func (ch *Checker) checkDuration(path string) error {
 	return nil
 }
 
+func (ch *Checker) checkCodecName(path string) error {
+	switch collectInfo(ch.data[path], 0, ffinfoCodecType) {
+	case codecTypeAudio:
+		for stream := 0; stream < len(ch.data[path].Streams); stream++ {
+			data := expectedFromAudio(path)
+			codecName := collectInfo(ch.data[path], stream, ffinfoCodecName)
+			if codecName != data[ffinfoCodecName] {
+				return errors.New("Codec_Name: " + codecName + " (expect " + data[ffinfoCodecName] + ")")
+			}
+		}
+	case codecTypeVideo:
+		for stream := 0; stream < len(ch.data[path].Streams); stream++ {
+			codecName := collectInfo(ch.data[path], stream, ffinfoCodecName)
+			if codecName != "h264" {
+				return errors.New("Codec_Name: " + codecName + " (expect " + "h264" + ")")
+			}
+		}
+	}
+	return nil
+}
+
 func (ch *Checker) checkChannels(path string) error {
 	if collectInfo(ch.data[path], 0, ffinfoCodecType) != codecTypeAudio {
 		return nil
 	}
 	for stream := 0; stream < len(ch.data[path].Streams); stream++ {
-		expChan, _ := expectedFromAudio(path)
+		data := expectedFromAudio(path)
 		channnels := collectInfo(ch.data[path], stream, ffinfoChannels)
-		if channnels != expChan {
-			return errors.New("Channels: " + channnels + " (expect " + expChan + ")")
+		if channnels != data[ffinfoChannels] {
+			return errors.New("Channels: " + channnels + " (expect " + data[ffinfoChannels] + ")")
 		}
 	}
 	return nil
@@ -164,10 +190,10 @@ func (ch *Checker) checkLayout(path string) error {
 		return nil
 	}
 	for stream := 0; stream < len(ch.data[path].Streams); stream++ {
-		_, expLayout := expectedFromAudio(path)
+		data := expectedFromAudio(path)
 		layout := collectInfo(ch.data[path], stream, ffinfoChannelLayout)
-		if layout != expLayout {
-			return errors.New("Channel layout: " + layout + " (expect " + expLayout + ")")
+		if layout != data[ffinfoChannelLayout] {
+			return errors.New("Channel layout: " + layout + " (expect " + data[ffinfoChannelLayout] + ")")
 		}
 	}
 	return nil
@@ -267,6 +293,8 @@ func collectInfo(f ffinfo.File, stream int, key string) string {
 	key = strings.ToLower(key)
 	key = strings.ReplaceAll(key, " ", "_")
 	switch key {
+	case ffinfoCodecName:
+		return f.Streams[stream].CodecName
 	case ffinfoCodecType:
 		return f.Streams[stream].CodecType
 	case ffinfoChannels:
@@ -290,33 +318,63 @@ func collectInfo(f ffinfo.File, stream int, key string) string {
 	return "UNKNOWN KEY"
 }
 
-func expectedFromAudio(fileName string) (string, string) { //TODO: переписать иак чтобы оно собирало тэги из имени файла
+// func expectedFromAudio(fileName string) (string, string) { //TODO: переписать иак чтобы оно собирало тэги из имени файла
 
-	if strings.Contains(fileName, "_AUDIORUS51") {
-		return "6", "5.1"
-	}
-	if strings.Contains(fileName, "_AUDIOENG51") {
-		return "6", "5.1"
-	}
-	if strings.Contains(fileName, "_AUDIO51") {
-		return "6", "5.1"
-	}
-	if strings.Contains(fileName, "_AUDIORUS20") {
-		return "2", "stereo"
-	}
-	if strings.Contains(fileName, "_AUDIOENG20") {
-		return "2", "stereo"
-	}
-	if strings.Contains(fileName, "_AUDIO20") {
-		return "2", "stereo"
-	}
+// 	if strings.Contains(fileName, "_AUDIORUS51") {
+// 		return "6", "5.1"
+// 	}
+// 	if strings.Contains(fileName, "_AUDIOENG51") {
+// 		return "6", "5.1"
+// 	}
+// 	if strings.Contains(fileName, "_AUDIO51") {
+// 		return "6", "5.1"
+// 	}
+// 	if strings.Contains(fileName, "_AUDIORUS20") {
+// 		return "2", "stereo"
+// 	}
+// 	if strings.Contains(fileName, "_AUDIOENG20") {
+// 		return "2", "stereo"
+// 	}
+// 	if strings.Contains(fileName, "_AUDIO20") {
+// 		return "2", "stereo"
+// 	}
 
-	return "unknown audio tags", "unknown audio tags"
+// 	return "unknown audio tags", "unknown audio tags"
+// }
+
+func expectedFromAudio(fileName string) map[string]string {
+	data := make(map[string]string)
+	data[ffinfoCodecName] = "alac"
+	if stringsContainsAnyOf(fileName, "_AUDIORUS51", "_AUDIOENG51", "_AUDIO51") {
+		data[ffinfoChannels] = "6"
+		data[ffinfoChannelLayout] = "5.1"
+	}
+	if stringsContainsAnyOf(fileName, "_AUDIORUS20", "_AUDIOENG20", "_AUDIO20") {
+		data[ffinfoChannels] = "2"
+		data[ffinfoChannelLayout] = "stereo"
+	}
+	return data
+} //TODO: переписать иак чтобы оно собирало тэги из имени файла
+
+func stringsContainsAnyOf(s string, substr ...string) bool {
+	for _, val := range substr {
+		if strings.Contains(s, val) {
+			return true
+		}
+	}
+	return false
 }
 
 func expectedFromVideo(fileName string) (wh string, pixFmt string, fps string, sar string) { //TODO: переписать иак чтобы оно собирало тэги из имени файла
 	if strings.Contains(fileName, "_HD__Proxy__") {
 		wh := "480/270"
+		pixFmt := "yuv420p"
+		fps := "25/1"
+		sar := "1:1"
+		return wh, pixFmt, fps, sar
+	}
+	if strings.Contains(fileName, "_4K") {
+		wh := "3840/2160"
 		pixFmt := "yuv420p"
 		fps := "25/1"
 		sar := "1:1"

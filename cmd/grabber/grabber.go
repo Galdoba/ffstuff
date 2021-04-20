@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -42,7 +41,7 @@ var configMap map[string]string
 var logger glog.Logger
 
 func init() {
-	err := errors.New("Initial obstract error")
+	//err := errors.New("Initial obstract error")
 	conf, err := config.ReadProgramConfig("ffstuff")
 	if err != nil {
 		fmt.Println(err)

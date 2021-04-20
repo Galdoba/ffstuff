@@ -59,6 +59,10 @@ func main() {
 			Name:  "vocal",
 			Usage: "If flag is active grabber set logLevel to ALL (level INFO is set by default)",
 		},
+		&cli.BoolFlag{
+			Name:  "check",
+			Usage: "If flag is active run incheker",
+		},
 	}
 
 	app.Commands = []cli.Command{
@@ -75,9 +79,18 @@ func main() {
 					fmt.Println(err)
 					return err
 				}
+
+				// for _, val := range takeFile {
+				// 	if strings.Contains(val, ".m4a") {
+
+				// 		fcli.RunConsole("inchecker", val)
+				// 	}
+				// }
+
 				fileList := scanner.ListReady(takeFile)
 				for _, val := range fileList {
 					logger.TRACE("new file found: " + val)
+					fcli.RunConsole("inchecker", val)
 				}
 				logger.INFO(strconv.Itoa(len(fileList)) + " new files found")
 
