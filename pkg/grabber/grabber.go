@@ -7,7 +7,9 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
+	"unsafe"
 
 	"github.com/Galdoba/ffstuff/pkg/disk"
 	"github.com/Galdoba/ffstuff/pkg/glog"
@@ -113,6 +115,45 @@ func copyContent(source, destination string) error {
 	_, err = io.Copy(out, in)
 	if err != nil {
 		return err
+	}
+	return nil
+}
+
+func copyContent64(source, destination string) error {
+	srcBase := namedata.RetrieveShortName(source)
+	in, err := os.Open(source)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+	out, err := os.Create(destination + srcBase)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+	_, err = io.Copy(out, in)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func copyContentUnsafe(source, destination string) error {
+	kernel32 := syscall.MustLoadDLL("kernel32.dll")
+	copyFileProc := kernel32.MustFindProc("CopyFileW")
+	srcW := syscall.StringToUTF16(source)
+	dstW := syscall.StringToUTF16(destination)
+
+	rc, _, err := copyFileProc.Call(
+		uintptr(unsafe.Pointer(&srcW[0])),
+		uintptr(unsafe.Pointer(&dstW[0])),
+	)
+	if rc == 0 {
+		return &os.PathError{
+			Op:   "CopyFile",
+			Path: source,
+			Err:  err,
+		}
 	}
 	return nil
 }

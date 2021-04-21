@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	"os"
 	"strconv"
@@ -52,12 +53,12 @@ func main() {
 	app.Usage = "Scans root directory and all subdirectories to create list of files that matches queary"
 	app.Flags = []cli.Flag{
 		&cli.BoolFlag{
-			Name:  "grab",
-			Usage: "If flag is active grabber will try to download all results",
-		},
-		&cli.BoolFlag{
 			Name:  "vocal",
 			Usage: "If flag is active searcher will print ALL log entries (level INFO is set by default)",
+		},
+		&cli.IntFlag{
+			Name:  "delay",
+			Usage: "If flag is active searcher will delay start for N seconds",
 		},
 	}
 
@@ -72,42 +73,69 @@ func main() {
 					Usage: "If flag is active run incheker on every found file individualy",
 				},
 				&cli.BoolFlag{
-					Name:        "grab",
-					Usage:       "If flag is active grabber will try to download all results",
+					Name:        "grab, g",
+					Usage:       "If flag is active grabber will try to download all new files",
 					Required:    false,
 					Hidden:      false,
 					Destination: new(bool),
 				},
+				&cli.IntFlag{
+					Name:        "repeat, r",
+					Usage:       "repeat action every N seconds",
+					EnvVar:      "",
+					FilePath:    "",
+					Required:    false,
+					Hidden:      false,
+					Value:       0,
+					Destination: new(int),
+				},
 			},
 			Action: func(c *cli.Context) error {
-				if c.GlobalBool("vocal") {
-					logger.ShoutWhen(glog.LogLevelALL)
+				if c.GlobalInt("delay") > 0 {
+					for i := 0; i <= c.GlobalInt("delay"); i++ {
+						fmt.Print("Searcher will start in ", c.GlobalInt("delay")-i, " seconds...                       \r")
+						time.Sleep(time.Second)
+					}
+					fmt.Print("\n")
 				}
-				takeFile, err := scanner.Scan(root, marker)
-				if err != nil {
-					fmt.Println(err)
-					logger.ERROR(err.Error())
-					return err
-				}
-				fileList := scanner.ListReady(takeFile)
-				for _, fl := range fileList {
-					logger.TRACE("detected " + fl)
-				}
-				if c.Bool("check") {
-					fcli.RunConsole("inchecker", fileList...)
-				}
-				logger.INFO(strconv.Itoa(len(fileList)) + " new files found")
+				restart := true
+				for restart {
+					restart = false
 
-				if c.Bool("grab") {
-					fileList = sortResults(fileList)
-					for _, val := range fileList {
+					if c.GlobalBool("vocal") {
+						logger.ShoutWhen(glog.LogLevelALL)
+					}
+					takeFile, err := scanner.Scan(root, marker)
+					if err != nil {
+						fmt.Println(err)
+						logger.ERROR(err.Error())
+						return err
+					}
+					fileList := scanner.ListReady(takeFile)
+					for _, fl := range fileList {
+						logger.TRACE("detected " + fl)
+					}
+					if c.Bool("check") {
+						fcli.RunConsole("inchecker", fileList...)
+					}
+					logger.INFO(strconv.Itoa(len(fileList)-len(takeFile)) + " new files found")
+
+					if c.Bool("grab") {
 						prog := "grabber"
 						args := []string{}
 						if c.Bool("vocal") {
 							args = append(args, "--vocal")
 						}
-						args = append(args, "takeonly", val)
+						args = append(args, "takenew")
 						fcli.RunConsole(prog, args...)
+					}
+					if c.Int("repeat") > 0 {
+						restart = true
+						for i := 0; i < c.Int("repeat"); i++ {
+							fmt.Print("Repeat probe in ", c.Int("repeat")-i, " seconds...                       \r")
+							time.Sleep(time.Second)
+						}
+						fmt.Print("\n")
 					}
 				}
 				//fmt.Print("Flag is |", app.Flags[0].String())
