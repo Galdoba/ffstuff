@@ -21,6 +21,8 @@ import (
 const (
 	MuxerAR2    = "ar2"
 	MuxerA6     = "ar6"
+	MuxerAE2    = "ae2"
+	MuxerAE6    = "ae6"
 	MuxerAR2E2  = "ar2e2"
 	MuxerAR2E6  = "ar2e6"
 	MuxerA6E2   = "ar6e2"
@@ -93,7 +95,7 @@ func ChooseMuxer(task string) ([]string, string, error) {
 	switch data[1] {
 	default:
 		return []string{}, MuxerSKIP, errors.New("muxer not recognised")
-	case MuxerAR2, MuxerA6, MuxerAR2E2, MuxerAR2E6, MuxerA6E2, MuxerA6E6, MuxerAR2s, MuxerA6s, MuxerAR2E2s, MuxerAR2E6s, MuxerA6E2s, MuxerA6E6s:
+	case MuxerAR2, MuxerA6, MuxerAE2, MuxerAE6, MuxerAR2E2, MuxerAR2E6, MuxerA6E2, MuxerA6E6, MuxerAR2s, MuxerA6s, MuxerAR2E2s, MuxerAR2E6s, MuxerA6E2s, MuxerA6E6s:
 		paths := defineFiles(task)
 		return paths, data[1], nil
 	}
@@ -110,6 +112,10 @@ func Run(muxerTask string, files []string) error {
 		return MuxA2(files[0], files[1])
 	case MuxerA6:
 		return MuxA6(files[0], files[1])
+	case MuxerAE2:
+		return MuxAE2(files[0], files[1])
+	case MuxerAE6:
+		return MuxAE6(files[0], files[1])
 	case MuxerAR2E2:
 		return MuxA2E2(files[0], files[1], files[2])
 	case MuxerAR2E6:
@@ -144,6 +150,10 @@ func defineFiles(task string) []string {
 		paths = append(paths, base+"_rus20.ac3")
 	case MuxerA6:
 		paths = append(paths, base+"_rus51.ac3")
+	case MuxerAE2:
+		paths = append(paths, base+"_eng20.ac3")
+	case MuxerAE6:
+		paths = append(paths, base+"_eng51.ac3")
 	case MuxerAR2E2:
 		paths = append(paths, base+"_rus20.ac3")
 		paths = append(paths, base+"_eng20.ac3")
@@ -198,6 +208,22 @@ func MuxA2(video, audio1 string) error {
 	return err
 }
 
+func MuxAE2(video, audio1 string) error {
+	base := utils.CommonPrefix(video, audio1)
+	base = namedata.RetrieveShortName(base)
+	prog := "ffmpeg"
+	args := []string{
+		"-i", video,
+		"-i", audio1,
+		"-codec", "copy",
+		"-map", "0:v",
+		"-map", "1:a", "-metadata:s:a:0", "language=eng",
+		fldr.OutPath() + base + "_ae2.mp4",
+	}
+	_, _, err := cli.RunConsole(prog, args...)
+	return err
+}
+
 func MuxA6(video, audio1 string) error {
 	base := utils.CommonPrefix(video, audio1)
 	base = namedata.RetrieveShortName(base)
@@ -209,6 +235,22 @@ func MuxA6(video, audio1 string) error {
 		"-map", "0:v",
 		"-map", "1:a", "-metadata:s:a:0", "language=rus",
 		fldr.OutPath() + base + "_ar6.mp4",
+	}
+	_, _, err := cli.RunConsole(prog, args...)
+	return err
+}
+
+func MuxAE6(video, audio1 string) error {
+	base := utils.CommonPrefix(video, audio1)
+	base = namedata.RetrieveShortName(base)
+	prog := "ffmpeg"
+	args := []string{
+		"-i", video,
+		"-i", audio1,
+		"-codec", "copy",
+		"-map", "0:v",
+		"-map", "1:a", "-metadata:s:a:0", "language=eng",
+		fldr.OutPath() + base + "_ae6.mp4",
 	}
 	_, _, err := cli.RunConsole(prog, args...)
 	return err

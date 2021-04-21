@@ -111,20 +111,46 @@ func addError(allErrors ...error) []error {
 //Report - выводит результат проверки
 func (ch *Checker) Report() {
 	//color.Cyan("TEXT")
+	nameLen := 0
 	for _, val := range ch.pathList {
-		fmt.Print(val, ": ")
+		nameLen = maxFrom(nameLen, len(val))
+	}
+	for i, val := range ch.pathList {
+		if i == 0 {
+			head := "===INCHECKER REPORT"
+			for len(head) < nameLen {
+				head += "="
+			}
+			head += "======"
+			fmt.Println(head)
+		}
+		for len(val) < nameLen {
+			val += "."
+		}
+		fmt.Print(val, "..")
 		if len(ch.errorLog[val]) == 0 {
-
-			color.Green("		ok")
+			color.Green("ok")
 			continue
 		}
-		color.Yellow("		Warning!")
-		//fmt.Print(val, ": ")
+		color.Yellow("warning!")
 		for _, err := range ch.errorLog[val] {
 			//fmt.Print("\n	")
 			err = errors.New(val + " - " + err.Error())
 		}
 	}
+	tail := "======"
+	for len(tail) < nameLen {
+		tail += "="
+	}
+	tail += "======"
+	fmt.Println(tail)
+}
+
+func maxFrom(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }
 
 func (ch *Checker) checkDuration(path string) error {

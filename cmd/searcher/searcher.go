@@ -43,11 +43,11 @@ func main() {
 	root := configMap[constant.SearchRoot]
 	marker := configMap[constant.SearchMarker]
 	if configMap[constant.LogDirectory] == "default" {
-		logLocation = fldr.MuxPath() + "log.txt"
+		logLocation = fldr.MuxPath() + "logfile.txt"
 	}
 	logger = glog.New(logLocation, glog.LogLevelINFO)
 	app := cli.NewApp()
-	app.Version = "v 0.0.2"
+	app.Version = "v 0.0.3"
 	app.Name = "searcher"
 	app.Usage = "Scans root directory and all subdirectories to create list of files that matches queary"
 	app.Flags = []cli.Flag{
@@ -57,40 +57,44 @@ func main() {
 		},
 		&cli.BoolFlag{
 			Name:  "vocal",
-			Usage: "If flag is active grabber set logLevel to ALL (level INFO is set by default)",
-		},
-		&cli.BoolFlag{
-			Name:  "check",
-			Usage: "If flag is active run incheker",
+			Usage: "If flag is active searcher will print ALL log entries (level INFO is set by default)",
 		},
 	}
 
 	app.Commands = []cli.Command{
 		//////////////////////////////////////
 		{
-			Name:  "new",
+			Name:  "probe",
 			Usage: "Searches all files in the root which associated with marker",
+			Flags: []cli.Flag{
+				&cli.BoolFlag{
+					Name:  "check, c",
+					Usage: "If flag is active run incheker on every found file individualy",
+				},
+				&cli.BoolFlag{
+					Name:        "grab",
+					Usage:       "If flag is active grabber will try to download all results",
+					Required:    false,
+					Hidden:      false,
+					Destination: new(bool),
+				},
+			},
 			Action: func(c *cli.Context) error {
-				if c.Bool("vocal") {
+				if c.GlobalBool("vocal") {
 					logger.ShoutWhen(glog.LogLevelALL)
 				}
 				takeFile, err := scanner.Scan(root, marker)
 				if err != nil {
 					fmt.Println(err)
+					logger.ERROR(err.Error())
 					return err
 				}
-
-				// for _, val := range takeFile {
-				// 	if strings.Contains(val, ".m4a") {
-
-				// 		fcli.RunConsole("inchecker", val)
-				// 	}
-				// }
-
 				fileList := scanner.ListReady(takeFile)
-				for _, val := range fileList {
-					logger.TRACE("new file found: " + val)
-					fcli.RunConsole("inchecker", val)
+				for _, fl := range fileList {
+					logger.TRACE("detected " + fl)
+				}
+				if c.Bool("check") {
+					fcli.RunConsole("inchecker", fileList...)
 				}
 				logger.INFO(strconv.Itoa(len(fileList)) + " new files found")
 
