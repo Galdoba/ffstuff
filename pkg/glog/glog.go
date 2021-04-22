@@ -78,6 +78,12 @@ func newEntry(eventDescription string, logLevel int) entry {
 		processInit = strings.TrimSuffix(processInit, ".exe")
 	}
 	process = processInit
+	for len(process) < 15 {
+		process += " "
+	}
+	if len(process) > 15 {
+		process = string([]byte(process)[0:15])
+	}
 	en.callerProgram = process
 	en.eventDescription = eventDescription
 	en.eventImportance = logLevel
