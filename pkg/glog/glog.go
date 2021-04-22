@@ -121,7 +121,7 @@ func importanceStr(imp int) string {
 func (en entry) write(file string) error {
 	//importance := importanceStr(en.eventImportance)
 
-	n := 12
+	n := 15
 	for len(en.callerProgram) < n {
 		en.callerProgram = en.callerProgram + " "
 	}
