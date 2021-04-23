@@ -90,7 +90,6 @@ func evaluate(path string, f os.FileInfo, err error) error {
 }
 
 func ListReady(readyfiles []string) []string {
-
 	resSl := []string{}
 	for i := range readyfiles {
 		//fmt.Println(i, results[i])
@@ -108,14 +107,9 @@ func ListReady(readyfiles []string) []string {
 		}
 	}
 	sorted := []string{}
+	sorted = AppendIfContainsStr(sorted, resSl, ".ready")
 	for _, val := range resSl {
 		if strings.Contains(val, ".ready") {
-			// fmt.Println(val)
-			// dmarker, err := downloadingMarker(val)
-			// if err != nil {
-			// 	fmt.Println(err)
-			// }
-			// os.Rename(val, dmarker)
 			sorted = append(sorted, val)
 		}
 	}
@@ -144,4 +138,13 @@ func downloadingMarker(path string) (string, error) {
 	username := cu.Name
 
 	return trimmed + ".downloadingBY" + username, nil
+}
+
+func AppendIfContainsStr(targetSl []string, selectionSl []string, marker string) []string {
+	for _, val := range selectionSl {
+		if strings.Contains(val, marker) {
+			targetSl = append(targetSl, val)
+		}
+	}
+	return targetSl
 }

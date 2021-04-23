@@ -63,7 +63,7 @@ func main() {
 	logger = glog.New(logPath, glog.LogLevelINFO)
 
 	app := cli.NewApp()
-	app.Version = "v 0.0.2"
+	app.Version = "v 0.0.3"
 	app.Name = "grabber"
 	app.Usage = "dowloads files and sort it to working directories"
 	app.Flags = []cli.Flag{
@@ -109,7 +109,7 @@ func main() {
 				}
 				takeFile, err := scanner.Scan(searchRoot, searchMarker)
 				if err != nil {
-					fmt.Println(err)
+					logger.ERROR(err.Error())
 					return err
 				}
 				fileList := scanner.ListReady(takeFile)
@@ -130,7 +130,6 @@ func main() {
 					}
 
 				}
-				fmt.Println(invalidErrors)
 				if invalidErrors == 0 {
 					for _, val := range takeFile {
 						if !strings.Contains(val, ".ready") {

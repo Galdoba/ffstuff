@@ -8,6 +8,5 @@ require (
 	github.com/fatih/color v1.10.0
 	github.com/k0kubun/go-ansi v0.0.0-20180517002512-3bf9e2903213
 	github.com/malashin/ffinfo v0.0.0-20201102171815-b2495e855815
-	github.com/ricochet2200/go-disk-usage v0.0.0-20150921141558-f0d1b743428f
 	github.com/urfave/cli v1.22.5
 )

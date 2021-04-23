@@ -7,9 +7,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
-	"unsafe"
 
 	"github.com/Galdoba/ffstuff/pkg/disk"
 	"github.com/Galdoba/ffstuff/pkg/glog"
@@ -119,60 +117,59 @@ func copyContent(source, destination string) error {
 	return nil
 }
 
-func copyContent64(source, destination string) error {
-	srcBase := namedata.RetrieveShortName(source)
-	in, err := os.Open(source)
-	if err != nil {
-		return err
-	}
-	defer in.Close()
-	out, err := os.Create(destination + srcBase)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-	_, err = io.Copy(out, in)
-	if err != nil {
-		return err
-	}
-	return nil
-}
+// func copyContent64(source, destination string) error {
+// 	srcBase := namedata.RetrieveShortName(source)
+// 	in, err := os.Open(source)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	defer in.Close()
+// 	out, err := os.Create(destination + srcBase)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	defer out.Close()
+// 	_, err = io.Copy(out, in)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	return nil
+// }
 
-func copyContentUnsafe(source, destination string) error {
-	kernel32 := syscall.MustLoadDLL("kernel32.dll")
-	copyFileProc := kernel32.MustFindProc("CopyFileW")
-	srcW := syscall.StringToUTF16(source)
-	dstW := syscall.StringToUTF16(destination)
+// func copyContentUnsafe(source, destination string) error {
+// 	kernel32 := syscall.MustLoadDLL("kernel32.dll")
+// 	copyFileProc := kernel32.MustFindProc("CopyFileW")
+// 	srcW := syscall.StringToUTF16(source)
+// 	dstW := syscall.StringToUTF16(destination)
+// 	rc, _, err := copyFileProc.Call(
+// 		uintptr(unsafe.Pointer(&srcW[0])),
+// 		uintptr(unsafe.Pointer(&dstW[0])),
+// 	)
+// 	if rc == 0 {
+// 		return &os.PathError{
+// 			Op:   "CopyFile",
+// 			Path: source,
+// 			Err:  err,
+// 		}
+// 	}
+// 	return nil
+// }
 
-	rc, _, err := copyFileProc.Call(
-		uintptr(unsafe.Pointer(&srcW[0])),
-		uintptr(unsafe.Pointer(&dstW[0])),
-	)
-	if rc == 0 {
-		return &os.PathError{
-			Op:   "CopyFile",
-			Path: source,
-			Err:  err,
-		}
-	}
-	return nil
-}
-
-func drawProgress(c, max int64) {
-	bar := []string{}
-	var i int64
-	for i < 50 {
-		bar = append(bar, "-")
-		i++
-	}
-	lim := max / c
-	i = 0
-	for i < lim {
-		bar[i] = "+"
-		i++
-	}
-	fmt.Print(strings.Join(bar, ""), "\r")
-}
+// func drawProgress(c, max int64) {
+// 	bar := []string{}
+// 	var i int64
+// 	for i < 50 {
+// 		bar = append(bar, "-")
+// 		i++
+// 	}
+// 	lim := max / c
+// 	i = 0
+// 	for i < lim {
+// 		bar[i] = "+"
+// 		i++
+// 	}
+// 	fmt.Print(strings.Join(bar, ""), "\r")
+// }
 
 func size2GbString(bts int64) string {
 	gbt := float64(bts) / 1073741824.0
@@ -191,10 +188,7 @@ func destinationSpaceAvailable(destPath string, copySize int64) bool {
 	//usage := du.NewDiskUsage(drive)
 	usage := disk.Usage(drive)
 	freeSpace := int64(usage.Available())
-	if freeSpace > copySize {
-		return true
-	}
-	return false
+	return freeSpace > copySize
 }
 
 func VerifyDestination(destination string) error {
@@ -248,9 +242,7 @@ func etaStr(bts, size, speed int64) string {
 }
 
 func secondsStamp(seconds int64) string {
-	var hh int64
-	hh = seconds / 3600
-
+	hh := seconds / 3600
 	mm := (seconds - (hh * 3600)) / 60
 	for mm > 60 {
 		hh++
@@ -270,13 +262,12 @@ func secondsStamp(seconds int64) string {
 		sStr = "0" + sStr
 	}
 	return hStr + ":" + mStr + ":" + sStr
-
 }
 
-type localLogger interface {
-	//glog.Logger
-	LogError(error) error
-}
+// type localLogger interface {
+// 	//glog.Logger
+// 	LogError(error) error
+// }
 
 func LogWith(l glog.Logger, err error) error {
 	if err != nil {
