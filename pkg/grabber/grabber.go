@@ -12,6 +12,7 @@ import (
 	"github.com/Galdoba/ffstuff/pkg/disk"
 	"github.com/Galdoba/ffstuff/pkg/glog"
 	"github.com/Galdoba/ffstuff/pkg/namedata"
+	"github.com/Galdoba/ffstuff/pkg/stamp"
 )
 
 //CopyFile - takes file path, and making a copy of the file in the destination directory
@@ -226,19 +227,20 @@ func downloadbar(bts, size int64, speedArray []int64) string {
 	str += "Downloaded: " + dnCounter + " Gb | "
 	speed := (speedArray[len(speedArray)-1] - speedArray[0]) / int64(len(speedArray))
 	str += "Speed: " + size2MbString(speed) + " Mb/s"
-	str += " | " + etaStr(bts, size, speed) + "                "
+	str += " | " + finishETA(bts, size, speed) + "                "
 	str += "\r"
 	return str
 
 }
 
-func etaStr(bts, size, speed int64) string {
+func finishETA(bts, size, speed int64) string {
 	if speed == 0 {
 		speed = 100000000000
 	}
 	left := size - bts
 	secs := left / speed
-	return secondsStamp(secs)
+	//return secondsStamp(secs)
+	return stamp.Seconds(secs)
 }
 
 func secondsStamp(seconds int64) string {

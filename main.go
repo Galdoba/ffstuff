@@ -1,9 +1,15 @@
 package main
 
 func main() {
+	// err := termbox.Init()
+	// w, h := termbox.Size()
+	// termbox.Close()
+	// termbox.SetCursor(0, 0)
+	// termbox.HideCursor()
+
+	// fmt.Print(w, h, err, "\n")
 
 }
-
 
 /*
 

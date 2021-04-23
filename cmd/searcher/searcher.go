@@ -15,6 +15,7 @@ import (
 
 	fcli "github.com/Galdoba/ffstuff/pkg/cli"
 	"github.com/Galdoba/ffstuff/pkg/scanner"
+	"github.com/Galdoba/ffstuff/pkg/stamp"
 
 	"github.com/Galdoba/ffstuff/pkg/config"
 	"github.com/Galdoba/ffstuff/pkg/glog"
@@ -93,7 +94,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				if c.GlobalInt("delay") > 0 {
 					for i := 0; i <= c.GlobalInt("delay"); i++ {
-						fmt.Print("Searcher will start in ", c.GlobalInt("delay")-i, " seconds...                       \r")
+						fmt.Print("Searcher will start in ", stamp.Seconds(int64(c.GlobalInt("delay")-i)), "                       \r")
 						time.Sleep(time.Second)
 					}
 					fmt.Print("\n")
@@ -133,10 +134,10 @@ func main() {
 					if c.Int("repeat") > 0 {
 						restart = true
 						for i := 0; i < c.Int("repeat"); i++ {
-							fmt.Print("Repeat probe in ", c.Int("repeat")-i, " seconds...                       \r")
+							fmt.Print("Probe in ", stamp.Seconds(int64(c.Int("repeat")-i)), "                 \r")
 							time.Sleep(time.Second)
 						}
-						fmt.Print("\n")
+						//fmt.Print("\n")
 					}
 				}
 				//fmt.Print("Flag is |", app.Flags[0].String())

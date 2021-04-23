@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"strings"
 
@@ -13,7 +12,12 @@ import (
 func main() {
 	logger := glog.New(fldr.MuxPath()+"logfile.txt", glog.LogLevelINFO)
 	checker := inchecker.NewChecker()
-	for _, path := range pathsReceived() {
+	pathsReceived := pathsReceived()
+	if len(pathsReceived) == 0 {
+		logger.TRACE("No arguments received")
+		return
+	}
+	for _, path := range pathsReceived {
 		if strings.Contains(path, ".ready") {
 			continue
 		}
@@ -23,7 +27,7 @@ func main() {
 	allErrors := checker.Check()
 	checker.Report()
 	if len(allErrors) == 0 {
-		if len(pathsReceived()) > 1 {
+		if len(pathsReceived) > 1 {
 			logger.INFO("All files valid")
 		}
 		os.Exit(0)
@@ -31,15 +35,11 @@ func main() {
 	for _, err := range allErrors {
 		logger.WARN(err.Error())
 	}
-	os.Exit(1)
 }
 
 func pathsReceived() []string {
 	outArgs := []string{}
 	for i, val := range os.Args {
-		if len(os.Args) == 1 {
-			fmt.Println("No аrguments received")
-		}
 		if i == 0 {
 			continue
 		}
