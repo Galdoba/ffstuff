@@ -316,8 +316,9 @@ func Download(logger glog.Logger, source, destination string) error {
 		logger.TRACE("copy exists: " + destination + srcBase)
 		if srcInfo.Size() != copyInfo.Size() {
 			LogWith(logger, errors.New("file sizes does not match"))
+			return errors.New("copy sizes does not match")
 		}
-		return nil
+		return errors.New("valid copy exists")
 	}
 	//copy
 	in, err := os.Open(source)

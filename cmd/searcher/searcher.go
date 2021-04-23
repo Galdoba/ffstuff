@@ -97,6 +97,7 @@ func main() {
 						time.Sleep(time.Second)
 					}
 					fmt.Print("\n")
+					fcli.RunConsole("dirmaker", "daily")
 				}
 				restart := true
 				for restart {
