@@ -229,7 +229,8 @@ func (ch *Checker) checkWidthHeight(path string) error {
 	if collectInfo(ch.data[path], 0, ffinfoCodecType) != codecTypeVideo {
 		return nil
 	}
-	expWH, _, _, _ := expectedFromVideo(path)
+	data := expectedFromVideo(path)
+	expWH := data[ffinfoWidth] + "/" + data[ffinfoHeight]
 	for stream := 0; stream < len(ch.data[path].Streams); stream++ {
 		whData := collectInfo(ch.data[path], stream, ffinfoWidth) + "/" + collectInfo(ch.data[path], stream, ffinfoHeight)
 		if whData != expWH {
@@ -243,7 +244,8 @@ func (ch *Checker) checkPixFmt(path string) error {
 	if collectInfo(ch.data[path], 0, ffinfoCodecType) != codecTypeVideo {
 		return nil
 	}
-	_, expPixFmt, _, _ := expectedFromVideo(path)
+	data := expectedFromVideo(path)
+	expPixFmt := data[ffinfoPixFmt]
 	for stream := 0; stream < len(ch.data[path].Streams); stream++ {
 		pixFmt := collectInfo(ch.data[path], stream, ffinfoPixFmt)
 		if pixFmt != expPixFmt {
@@ -257,7 +259,8 @@ func (ch *Checker) checkFPS(path string) error {
 	if collectInfo(ch.data[path], 0, ffinfoCodecType) != codecTypeVideo {
 		return nil
 	}
-	_, _, expFPS, _ := expectedFromVideo(path)
+	data := expectedFromVideo(path)
+	expFPS := data[ffinfoFPS]
 	for stream := 0; stream < len(ch.data[path].Streams); stream++ {
 		fps := collectInfo(ch.data[path], stream, ffinfoFPS)
 		if fps != expFPS {
@@ -271,7 +274,8 @@ func (ch *Checker) checkSAR(path string) error {
 	if collectInfo(ch.data[path], 0, ffinfoCodecType) != codecTypeVideo {
 		return nil
 	}
-	_, _, _, expSar := expectedFromVideo(path)
+	data := expectedFromVideo(path)
+	expSar := data[ffinfoSAR]
 	for stream := 0; stream < len(ch.data[path].Streams); stream++ {
 		sar := collectInfo(ch.data[path], stream, ffinfoSAR)
 		if sar != expSar {
@@ -285,6 +289,9 @@ func (ch *Checker) checkSAR(path string) error {
 }
 
 func compareDuration(baseDuration, fileDuration string) error {
+	if baseDuration == "0.0" {
+		return errors.New("no video provided to compare duration with")
+	}
 	fDur, err := strconv.ParseFloat(fileDuration, 'f')
 	if err != nil {
 		return err
@@ -301,19 +308,19 @@ func compareDuration(baseDuration, fileDuration string) error {
 	return nil
 }
 
-func knownTags() []string {
-	return []string{
-		"HD",
-		"SD",
-		"43",
-		"AUDIOENG20",
-		"AUDIORUS20",
-		"AUDIOENG51",
-		"AUDIORUS51",
-		"TRL",
-		"Proxy",
-	}
-}
+// func knownTags() []string {
+// 	return []string{
+// 		"HD",
+// 		"SD",
+// 		"43",
+// 		"AUDIOENG20",
+// 		"AUDIORUS20",
+// 		"AUDIOENG51",
+// 		"AUDIORUS51",
+// 		"TRL",
+// 		"Proxy",
+// 	}
+// }
 
 func collectInfo(f ffinfo.File, stream int, key string) string {
 	key = strings.ToLower(key)
@@ -371,11 +378,15 @@ func collectInfo(f ffinfo.File, stream int, key string) string {
 func expectedFromAudio(fileName string) map[string]string {
 	data := make(map[string]string)
 	data[ffinfoCodecName] = "alac"
-	if stringsContainsAnyOf(fileName, "_AUDIORUS51", "_AUDIOENG51", "_AUDIO51") {
+	if strings.Contains(fileName, ".ac3") {
+		data[ffinfoCodecName] = "ac3"
+		//	data[ffinfoChannelLayout] = "5.1(side)" TODO: решить где делать эту проверку
+	}
+	if stringsContainsAnyOf(fileName, "_AUDIORUS51", "_AUDIOENG51", "_AUDIO51", "rus51", "eng51") {
 		data[ffinfoChannels] = "6"
 		data[ffinfoChannelLayout] = "5.1"
 	}
-	if stringsContainsAnyOf(fileName, "_AUDIORUS20", "_AUDIOENG20", "_AUDIO20") {
+	if stringsContainsAnyOf(fileName, "_AUDIORUS20", "_AUDIOENG20", "_AUDIO20", "rus20", "eng20") {
 		data[ffinfoChannels] = "2"
 		data[ffinfoChannelLayout] = "stereo"
 	}
@@ -383,7 +394,9 @@ func expectedFromAudio(fileName string) map[string]string {
 } //TODO: переписать иак чтобы оно собирало тэги из имени файла
 
 func stringsContainsAnyOf(s string, substr ...string) bool {
+	s = strings.ToLower(s)
 	for _, val := range substr {
+		val = strings.ToLower(val)
 		if strings.Contains(s, val) {
 			return true
 		}
@@ -391,7 +404,7 @@ func stringsContainsAnyOf(s string, substr ...string) bool {
 	return false
 }
 
-func expectedFromVideo(fileName string) (wh string, pixFmt string, fps string, sar string) { //TODO: переписать иак чтобы оно собирало тэги из имени файла
+func expectedFromVideoOLD(fileName string) (wh string, pixFmt string, fps string, sar string) { //TODO: переписать иак чтобы оно собирало тэги из имени файла
 	if strings.Contains(fileName, "_HD__Proxy__") {
 		wh := "480/270"
 		pixFmt := "yuv420p"
@@ -428,6 +441,38 @@ func expectedFromVideo(fileName string) (wh string, pixFmt string, fps string, s
 		return wh, pixFmt, fps, sar
 	}
 	return "unknown video tags", "unknown video tags", "unknown video tags", "unknown video tags"
+}
+
+func expectedFromVideo(fileName string) map[string]string { //TODO: переписать иак чтобы оно собирало тэги из имени файла
+	data := make(map[string]string)
+	if stringsContainsAnyOf(fileName, ".mp4") { // для всего видео
+		data[ffinfoPixFmt] = "yuv420p"
+		data[ffinfoFPS] = "25/1"
+	}
+	if stringsContainsAnyOf(fileName, "_hd__proxy") {
+		data[ffinfoWidth] = "480"
+		data[ffinfoHeight] = "270"
+		data[ffinfoSAR] = "1:1"
+	}
+	if stringsContainsAnyOf(fileName, "_4k") {
+		data[ffinfoWidth] = "3840"
+		data[ffinfoHeight] = "2160"
+		data[ffinfoSAR] = "1:1"
+	}
+	if stringsContainsAnyOf(fileName, "_hd") {
+		data[ffinfoWidth] = "1920"
+		data[ffinfoHeight] = "1080"
+		data[ffinfoSAR] = "1:1"
+	}
+	if stringsContainsAnyOf(fileName, "_sd") {
+		data[ffinfoWidth] = "720"
+		data[ffinfoHeight] = "576"
+		data[ffinfoSAR] = "64:45"
+	}
+	if stringsContainsAnyOf(fileName, "_sd_43") {
+		data[ffinfoSAR] = "16:15"
+	}
+	return data
 }
 
 func decodeName(path string) (string, string, []string) {

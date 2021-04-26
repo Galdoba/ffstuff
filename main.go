@@ -1,14 +1,71 @@
 package main
 
+import (
+	"fmt"
+	"strings"
+)
+
 func main() {
-	// err := termbox.Init()
-	// w, h := termbox.Size()
-	// termbox.Close()
-	// termbox.SetCursor(0, 0)
-	// termbox.HideCursor()
+	/*
+		   switcher := utils.StringSwitcher(b, true , t1, t2, t3)
+		   for _, tag := range switcher {
+		   	switch tag {
+		   	case tag:
+		   		Do Stuff
+		   	default (not tag):
+				Do Nothing
+			}
 
-	// fmt.Print(w, h, err, "\n")
 
+	*/
+	name := "gorod_na_holme_s02_05_2021__hd__proxy.mp4"
+	for _, val := range contained(name, "mp4", "hd", "hd__proxy", "sd", "gorod", "sd") {
+		switch val {
+		default:
+			fmt.Println("Undefined thing:", val)
+		case "mp4":
+			fmt.Println("DO mp4 stuff with", val)
+		case "sd":
+			fmt.Println("DO  sd stuff with", val)
+		case "hd":
+			fmt.Println("DO  hd stuff with", val)
+		case "hd__proxy":
+			fmt.Println("DO  hd__proxy stuff with", val)
+		}
+	}
+
+}
+
+//gorod_na_holme_s02_05_2021__hd.mp4
+
+func contained(name string, values ...string) []string {
+	found := []string{}
+	for i, val := range values {
+		switch strings.Contains(name, val) {
+		case true:
+			fmt.Println("val", i, val, "is TRUE")
+			found = append(found, val)
+		case false:
+			fmt.Println("val", i, val, "is FALSE")
+		}
+	}
+	return found
+}
+
+type StringSwitcher struct {
+	body               string
+	tags               []string
+	wideComparisonMode bool
+}
+
+func NewStringSwitcher(b string, tgs ...string) StringSwitcher {
+	ss := StringSwitcher{}
+	ss.body = b
+	for _, tag := range tgs {
+		ss.tags = append(ss.tags, tag)
+	}
+	ss.wideComparisonMode = true
+	return ss
 }
 
 /*

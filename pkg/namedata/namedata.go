@@ -32,6 +32,9 @@ func RetrieveShortName(path string) string {
 
 func RetrieveBase(path string) string {
 	fileName := shortFileName(path)
+	if strings.Contains(fileName, "__") {
+		return strings.Split(fileName, "__")[0]
+	}
 	tags, _ := splitName(fileName)
 	base, _ := nameBase(tags)
 	return base

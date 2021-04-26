@@ -100,28 +100,39 @@ func main() {
 					fmt.Print("\n")
 					fcli.RunConsole("dirmaker", "daily")
 				}
-				restart := true
-				for restart {
-					restart = false
-
+				restart := false
+				if c.Int("repeat") > 0 {
+					restart = true
+				}
+			maincycle:
+				for {
 					if c.GlobalBool("vocal") {
-						logger.ShoutWhen(glog.LogLevelALL)
+						logger.ShoutWhen(glog.LogLevelALL) //вещаем в терминал все сообщения логгера
 					}
-					takeFile, err := scanner.Scan(root, marker)
+					takeFile, err := scanner.Scan(root, marker) //сканируем
 					if err != nil {
 						fmt.Println(err)
 						logger.ERROR(err.Error())
 						return err
 					}
 					fileList := scanner.ListReady(takeFile)
+					if len(fileList) == 0 { //если найдено 0 новых файлов - то дальже либо ждем либо прекращаем работу
+						logger.INFO("No new files found")
+						switch restart {
+						case true:
+							repeatIfNeeded(c)
+							continue
+						case false:
+							break maincycle
+						}
+					}
 					for _, fl := range fileList {
 						logger.TRACE("detected " + fl)
 					}
 					if c.Bool("check") {
-						fcli.RunConsole("inchecker", fileList...)
+						fcli.RunConsole("inchecker", fileList...) //проверяем инчекером
 					}
 					logger.INFO(strconv.Itoa(len(fileList)-len(takeFile)) + " new files found")
-
 					if c.Bool("grab") {
 						prog := "grabber"
 						args := []string{}
@@ -129,18 +140,13 @@ func main() {
 							args = append(args, "--vocal")
 						}
 						args = append(args, "takenew")
-						fcli.RunConsole(prog, args...)
+						fcli.RunConsole(prog, args...) //хватем найденое
 					}
-					if c.Int("repeat") > 0 {
-						restart = true
-						for i := 0; i < c.Int("repeat"); i++ {
-							fmt.Print("Probe in ", stamp.Seconds(int64(c.Int("repeat")-i)), "                 \r")
-							time.Sleep(time.Second)
-						}
-						//fmt.Print("\n")
+					repeatIfNeeded(c)
+					if c.Int("repeat") <= 0 {
+						break
 					}
 				}
-				//fmt.Print("Flag is |", app.Flags[0].String())
 				return nil
 			},
 		},
@@ -153,6 +159,16 @@ func main() {
 	}
 	if err := app.Run(args); err != nil {
 		fmt.Println(err.Error())
+	}
+}
+
+func repeatIfNeeded(c *cli.Context) {
+	if c.Int("repeat") > 0 {
+		//restart = true
+		for i := 0; i < c.Int("repeat"); i++ {
+			fmt.Print("Probe in ", stamp.Seconds(int64(c.Int("repeat")-i)), "                 \r")
+			time.Sleep(time.Second)
+		}
 	}
 }
 
