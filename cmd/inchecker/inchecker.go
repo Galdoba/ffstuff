@@ -25,7 +25,7 @@ func main() {
 		logger.TRACE("Checking: " + path)
 	}
 	allErrors := checker.Check()
-	checker.Report()
+	checker.Report(allErrors)
 	if len(allErrors) == 0 {
 		if len(pathsReceived) > 1 {
 			logger.INFO("All files valid")

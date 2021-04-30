@@ -76,8 +76,11 @@ func (ch *Checker) Check() []error {
 		//f := ch.data[path]				DEBUG: принтует все сожержимое файла
 		//fmt.Println(f.String())
 		if len(ch.errorLog[path]) != 0 {
-			fmt.Println(ch.errorLog[path])
-			fmt.Println(ch.errorLog)
+			//fmt.Println(path, "---", ch.errorLog[path])
+			//fmt.Println(ch.errorLog)
+			for _, err := range ch.errorLog[path] {
+				allErrors = append(allErrors, errors.New(path+" - "+err.Error()))
+			}
 			continue
 		}
 		ch.errorLog[path] = addError(
@@ -109,13 +112,15 @@ func addError(allErrors ...error) []error {
 }
 
 //Report - выводит результат проверки
-func (ch *Checker) Report() {
+func (ch *Checker) Report(errs []error) {
 	//color.Cyan("TEXT")
 	nameLen := 0
+	errorsFound := 0
 	for _, val := range ch.pathList {
 		nameLen = maxFrom(nameLen, len(val))
 	}
 	for i, val := range ch.pathList {
+		originalName := val
 		if i == 0 {
 			head := "===INCHECKER REPORT"
 			for len(head) < nameLen {
@@ -123,19 +128,21 @@ func (ch *Checker) Report() {
 			}
 			head += "======"
 			fmt.Println(head)
+
 		}
 		for len(val) < nameLen {
 			val += "."
 		}
 		fmt.Print(val, "..")
-		if len(ch.errorLog[val]) == 0 {
+		if len(ch.errorLog[originalName]) == 0 {
 			color.Green("ok")
 			continue
 		}
 		color.Yellow("warning!")
-		for _, err := range ch.errorLog[val] {
+		for _, err := range ch.errorLog[originalName] {
 			//fmt.Print("\n	")
-			err = errors.New(val + " - " + err.Error())
+			err = errors.New(originalName + " - " + err.Error())
+			errorsFound++
 		}
 	}
 	tail := "======"
@@ -144,6 +151,7 @@ func (ch *Checker) Report() {
 	}
 	tail += "======"
 	fmt.Println(tail)
+	fmt.Println(strconv.Itoa(len(errs)) + " errors found")
 }
 
 func maxFrom(a, b int) int {
