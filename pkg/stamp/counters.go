@@ -4,6 +4,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/Galdoba/utils"
 )
 
 //Seconds - returns string with timestamp in format: [HH:MM:SS]
@@ -66,4 +68,9 @@ func IsDate(str string) bool {
 		}
 	}
 	return true
+}
+
+//SecondsStr - Wrapler for utils.TimeStampToSeconds
+func SecondsStr(str string) string {
+	return Seconds(int64(utils.TimeStampToSeconds(str)))
 }

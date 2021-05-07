@@ -61,7 +61,7 @@ func main() {
 			Name:  "clear, cl",
 			Usage: "If flag is active searcher Clear Terminal before every Search",
 		},
-		&cli.IntFlag{
+		&cli.StringFlag{
 			Name:  "delay",
 			Usage: "If flag is active searcher will delay start for N seconds",
 		},
@@ -78,34 +78,33 @@ func main() {
 					Usage: "If flag is active run incheker on every found file individualy",
 				},
 				&cli.BoolFlag{
-					Name:        "grab, g",
-					Usage:       "If flag is active grabber will try to download all new files",
-					Required:    false,
-					Hidden:      false,
-					Destination: new(bool),
+					Name:     "grab, g",
+					Usage:    "If flag is active grabber will try to download all new files",
+					Required: false,
+					Hidden:   false,
 				},
-				&cli.IntFlag{
-					Name:        "repeat, r",
-					Usage:       "repeat action every N seconds",
-					EnvVar:      "",
-					FilePath:    "",
-					Required:    false,
-					Hidden:      false,
-					Value:       0,
-					Destination: new(int),
+				&cli.StringFlag{
+					Name:     "repeat, r",
+					Usage:    "repeat action every N seconds",
+					EnvVar:   "",
+					FilePath: "",
+					Required: false,
+					Hidden:   false,
+					Value:    "",
 				},
 			},
 			Action: func(c *cli.Context) error {
-				if c.GlobalInt("delay") > 0 {
-					for i := 0; i <= c.GlobalInt("delay"); i++ {
-						fmt.Print("Searcher will start in ", stamp.Seconds(int64(c.GlobalInt("delay")-i)), "                       \r")
+				if c.GlobalString("delay") != "" {
+					sec := utils.TimeStampToSeconds(c.GlobalString("delay"))
+					for i := 0; i <= sec; i++ {
+						fmt.Print("Searcher will start in ", stamp.Seconds(int64(sec-i)), "                       \r")
 						time.Sleep(time.Second)
 					}
 					fmt.Print("\n")
 					fcli.RunConsole("dirmaker", "daily")
 				}
 				restart := false
-				if c.Int("repeat") > 0 {
+				if c.String("repeat") != "" {
 					restart = true
 				}
 			maincycle:
@@ -150,9 +149,9 @@ func main() {
 						fcli.RunConsole(prog, args...) //хватем найденое
 					}
 					repeatIfNeeded(c)
-					if c.Int("repeat") <= 0 {
-						break
-					}
+					// if c.String("repeat") != "" {
+					// 	break
+					// }
 				}
 				return nil
 			},
@@ -170,10 +169,10 @@ func main() {
 }
 
 func repeatIfNeeded(c *cli.Context) {
-	if c.Int("repeat") > 0 {
-		//restart = true
-		for i := 0; i < c.Int("repeat"); i++ {
-			fmt.Print("Probe in ", stamp.Seconds(int64(c.Int("repeat")-i)), "                 \r")
+	if c.String("repeat") != "" {
+		wait := utils.TimeStampToSeconds(c.String("repeat"))
+		for i := 0; i < wait; i++ {
+			fmt.Print("Probe in ", stamp.Seconds(int64(wait-i)), "                 \r")
 			time.Sleep(time.Second)
 		}
 	}
@@ -181,15 +180,13 @@ func repeatIfNeeded(c *cli.Context) {
 
 /*
 
-search -new
-search -all
+скачать video1, audio1, audio2
+если ошибок == 0 {
+	loudnorm audio1
+	ren audio1-ebur128.ac3 audio1.ac3
 
-search -take
+}
 
-search -today
-search -thisweek
-search -lastweek
-search -repeat=60 -incheck -grab -until:202127020900
 
 
 */

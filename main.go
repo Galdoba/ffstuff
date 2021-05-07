@@ -2,16 +2,11 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"strings"
 )
 
 func main() {
-	//t := utils.FromTimeStamp("01:00")
-	fmt.Println("---------")
-	fmt.Println(t)
 
-	os.Exit(1)
 	/*
 		   switcher := utils.StringSwitcher(b, true , t1, t2, t3)
 		   for _, tag := range switcher {

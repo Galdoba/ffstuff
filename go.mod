@@ -4,7 +4,7 @@ go 1.15
 
 require (
 	github.com/Galdoba/devtools v0.0.0-20210422071547-9034515c4ebc
-	github.com/Galdoba/utils v0.0.0-20210507014621-2148cbd62b94
+	github.com/Galdoba/utils v0.0.0-20210507022246-b5c531836431
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
 	github.com/fatih/color v1.10.0
 	github.com/k0kubun/go-ansi v0.0.0-20180517002512-3bf9e2903213

@@ -5,6 +5,8 @@ github.com/Galdoba/devtools v0.0.0-20210422071547-9034515c4ebc h1:Lxkd5WOJpMp060
 github.com/Galdoba/devtools v0.0.0-20210422071547-9034515c4ebc/go.mod h1:siQE0dUxR1HthsAiGjeB3WNcn9jA582sHiFDlYYJnR4=
 github.com/Galdoba/utils v0.0.0-20210507014621-2148cbd62b94 h1:9Tp8qJLBHguTijamJ4cgWj59BY8E3seeBV4/o2rRx8g=
 github.com/Galdoba/utils v0.0.0-20210507014621-2148cbd62b94/go.mod h1:WXWC9lUOMxvAvq3FT7RGDcBsGi2a3X3RX2ghULDNqpg=
+github.com/Galdoba/utils v0.0.0-20210507022246-b5c531836431 h1:ZYEdN6jkSMjfNI12jV4khTVaU4F66VJH+eanzR5bfMk=
+github.com/Galdoba/utils v0.0.0-20210507022246-b5c531836431/go.mod h1:WXWC9lUOMxvAvq3FT7RGDcBsGi2a3X3RX2ghULDNqpg=
 github.com/cpuguy83/go-md2man/v2 v2.0.0-20190314233015-f79a8a8ca69d h1:U+s90UTSYgptZMwQh2aRr3LuazLJIa+Pg3Kc1ylSYVY=
 github.com/cpuguy83/go-md2man/v2 v2.0.0-20190314233015-f79a8a8ca69d/go.mod h1:maD7wRr/U5Z6m/iR4s+kqSMx2CaBsrgA7czyZG/E6dU=
 github.com/cpuguy83/go-md2man/v2 v2.0.0 h1:EoUDS0afbrsXAZ9YQ9jdu/mZ2sXgT1/2yyNng4PGlyM=
