@@ -57,6 +57,10 @@ func main() {
 			Name:  "vocal",
 			Usage: "If flag is active searcher will print ALL log entries (level INFO is set by default)",
 		},
+		&cli.BoolFlag{
+			Name:  "clear, cl",
+			Usage: "If flag is active searcher Clear Terminal before every Search",
+		},
 		&cli.IntFlag{
 			Name:  "delay",
 			Usage: "If flag is active searcher will delay start for N seconds",
@@ -109,11 +113,14 @@ func main() {
 					if c.GlobalBool("vocal") {
 						logger.ShoutWhen(glog.LogLevelALL) //вещаем в терминал все сообщения логгера
 					}
+					if c.GlobalBool("clear") {
+						utils.ClearScreen() //обновляем экран
+					}
 					takeFile, err := scanner.Scan(root, marker) //сканируем
 					if err != nil {
-						fmt.Println(err)
-						logger.ERROR(err.Error())
-						return err
+						//fmt.Println(err)
+						logger.ERROR("scan failed: " + err.Error())
+						//return err
 					}
 					fileList := scanner.ListReady(takeFile)
 					if len(fileList) == 0 { //если найдено 0 новых файлов - то дальже либо ждем либо прекращаем работу
