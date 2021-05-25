@@ -197,6 +197,17 @@ func (ch *Checker) checkCodecName(path string) error {
 	case codecTypeVideo:
 		for stream := 0; stream < len(ch.data[path].Streams); stream++ {
 			codecName := collectInfo(ch.data[path], stream, ffinfoCodecName)
+			// //Проверка ошибки отсуствия видео тэга. TODO: перенсти отдельно в проверку имен
+			// if stringsContainsAnyOf(path, ".mp4") {
+			// 	err := errors.New("video tag absent or unknown")
+			// 	if stringsContainsAnyOf(path, "_sd") || stringsContainsAnyOf(path, "_hd") {
+			// 		err = nil
+			// 	}
+			// 	if err != nil {
+			// 		return err
+			// 	}
+			// }
+			// ////////////////////////////////////////
 			if codecName != "h264" {
 				return errors.New("Codec_Name: " + codecName + " (expect " + "h264" + ")")
 			}
@@ -453,14 +464,14 @@ func expectedFromVideoOLD(fileName string) (wh string, pixFmt string, fps string
 
 func expectedFromVideo(fileName string) map[string]string { //TODO: переписать иак чтобы оно собирало тэги из имени файла
 	data := make(map[string]string)
+	data[ffinfoPixFmt] = "unknown (video tag not found)"
+	data[ffinfoFPS] = "unknown (video tag not found)"
+	data[ffinfoWidth] = "unknown (video tag not found)"
+	data[ffinfoHeight] = "unknown (video tag not found)"
+	data[ffinfoSAR] = "unknown (video tag not found)"
 	if stringsContainsAnyOf(fileName, ".mp4") { // для всего видео
 		data[ffinfoPixFmt] = "yuv420p"
 		data[ffinfoFPS] = "25/1"
-	}
-	if stringsContainsAnyOf(fileName, "_hd__proxy") {
-		data[ffinfoWidth] = "480"
-		data[ffinfoHeight] = "270"
-		data[ffinfoSAR] = "1:1"
 	}
 	if stringsContainsAnyOf(fileName, "_4k") {
 		data[ffinfoWidth] = "3840"
@@ -470,6 +481,11 @@ func expectedFromVideo(fileName string) map[string]string { //TODO: перепи
 	if stringsContainsAnyOf(fileName, "_hd") {
 		data[ffinfoWidth] = "1920"
 		data[ffinfoHeight] = "1080"
+		data[ffinfoSAR] = "1:1"
+	}
+	if stringsContainsAnyOf(fileName, "_hd__proxy") {
+		data[ffinfoWidth] = "480"
+		data[ffinfoHeight] = "270"
 		data[ffinfoSAR] = "1:1"
 	}
 	if stringsContainsAnyOf(fileName, "_sd") {

@@ -18,7 +18,7 @@ func Scan(root string, querry string) ([]string, error) {
 	//открываем корень и собираем статистику
 	rootStat, errSt := os.Stat(root)
 	if errSt != nil {
-		return resultList, errors.New("specified root was not found")
+		return resultList, errSt
 	}
 	if !rootStat.IsDir() {
 		return resultList, errors.New("root is not a directory")
