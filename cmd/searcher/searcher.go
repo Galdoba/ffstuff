@@ -157,7 +157,25 @@ func main() {
 			},
 		},
 		//////////////////////////////////////
+		{
+			Name:  "list",
+			Usage: "List all files in NAS",
+			Flags: []cli.Flag{},
+			Action: func(c *cli.Context) error {
+				takeFile, err := scanner.Scan(root, "") //сканируем
+				if err != nil {
+					//fmt.Println(err)
+					logger.ERROR("scan failed: " + err.Error())
+					//return err
+				}
 
+				for i, val := range takeFile {
+					fmt.Println("i =", i, "|", val)
+					fcli.RunConsole("inchecker", val) //проверяем инчекером
+				}
+				return nil
+			},
+		},
 	}
 	args := os.Args
 	if len(args) < 2 {

@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/Galdoba/ffstuff/pkg/namedata"
+	"github.com/Galdoba/ffstuff/pkg/scanner"
 	"github.com/fatih/color"
 
 	"github.com/malashin/ffinfo"
@@ -26,30 +27,31 @@ const (
 	ffinfoFPS           = "r_frame_rate"
 	ffinfoSAR           = "sample_aspect_ratio"
 	ffinfoDuration      = "duration"
+	ffinfoHasBFrames    = "has_b_frames"
 )
 
 //Checker - mounts InChecker interface
 type Checker struct {
 	flagVocal bool
 	pathList  []string
-	//logger   logfile.Logger
-	data     map[string]ffinfo.File
-	groups   map[string][]string
-	errorLog map[string][]error
+	data      map[string]ffinfo.File
+	groups    map[string][]string
+	errorLog  map[string][]error
 }
 
 //NewChecker -
 func NewChecker() Checker {
 	ch := Checker{}
-	ch.groups = make(map[string][]string)
 	ch.data = make(map[string]ffinfo.File)
 	ch.errorLog = make(map[string][]error)
-	//ch.logger = logfile.New(fldr.MuxPath()+"logfile.txt", logfile.LogLevelINFO)
 	return ch
 }
 
 func (ch *Checker) AddTask(path string) {
-	//fmt.Println("Adding", path)
+	//исключаем файлы которые не проверяем точно
+	if stringsContainsAnyOf(path, ".srt", ".ready") {
+		return
+	}
 	ch.pathList = append(ch.pathList, path)
 	_, err := fileExists(path)
 	if err != nil {
@@ -59,14 +61,9 @@ func (ch *Checker) AddTask(path string) {
 	f, err := ffinfo.Probe(path)
 	if err != nil {
 		ch.errorLog[path] = append(ch.errorLog[path], err)
-		//fmt.Println(f)
 		return
 	}
 	ch.data[path] = *f
-	//ch.pathList = append(ch.pathList, path)
-	base := namedata.RetrieveBase(path)
-	ch.groups[base] = append(ch.groups[base], path)
-
 }
 
 //Check - проверяет файлы на тему всех косяков о которых я додумался
@@ -76,8 +73,6 @@ func (ch *Checker) Check() []error {
 		//f := ch.data[path]				DEBUG: принтует все сожержимое файла
 		//fmt.Println(f.String())
 		if len(ch.errorLog[path]) != 0 {
-			//fmt.Println(path, "---", ch.errorLog[path])
-			//fmt.Println(ch.errorLog)
 			for _, err := range ch.errorLog[path] {
 				allErrors = append(allErrors, errors.New(path+" - "+err.Error()))
 			}
@@ -92,6 +87,7 @@ func (ch *Checker) Check() []error {
 			ch.checkPixFmt(path),
 			ch.checkFPS(path),
 			ch.checkSAR(path),
+			ch.checkBFrames(path),
 		)
 		for _, err := range ch.errorLog[path] {
 			allErrors = append(allErrors, errors.New(path+" - "+err.Error()))
@@ -111,73 +107,39 @@ func addError(allErrors ...error) []error {
 	return errLog
 }
 
-//Report - выводит результат проверки
-func (ch *Checker) Report(errs []error) {
-	//color.Cyan("TEXT")
-	nameLen := 0
-	errorsFound := 0
-	for _, val := range ch.pathList {
-		nameLen = maxFrom(nameLen, len(val))
-	}
-	for i, val := range ch.pathList {
-		originalName := val
-		if i == 0 {
-			head := "===INCHECKER REPORT"
-			for len(head) < nameLen {
-				head += "="
-			}
-			head += "======"
-			fmt.Println(head)
-
-		}
-		for len(val) < nameLen {
-			val += "."
-		}
-		fmt.Print(val, "..")
-		if len(ch.errorLog[originalName]) == 0 {
-			color.Green("ok")
-			continue
-		}
-		color.Yellow("warning!")
-		for _, err := range ch.errorLog[originalName] {
-			//fmt.Print("\n	")
-			err = errors.New(originalName + " - " + err.Error())
-			errorsFound++
-		}
-	}
-	tail := "======"
-	for len(tail) < nameLen {
-		tail += "="
-	}
-	tail += "======"
-	fmt.Println(tail)
-	fmt.Println(strconv.Itoa(len(errs)) + " errors found")
-}
-
-func maxFrom(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
-}
-
 func (ch *Checker) checkDuration(path string) error {
+	// если наш файл видео - проверка не делается
 	if collectInfo(ch.data[path], 0, ffinfoCodecType) == codecTypeVideo {
 		return nil
 	}
+	//Ищем файлы в текущей папке с базой нашего файла
 	base := namedata.RetrieveBase(path)
-	baseDuration := "0.0"
-	if len(ch.groups[base]) < 2 {
-		return nil
+	folder := namedata.RetrieveDirectory(path)
+	relatedFiles, scanErr := scanner.Scan(folder, base)
+	if scanErr != nil {
+		return scanErr
 	}
-	for _, p := range ch.groups[base] {
-		data := ch.data[p]
-		if collectInfo(data, 0, ffinfoCodecType) != codecTypeVideo {
+	baseDuration := "0.0"
+	//прозваниваем все найденные
+	for _, p := range relatedFiles {
+		if stringsContainsAnyOf(p, ".ready", ".srt") {
 			continue
 		}
+		f, err := ffinfo.Probe(p)
+		if err != nil {
+			ch.errorLog[path] = append(ch.errorLog[path], err)
+			return err
+		}
+		//если не видео - пропускаем
+		if collectInfo(*f, 0, ffinfoCodecType) != codecTypeVideo {
+			continue
+		}
+		data := *f
+		//узнаем базовую длинну
 		baseDuration = collectInfo(data, 0, ffinfoDuration)
 	}
 	fileDuration := collectInfo(ch.data[path], 0, ffinfoDuration)
+	//сравниваем длинну нашего файла и базового
 	if err := compareDuration(baseDuration, fileDuration); err != nil {
 		return err
 	}
@@ -307,6 +269,24 @@ func (ch *Checker) checkSAR(path string) error {
 	return nil
 }
 
+func (ch *Checker) checkBFrames(path string) error {
+	if collectInfo(ch.data[path], 0, ffinfoCodecType) != codecTypeVideo {
+		return nil
+	}
+	data := expectedFromVideo(path)
+	expBF := data[ffinfoHasBFrames]
+	for stream := 0; stream < len(ch.data[path].Streams); stream++ {
+		bf := collectInfo(ch.data[path], stream, ffinfoHasBFrames)
+		if bf != expBF {
+			if bf == "" {
+				return errors.New("Bframes: no data")
+			}
+			return errors.New("Bframes: " + bf + " (expect " + expBF + ")")
+		}
+	}
+	return nil
+}
+
 func compareDuration(baseDuration, fileDuration string) error {
 	if baseDuration == "0.0" {
 		return errors.New("no video provided to compare duration with")
@@ -365,9 +345,11 @@ func collectInfo(f ffinfo.File, stream int, key string) string {
 		return f.Streams[stream].SampleAspectRatio
 	case ffinfoDuration:
 		return f.Format.Duration
+	case ffinfoHasBFrames:
+		return strconv.Itoa(f.Streams[stream].HasBFrames)
 
 	}
-	return "UNKNOWN KEY"
+	return "collect info key not added!!!"
 }
 
 // func expectedFromAudio(fileName string) (string, string) { //TODO: переписать иак чтобы оно собирало тэги из имени файла
@@ -469,9 +451,11 @@ func expectedFromVideo(fileName string) map[string]string { //TODO: перепи
 	data[ffinfoWidth] = "unknown (video tag not found)"
 	data[ffinfoHeight] = "unknown (video tag not found)"
 	data[ffinfoSAR] = "unknown (video tag not found)"
+	data[ffinfoHasBFrames] = "unknown (video tag not found)"
 	if stringsContainsAnyOf(fileName, ".mp4") { // для всего видео
 		data[ffinfoPixFmt] = "yuv420p"
 		data[ffinfoFPS] = "25/1"
+		data[ffinfoHasBFrames] = "0"
 	}
 	if stringsContainsAnyOf(fileName, "_4k") {
 		data[ffinfoWidth] = "3840"
@@ -572,4 +556,54 @@ func MediaDuration(path string) (float64, error) {
 		return 0.0, err
 	}
 	return fDur, nil
+}
+
+//Report - выводит результат проверки
+func (ch *Checker) Report(errs []error) {
+	//color.Cyan("TEXT")
+	nameLen := 0
+	errorsFound := 0
+	for _, val := range ch.pathList {
+		nameLen = maxFrom(nameLen, len(val))
+	}
+	for i, val := range ch.pathList {
+		originalName := val
+		if i == 0 {
+			head := "===INCHECKER REPORT"
+			for len(head) < nameLen {
+				head += "="
+			}
+			head += "======"
+			fmt.Println(head)
+
+		}
+		for len(val) < nameLen {
+			val += "."
+		}
+		fmt.Print(val, "..")
+		if len(ch.errorLog[originalName]) == 0 {
+			color.Green("ok")
+			continue
+		}
+		color.Yellow("warning!")
+		for _, err := range ch.errorLog[originalName] {
+			//fmt.Print("\n	")
+			err = errors.New(originalName + " - " + err.Error())
+			errorsFound++
+		}
+	}
+	tail := "======"
+	for len(tail) < nameLen {
+		tail += "="
+	}
+	tail += "======"
+	fmt.Println(tail)
+	fmt.Println(strconv.Itoa(len(errs)) + " errors found")
+}
+
+func maxFrom(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }
