@@ -59,3 +59,9 @@ func (t *Task) Run() error {
 	_, _, err := RunConsole(t.program, t.agruments...)
 	return err
 }
+
+//Run - выполняет инструкции
+func (t *Task) LastArg() string {
+	l := len(t.agruments)
+	return t.agruments[l-1]
+}

@@ -168,9 +168,14 @@ func main() {
 					logger.ERROR("scan failed: " + err.Error())
 					//return err
 				}
-
+				lenFiles := len(takeFile)
 				for i, val := range takeFile {
-					fmt.Println("i =", i, "|", val)
+					fmt.Println("Scan position:", i+1, "/", lenFiles)
+					stat, _ := os.Stat(val)
+					if stat.IsDir() {
+						fmt.Println("Skip")
+						continue
+					}
 					fcli.RunConsole("inchecker", val) //проверяем инчекером
 				}
 				return nil

@@ -33,16 +33,20 @@ func main() {
 			panic(err)
 		}
 		defer f.Close()
-		if _, err = f.WriteString(clipData + "\n"); err != nil {
-			fmt.Println(err)
-		}
+		// if _, err = f.WriteString(clipData + "\n"); err != nil {
+		// 	fmt.Println(err)
+		// }
 		//////////////////////////////////
 		cl, err := clipmaker.NewClip(clipData)
 		if err != nil {
 			fmt.Println(err)
 		}
 		clipMap[cl.Index()] = cl
-		cliTasks = append(cliTasks, cli.NewTask(clipmaker.CutClip(cl)))
+		newTask := cli.NewTask(clipmaker.CutClip(cl))
+		cliTasks = append(cliTasks, newTask)
+		if _, err = f.WriteString(newTask.LastArg() + "\n"); err != nil {
+			fmt.Println(err)
+		}
 	}
 	cliTasks = sortTasks(cliTasks)
 
