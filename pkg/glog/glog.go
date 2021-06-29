@@ -14,14 +14,15 @@ import (
 )
 
 const (
-	LogLevelALL   = 0
-	LogLevelTRACE = 1
-	LogLevelDEBUG = 2
-	LogLevelINFO  = 3
-	LogLevelWARN  = 4
-	LogLevelERROR = 5
-	LogLevelFATAL = 6
-	LogLevelOFF   = 7
+	LogLevelALL    = 0
+	LogLevelTRACE  = 1
+	LogLevelDEBUG  = 2
+	LogLevelINFO   = 3
+	LogLevelWARN   = 4
+	LogLevelERROR  = 5
+	LogLevelFATAL  = 6
+	LogLevelOFF    = 7
+	LogPathDEFAULT = "log_path_default"
 )
 
 func Test() {
@@ -163,7 +164,9 @@ type logger struct {
 
 //New - принимает путь в котором будет находиться файл и минимальный уровень сообщений которые будут выводиться на терминал во время логирования
 func New(path string, level int) Logger {
-
+	if path == LogPathDEFAULT {
+		path = fldr.LogPathDefault()
+	}
 	pathFolders := strings.Split(path, "\\")
 	dir := strings.Join(pathFolders[0:len(pathFolders)-1], "\\")
 	os.MkdirAll(dir, os.ModePerm)

@@ -5,14 +5,13 @@ import (
 	"os"
 	"strings"
 
-	"github.com/Galdoba/ffstuff/fldr"
 	"github.com/Galdoba/ffstuff/pkg/glog"
 	"github.com/Galdoba/ffstuff/pkg/inchecker"
 	"github.com/urfave/cli"
 )
 
 func main() {
-	logger := glog.New(fldr.MuxPath()+"logfile.txt", glog.LogLevelINFO)
+	logger := glog.New(glog.LogPathDEFAULT, glog.LogLevelINFO)
 	checker := inchecker.NewChecker()
 	pathsReceived := pathsReceived()
 	app := cli.NewApp()
@@ -33,10 +32,50 @@ func main() {
 			Usage: "If flag is active searcher will delay start for N seconds",
 		},
 	}
-	args := os.Args
-	if len(args) < 2 {
-		args = append(args, "help") //Принудительно зовем помощь если нет других аргументов
+	app.Commands = []cli.Command{
+		{
+			Name:        "check",
+			ShortName:   "",
+			Aliases:     []string{},
+			Usage:       "",
+			UsageText:   "",
+			Description: "",
+			ArgsUsage:   "",
+			Category:    "",
+			Flags: []cli.Flag{
+				&cli.BoolFlag{
+					Name:  "bframes, bfm",
+					Usage: "If flag is active incheker checks video for bFrames",
+				},
+			},
+
+			Action: func(c *cli.Context) error {
+				for _, path := range c.Args() {
+					if strings.Contains(path, ".ready") {
+						continue
+					}
+					checker.AddTask(path)
+					logger.TRACE("Checking: " + path)
+				}
+				allErrors := checker.Check()
+				checker.Report(allErrors)
+				if len(allErrors) == 0 {
+					if len(pathsReceived) > 1 {
+						logger.INFO("All files valid")
+					}
+					os.Exit(0)
+				}
+				for _, err := range allErrors {
+					logger.WARN(err.Error())
+				}
+				return nil
+			},
+		},
 	}
+	args := os.Args
+	// if len(args) < 2 {
+	// 	args = append(args, "help") //Принудительно зовем помощь если нет других аргументов
+	// }
 	if err := app.Run(args); err != nil {
 		fmt.Println(err.Error())
 	}
@@ -46,24 +85,25 @@ func main() {
 		logger.TRACE("No arguments received")
 		return
 	}
-	for _, path := range pathsReceived {
-		if strings.Contains(path, ".ready") {
-			continue
-		}
-		checker.AddTask(path)
-		logger.TRACE("Checking: " + path)
-	}
-	allErrors := checker.Check()
-	checker.Report(allErrors)
-	if len(allErrors) == 0 {
-		if len(pathsReceived) > 1 {
-			logger.INFO("All files valid")
-		}
-		os.Exit(0)
-	}
-	for _, err := range allErrors {
-		logger.WARN(err.Error())
-	}
+	// for _, path := range pathsReceived {
+	// 	if strings.Contains(path, ".ready") {
+	// 		continue
+	// 	}
+	// 	fmt.Println("Add", path, "to task")
+	// 	checker.AddTask(path)
+	// 	logger.TRACE("Checking: " + path)
+	// }
+	// allErrors := checker.Check()
+	// checker.Report(allErrors)
+	// if len(allErrors) == 0 {
+	// 	if len(pathsReceived) > 1 {
+	// 		logger.INFO("All files valid")
+	// 	}
+	// 	os.Exit(0)
+	// }
+	// for _, err := range allErrors {
+	// 	logger.WARN(err.Error())
+	// }
 }
 
 func pathsReceived() []string {

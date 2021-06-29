@@ -187,3 +187,16 @@ func configPath() (string, string) {
 	}
 	return configDir, exe + ".config"
 }
+
+func LogPathDefault() string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		fmt.Println(err)
+	}
+	logDir := ""
+	switch runtime.GOOS {
+	case "windows":
+		logDir = home + "\\.logs\\" + utils.DateStamp() + "_ffstuff.log"
+	}
+	return logDir
+}

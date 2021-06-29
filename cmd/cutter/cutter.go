@@ -14,7 +14,8 @@ import (
 
 func main() {
 	fldr.Init()
-	logger := glog.New(fldr.MuxPath()+"logfile.txt", glog.LogLevelWARN)
+	//logger := glog.New(fldr.MuxPath()+"logfile.txt", glog.LogLevelWARN)
+	logger := glog.New(glog.LogPathDEFAULT, glog.LogLevelINFO)
 	logger.INFO("Start cutting")
 	edlFile := fldr.SelectEDL()
 	edi, err := ediread.NewEdlData(edlFile)

@@ -47,7 +47,8 @@ func main() {
 	if configMap[constant.LogDirectory] == "default" {
 		logLocation = fldr.MuxPath() + "logfile.txt"
 	}
-	logger = glog.New(logLocation, glog.LogLevelINFO)
+	//logger = glog.New(logLocation, glog.LogLevelINFO)
+	logger = glog.New(glog.LogPathDEFAULT, glog.LogLevelINFO)
 	app := cli.NewApp()
 	app.Version = "v 0.0.3"
 	app.Name = "searcher"
@@ -136,7 +137,8 @@ func main() {
 						logger.TRACE("detected " + fl)
 					}
 					if c.Bool("check") {
-						fcli.RunConsole("inchecker", fileList...) //проверяем инчекером
+						arguments := append([]string{"check"}, fileList...)
+						fcli.RunConsole("inchecker", arguments...) //проверяем инчекером
 					}
 					logger.INFO(strconv.Itoa(len(fileList)-len(takeFile)) + " new files found")
 					if c.Bool("grab") {

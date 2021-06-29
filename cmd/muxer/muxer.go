@@ -3,13 +3,13 @@ package main
 import (
 	"fmt"
 
-	"github.com/Galdoba/ffstuff/fldr"
 	"github.com/Galdoba/ffstuff/pkg/glog"
 	"github.com/Galdoba/ffstuff/pkg/muxer"
 )
 
 func main() {
-	logger := glog.New(fldr.MuxPath()+"logfile.txt", glog.LogLevelINFO)
+	//logger := glog.New(fldr.MuxPath()+"logfile.txt", glog.LogLevelINFO)
+	logger := glog.New(glog.LogPathDEFAULT, glog.LogLevelINFO)
 	tasks, err := muxer.MuxList()
 	if err != nil {
 		logger.ERROR(err.Error())

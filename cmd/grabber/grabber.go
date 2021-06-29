@@ -59,8 +59,9 @@ func main() {
 	searchRoot := configMap[constant.SearchRoot]
 	searchMarker := configMap[constant.SearchMarker]
 	//dest := configMap[constant.InPath] + "IN_" + utils.DateStamp() + "\\"
-	logPath := configMap[constant.MuxPath] + "MUX_" + utils.DateStamp() + "\\logfile.txt"
-	logger = glog.New(logPath, glog.LogLevelINFO)
+	//logPath := configMap[constant.MuxPath] + "MUX_" + utils.DateStamp() + "\\logfile.txt"
+	//logger = glog.New(logPath, glog.LogLevelINFO)
+	logger = glog.New(glog.LogPathDEFAULT, glog.LogLevelINFO)
 
 	app := cli.NewApp()
 	app.Version = "v 0.0.3"
