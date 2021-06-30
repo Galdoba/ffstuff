@@ -3,9 +3,20 @@ package main
 import (
 	"fmt"
 	"strings"
+
+	"github.com/Galdoba/ffstuff/pkg/edl"
 )
 
 func main() {
+
+	edlData, err := edl.ParseFile("d:\\IN\\IN_2021-06-30\\test_edlgoth.edl")
+	switch {
+	case err == nil:
+		fmt.Println("DEBUG: err = nil")
+	default:
+		//fmt.Println(err, err.Error())
+	}
+	fmt.Println(edlData)
 
 	/*
 		   switcher := utils.StringSwitcher(b, true , t1, t2, t3)
@@ -19,21 +30,21 @@ func main() {
 
 
 	*/
-	name := "gorod_na_holme_s02_05_2021__hd__proxy.mp4"
-	for _, val := range contained(name, "mp4", "hd", "hd__proxy", "sd", "gorod", "sd") {
-		switch val {
-		default:
-			fmt.Println("Undefined thing:", val)
-		case "mp4":
-			fmt.Println("DO mp4 stuff with", val)
-		case "sd":
-			fmt.Println("DO  sd stuff with", val)
-		case "hd":
-			fmt.Println("DO  hd stuff with", val)
-		case "hd__proxy":
-			fmt.Println("DO  hd__proxy stuff with", val)
-		}
-	}
+	// name := "gorod_na_holme_s02_05_2021__hd__proxy.mp4"
+	// for _, val := range contained(name, "mp4", "hd", "hd__proxy", "sd", "gorod", "sd") {
+	// 	switch val {
+	// 	default:
+	// 		fmt.Println("Undefined thing:", val)
+	// 	case "mp4":
+	// 		fmt.Println("DO mp4 stuff with", val)
+	// 	case "sd":
+	// 		fmt.Println("DO  sd stuff with", val)
+	// 	case "hd":
+	// 		fmt.Println("DO  hd stuff with", val)
+	// 	case "hd__proxy":
+	// 		fmt.Println("DO  hd__proxy stuff with", val)
+	// 	}
+	// }
 
 }
 
