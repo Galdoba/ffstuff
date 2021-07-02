@@ -11,6 +11,7 @@ func main() {
 
 	edlData, err := edl.ParseFile("d:\\IN\\IN_2021-07-02\\Заклятие 3 По воле дьявола.edl")
 	fmt.Println("End Parse File")
+	fmt.Println("////////////////////////////")
 	fmt.Println(edlData)
 	fmt.Println(err)
 

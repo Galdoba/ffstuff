@@ -77,7 +77,7 @@ func Parse(r io.Reader) (*edlData, error) {
 		}
 		var index string
 		var reel string
-		var mediaType string
+		var trackType string
 		var effect string
 		//var fileTime timeSegment
 		//var sequenceTime timeSegment
@@ -90,7 +90,7 @@ func Parse(r io.Reader) (*edlData, error) {
 		index = fields[0]
 		if len(fields) > 7 {
 			reel = fields[1]
-			mediaType = fields[2]
+			trackType = fields[2]
 			effect = fields[3]
 
 			fileIN = fields[4]
@@ -101,7 +101,7 @@ func Parse(r io.Reader) (*edlData, error) {
 
 		switch {
 		default:
-			return nil, fmt.Errorf("unknown err = %v", line)
+			return &eData, fmt.Errorf("unknown err = %v", line)
 		case parseError != nil:
 			return &eData, parseError
 		case index == "*":
@@ -112,14 +112,16 @@ func Parse(r io.Reader) (*edlData, error) {
 			eData, parseError = parseFCM(eData, line)
 		case index == "EFFECTS":
 			//заполняем effect name для клипа
+			fmt.Printf("TODO:   EFFECTS not implemented\n")
 			fmt.Printf("Effect name: %q\n", strings.TrimPrefix(line, "EFFECTS NAME IS "))
 
 		//skip
 		//case isIndex(index):
 		case reel == "BL":
-			fmt.Printf("сегмент пустоты: %q", line)
+			fmt.Printf("сегмент пустоты: %q\n", line)
+			fmt.Printf("clip is BL\n")
 		case reel == "AX":
-			fmt.Printf("Parse main Data: %v\n", line)
+			fmt.Printf("Parse main Data:  %v\n", line)
 			newclip := clip{}
 			for i, val := range []string{fileIN, fileOUT, sequenceIN, sequenceOUT} {
 				timedata, err := types.ParseTimecode(val)
@@ -140,7 +142,7 @@ func Parse(r io.Reader) (*edlData, error) {
 			newclip.lenght = newclip.fileOUT - newclip.fileIN
 			eData.track = append(eData.track, newclip)
 
-			switch mediaType {
+			switch trackType {
 			default:
 				return nil, fmt.Errorf("clip is unknown type = %v", line)
 			case "V":
@@ -159,7 +161,7 @@ func Parse(r io.Reader) (*edlData, error) {
 			fmt.Println(i, line)
 			fmt.Print(index)
 			fmt.Print(reel)
-			fmt.Print(mediaType)
+			fmt.Print(trackType)
 			fmt.Print(effect)
 			fmt.Print(fileIN)
 			fmt.Print(fileOUT)
@@ -224,7 +226,7 @@ func isFolower(cl clip) bool {
 /*
 index
 reel
-mediaType
+trackType
 effect
 fileIN
 fileOUT
