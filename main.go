@@ -9,14 +9,10 @@ import (
 
 func main() {
 
-	edlData, err := edl.ParseFile("d:\\IN\\IN_2021-06-30\\test_edlgoth.edl")
-	switch {
-	case err == nil:
-		fmt.Println("DEBUG: err = nil")
-	default:
-		//fmt.Println(err, err.Error())
-	}
+	edlData, err := edl.ParseFile("d:\\IN\\IN_2021-07-02\\Заклятие 3 По воле дьявола.edl")
+	fmt.Println("End Parse File")
 	fmt.Println(edlData)
+	fmt.Println(err)
 
 	/*
 		   switcher := utils.StringSwitcher(b, true , t1, t2, t3)

@@ -2,18 +2,20 @@ package edl
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"os"
-	"strconv"
 	"strings"
 
 	"github.com/macroblock/imed/pkg/types"
 )
 
 type edlData struct {
-	filepath          string
-	timeline          []clip
+	edlSource         string //источник самого edl (не обязательно файл)
+	title             string //title внутри edl
+	fcm               string //fcm внутри edl
+	track             []clip
 	inputFilePaths    []string
 	inputFileCheckMap map[string]bool
 }
@@ -21,12 +23,19 @@ type edlData struct {
 type clip struct {
 	nextClip    *clip  //адресс следующего клипа
 	mix         string //тип склейки - если не пуст то дальше идем в nextClip
-	fileName    string //имя файла из которого берем данные
+	sourcefile  string //имя файла из которого берем данные
 	sequanceIN  types.Timecode
 	sequanceOUT types.Timecode
 	fileIN      types.Timecode
 	fileOUT     types.Timecode
+	lenght      types.Timecode
 	effects     []string
+}
+
+type timeSegment struct {
+	in     types.Timecode
+	out    types.Timecode
+	lenght types.Timecode
 }
 
 func New() (edlData, error) {
@@ -54,11 +63,15 @@ func Parse(r io.Reader) (*edlData, error) {
 	fmt.Println("Start Parse Reader")
 	eData := edlData{}
 	eData.inputFileCheckMap = make(map[string]bool)
+	//eData, parseError = parseLine()
 	scanner := bufio.NewScanner(r)
+	parseError := errors.New("Initial")
+	parseError = nil
 	i := 0
 	for scanner.Scan() {
 		i++
 		line := strings.TrimSpace(scanner.Text())
+
 		if line == "" {
 			continue
 		}
@@ -66,6 +79,8 @@ func Parse(r io.Reader) (*edlData, error) {
 		var reel string
 		var mediaType string
 		var effect string
+		//var fileTime timeSegment
+		//var sequenceTime timeSegment
 		var fileIN string
 		var fileOUT string
 		var sequenceIN string
@@ -77,46 +92,70 @@ func Parse(r io.Reader) (*edlData, error) {
 			reel = fields[1]
 			mediaType = fields[2]
 			effect = fields[3]
+
 			fileIN = fields[4]
 			fileOUT = fields[5]
 			sequenceIN = fields[6]
 			sequenceOUT = fields[7]
 		}
+
 		switch {
 		default:
 			return nil, fmt.Errorf("unknown err = %v", line)
+		case parseError != nil:
+			return &eData, parseError
 		case index == "*":
-			switch {
-			default:
-				return nil, fmt.Errorf("index field err = %v", line)
-			case strings.HasPrefix(line, "* FROM CLIP NAME: "):
-				//заполняем Source file name для клипа
-				source := strings.TrimPrefix(line, "* FROM CLIP NAME: ")
-				fmt.Printf("Source file name: %q\n", source)
-				eData.inputFileCheckMap[source] = true
-			case strings.HasPrefix(line, "* TO CLIP NAME: "):
-				//заполняем Dest file name для клипа
-				source := strings.TrimPrefix(line, "* TO CLIP NAME: ")
-				fmt.Printf("Dest file name: %q\n", source)
-				eData.inputFileCheckMap[source] = true
-			}
+			eData, parseError = parseComment(eData, line)
 		case index == "TITLE:":
-			//skip
+			eData, parseError = parseTitle(eData, line)
+		case index == "FCM:":
+			eData, parseError = parseFCM(eData, line)
 		case index == "EFFECTS":
 			//заполняем effect name для клипа
 			fmt.Printf("Effect name: %q\n", strings.TrimPrefix(line, "EFFECTS NAME IS "))
-		case index == "FCM:":
-			fmt.Printf("TODO: разобраться что это %q\n", strings.TrimPrefix(line, "FCM: "))
-		case isIndex(index):
-			fmt.Printf("TODO: присвоить индекс '%v' к клипу\n", index)
+
+		//skip
+		//case isIndex(index):
 		case reel == "BL":
 			fmt.Printf("сегмент пустоты: %q", line)
-			continue
+		case reel == "AX":
+			fmt.Printf("Parse main Data: %v\n", line)
+			newclip := clip{}
+			for i, val := range []string{fileIN, fileOUT, sequenceIN, sequenceOUT} {
+				timedata, err := types.ParseTimecode(val)
+				if err != nil {
+					return &eData, err
+				}
+				switch i {
+				case 0:
+					newclip.fileIN = timedata
+				case 1:
+					newclip.fileOUT = timedata
+				case 2:
+					newclip.sequanceIN = timedata
+				case 3:
+					newclip.sequanceOUT = timedata
+				}
+			}
+			newclip.lenght = newclip.fileOUT - newclip.fileIN
+			eData.track = append(eData.track, newclip)
+
+			switch mediaType {
+			default:
+				return nil, fmt.Errorf("clip is unknown type = %v", line)
+			case "V":
+				fmt.Printf("clip is video\n")
+			case "A", "A2", "A3", "A4":
+				fmt.Printf("clip is audio\n")
+			}
 
 		}
+
 		////////////
-		fmt.Printf("Source IN = %q | Source OUT = %q\n", fileIN, fileOUT)
-		if 5 > 3 {
+		//fmt.Printf("Source IN = %q | Source OUT = %q\n", fileIN, fileOUT)
+
+		//fmt.Printf("Sequance IN = %q | Sequance OUT = %q\n", sequenceIN, sequenceOUT)
+		if 5 < 3 {
 			fmt.Println(i, line)
 			fmt.Print(index)
 			fmt.Print(reel)
@@ -129,19 +168,57 @@ func Parse(r io.Reader) (*edlData, error) {
 			fmt.Print("\n")
 		}
 	}
-
+	fmt.Println("End Parse Reader")
 	return &eData, nil
 }
 
-func isIndex(s string) bool {
-	n, err := strconv.Atoi(s)
-	if err != nil {
-		return false
+func parseLine(eData edlData, line string) (edlData, error) {
+	fmt.Println("parseLine(eData edlData, line string) (edlData, error) - not implemented")
+	return eData, nil
+}
+
+func parseTitle(eData edlData, line string) (edlData, error) {
+	title := strings.TrimPrefix(line, "TITLE: ")
+	if title == line {
+		return eData, fmt.Errorf("title cannot be parsed %v", line)
 	}
-	if n < 1 || n > 999 {
-		return false
+	return eData, nil
+}
+
+func parseFCM(eData edlData, line string) (edlData, error) {
+	fmt.Printf("TODO: разобраться что это %q\n", strings.TrimPrefix(line, "FCM: "))
+	fcm := strings.TrimPrefix(line, "FCM: ")
+	if fcm == line {
+		return eData, fmt.Errorf("fcm cannot be parsed %v", fcm)
 	}
-	return true
+	return eData, nil
+}
+
+func parseComment(eData edlData, line string) (edlData, error) {
+	switch {
+	default:
+		return eData, fmt.Errorf("index field err = %v", line)
+	case strings.HasPrefix(line, "* FROM CLIP NAME: "):
+		//заполняем Source file name для клипа
+		source := strings.TrimPrefix(line, "* FROM CLIP NAME: ")
+		fmt.Printf("Source file name: %q\n", source)
+		eData.inputFileCheckMap[source] = true
+	case strings.HasPrefix(line, "* TO CLIP NAME: "):
+		//заполняем Dest file name для клипа
+		source := strings.TrimPrefix(line, "* TO CLIP NAME: ")
+		fmt.Printf("Dest file name: %q\n", source)
+		eData.inputFileCheckMap[source] = true
+	}
+	return eData, nil
+}
+
+func parseClip(eData edlData, line string) (edlData, error) {
+
+	return eData, nil
+}
+
+func isFolower(cl clip) bool {
+	return false
 }
 
 /*
