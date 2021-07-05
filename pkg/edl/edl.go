@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"strings"
 
@@ -15,21 +16,20 @@ type edlData struct {
 	edlSource         string //источник самого edl (не обязательно файл)
 	title             string //title внутри edl
 	fcm               string //fcm внутри edl
-	track             []clip
+	track             []clip //последовательность найденых клипов
 	inputFilePaths    []string
 	inputFileCheckMap map[string]bool
 }
 
 type clip struct {
-	nextClip    *clip  //адресс следующего клипа
-	mix         string //тип склейки - если не пуст то дальше идем в nextClip
-	sourcefile  string //имя файла из которого берем данные
-	sequanceIN  types.Timecode
-	sequanceOUT types.Timecode
-	fileIN      types.Timecode
-	fileOUT     types.Timecode
-	lenght      types.Timecode
-	effects     []string
+	////ВАЖНО mix определяет с какого типа склейки клип начинается
+	//технически это означает что nextclip должно стать lastclip
+	nextClip     *clip  //адресс следующего клипа
+	mix          string //тип склейки - если не "C" то дальше идем в nextClip
+	sourcefile   string //имя файла из которого берем данные
+	fileTime     timeSegment
+	sequanceTime timeSegment
+	effects      []string
 }
 
 type timeSegment struct {
@@ -42,6 +42,26 @@ func New() (edlData, error) {
 	ed := edlData{}
 	ed.inputFileCheckMap = make(map[string]bool)
 	return ed, nil
+}
+
+func (ed edlData) String() string {
+	str := ""
+	str += fmt.Sprintf("edlSource = %v\n", ed.edlSource)
+	str += fmt.Sprintf("title = %v\n", ed.title)
+	str += fmt.Sprintf("fcm = %v\n", ed.fcm)
+	for i, val := range ed.track {
+		str += fmt.Sprintf("track %v = %v\n", i, val)
+	}
+	str += fmt.Sprintf("inputFilePaths = %v\n", ed.inputFilePaths)
+	str += fmt.Sprintf("inputFileCheckMap:\n")
+	for k, v := range ed.inputFileCheckMap {
+		str += fmt.Sprintf("%v  %v\n", k, v)
+	}
+	return str
+}
+
+func (ts timeSegment) String() string {
+	return fmt.Sprintf("[ IN %v | OUT %v | LEN %v ]\n", ts.in.HHMMSSMs(), ts.out.HHMMSSMs(), ts.lenght.HHMMSSMs())
 }
 
 // edl.Parse("file.edl") (edlData, error)
@@ -71,7 +91,6 @@ func Parse(r io.Reader) (*edlData, error) {
 	for scanner.Scan() {
 		i++
 		line := strings.TrimSpace(scanner.Text())
-
 		if line == "" {
 			continue
 		}
@@ -79,8 +98,6 @@ func Parse(r io.Reader) (*edlData, error) {
 		var reel string
 		var trackType string
 		var effect string
-		//var fileTime timeSegment
-		//var sequenceTime timeSegment
 		var fileIN string
 		var fileOUT string
 		var sequenceIN string
@@ -92,7 +109,6 @@ func Parse(r io.Reader) (*edlData, error) {
 			reel = fields[1]
 			trackType = fields[2]
 			effect = fields[3]
-
 			fileIN = fields[4]
 			fileOUT = fields[5]
 			sequenceIN = fields[6]
@@ -114,34 +130,17 @@ func Parse(r io.Reader) (*edlData, error) {
 			//заполняем effect name для клипа
 			fmt.Printf("TODO:   EFFECTS not implemented\n")
 			fmt.Printf("Effect name: %q\n", strings.TrimPrefix(line, "EFFECTS NAME IS "))
-
-		//skip
-		//case isIndex(index):
 		case reel == "BL":
 			fmt.Printf("сегмент пустоты: %q\n", line)
 			fmt.Printf("clip is BL\n")
 		case reel == "AX":
 			fmt.Printf("Parse main Data:  %v\n", line)
-			newclip := clip{}
-			for i, val := range []string{fileIN, fileOUT, sequenceIN, sequenceOUT} {
-				timedata, err := types.ParseTimecode(val)
-				if err != nil {
-					return &eData, err
-				}
-				switch i {
-				case 0:
-					newclip.fileIN = timedata
-				case 1:
-					newclip.fileOUT = timedata
-				case 2:
-					newclip.sequanceIN = timedata
-				case 3:
-					newclip.sequanceOUT = timedata
-				}
-			}
-			newclip.lenght = newclip.fileOUT - newclip.fileIN
+			newclip := clip{} //выкинуть создание объекта за пределы цикла
+			newclip.fileTime, parseError = parseFileTime(fileIN, fileOUT)
+			newclip.sequanceTime, parseError = parseSequenceTime(sequenceIN, sequenceOUT)
+			fmt.Println(newclip.fileTime, newclip.sequanceTime)
+			//			newclip.lenght = newclip.fileOUT - newclip.fileIN
 			eData.track = append(eData.track, newclip)
-
 			switch trackType {
 			default:
 				return nil, fmt.Errorf("clip is unknown type = %v", line)
@@ -184,6 +183,7 @@ func parseTitle(eData edlData, line string) (edlData, error) {
 	if title == line {
 		return eData, fmt.Errorf("title cannot be parsed %v", line)
 	}
+	eData.title = title
 	return eData, nil
 }
 
@@ -212,6 +212,44 @@ func parseComment(eData edlData, line string) (edlData, error) {
 		eData.inputFileCheckMap[source] = true
 	}
 	return eData, nil
+}
+
+func parseFileTime(fileIN, fileOUT string) (timeSegment, error) {
+	fileTime := timeSegment{}
+	in, errIN := types.ParseTimecode(fileIN)
+	if errIN != nil {
+		return fileTime, fmt.Errorf("can't parse fileIN: %v", errIN.Error())
+	}
+	out, errOUT := types.ParseTimecode(fileOUT)
+	if errOUT != nil {
+		return fileTime, fmt.Errorf("can't parse fileOUT: %v", errIN.Error())
+	}
+	fileTime.in = in
+	fileTime.out = out
+	fileTime.lenght = fileTime.out - fileTime.in
+	return fileTime, nil
+}
+
+func roundFloatTo(fl float64, digit float64) float64 {
+	return math.Round(fl/digit) * digit
+}
+
+//TODO: посмотреть как можно адекватно избавиться от дублирующей функции
+//сейчас она нужна только, чтобы отличать ошибки fileTime от sequenceTime
+func parseSequenceTime(sequanceIN, sequanceOUT string) (timeSegment, error) {
+	sequanceTime := timeSegment{}
+	in, errIN := types.ParseTimecode(sequanceIN)
+	if errIN != nil {
+		return sequanceTime, fmt.Errorf("can't parse sequanceIN: %v", errIN.Error())
+	}
+	out, errOUT := types.ParseTimecode(sequanceOUT)
+	if errOUT != nil {
+		return sequanceTime, fmt.Errorf("can't parse sequanceOUT: %v", errIN.Error())
+	}
+	sequanceTime.in = in
+	sequanceTime.out = out
+	sequanceTime.lenght = sequanceTime.out - sequanceTime.in
+	return sequanceTime, nil
 }
 
 func parseClip(eData edlData, line string) (edlData, error) {
