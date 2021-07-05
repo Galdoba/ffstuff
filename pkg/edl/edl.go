@@ -32,6 +32,12 @@ type clip struct {
 	effects      []string
 }
 
+type State struct {
+	currentClip  *clip
+	waitFileName bool
+	waitMix      bool
+}
+
 type timeSegment struct {
 	in     types.Timecode
 	out    types.Timecode
@@ -88,7 +94,9 @@ func Parse(r io.Reader) (*edlData, error) {
 	parseError := errors.New("Initial")
 	parseError = nil
 	i := 0
+	state := State{}
 	for scanner.Scan() {
+		// parseLine(state, &eData, scanner.Text()) (state, err)
 		i++
 		line := strings.TrimSpace(scanner.Text())
 		if line == "" {
@@ -121,7 +129,23 @@ func Parse(r io.Reader) (*edlData, error) {
 		case parseError != nil:
 			return &eData, parseError
 		case index == "*":
-			eData, parseError = parseComment(eData, line)
+			fromFile, toFile := parseComment(line)
+			if fromFile != "" && state.waitFileName {
+				if !state.waitFileName {
+					parseError = fmt.Errorf("unexpected 'fromFile'")
+				}
+				//заполняем в state поля fromFile
+				state.waitFileName = false
+			}
+
+			if toFile != "" { //TODO: улучшить запись
+				if state.currentClip == nil || state.currentClip.mix == "" {
+					parseError = fmt.Errorf("unexpected 'toFile'")
+				}
+				//колдуем с mix
+			}
+
+			//eData, parseError = parseComment(eData, line)
 		case index == "TITLE:":
 			eData, parseError = parseTitle(eData, line)
 		case index == "FCM:":
@@ -133,25 +157,46 @@ func Parse(r io.Reader) (*edlData, error) {
 		case reel == "BL":
 			fmt.Printf("сегмент пустоты: %q\n", line)
 			fmt.Printf("clip is BL\n")
-		case reel == "AX":
-			fmt.Printf("Parse main Data:  %v\n", line)
-			newclip := clip{} //выкинуть создание объекта за пределы цикла
-			newclip.fileTime, parseError = parseFileTime(fileIN, fileOUT)
-			newclip.sequanceTime, parseError = parseSequenceTime(sequenceIN, sequenceOUT)
-			fmt.Println(newclip.fileTime, newclip.sequanceTime)
-			//			newclip.lenght = newclip.fileOUT - newclip.fileIN
-			eData.track = append(eData.track, newclip)
-			switch trackType {
+		case state.currentClip == nil && effect == "C":
+			state.currentClip = &clip{} //выкинуть создание объекта за пределы цикла
+			switch reel {
 			default:
-				return nil, fmt.Errorf("clip is unknown type = %v", line)
-			case "V":
-				fmt.Printf("clip is video\n")
-			case "A", "A2", "A3", "A4":
-				fmt.Printf("clip is audio\n")
+				parseError = fmt.Errorf("Unknown err")
+			case "BL":
+				fmt.Printf("сегмент пустоты: %q\n", line)
+				fmt.Printf("clip is BL\n")
+			case "AX":
+				fmt.Printf("Parse main Data:  %v\n", line)
+				state.currentClip.fileTime, parseError = parseFileTime(fileIN, fileOUT)
+				state.currentClip.sequanceTime, parseError = parseSequenceTime(sequenceIN, sequenceOUT)
+				fmt.Println(state.currentClip.fileTime, state.currentClip.sequanceTime)
+				//			state.currentclip.lenght = state.currentclip.fileOUT - state.currentclip.fileIN
+				eData.track = append(eData.track, *state.currentClip)
+				switch trackType {
+				default:
+					return nil, fmt.Errorf("clip is unknown type = %v", line)
+				case "V":
+					fmt.Printf("clip is video\n")
+				case "A", "A2", "A3", "A4":
+					fmt.Printf("clip is audio\n")
+				}
+				state.waitFileName = true
+				state.waitMix = true
+
 			}
-
+		case state.currentClip != nil && state.waitMix:
+			switch reel {
+			default:
+				parseError = fmt.Errorf("Unknown err")
+			case "AX":
+				//state.currentClip  TODO: добавляем данные со следующей строки в currentClip
+				state.waitMix = false
+			}
 		}
-
+		if state.currentClip != nil && !state.waitFileName && !state.waitMix {
+			//аппендим clip в edlData
+			state = State{}
+		}
 		////////////
 		//fmt.Printf("Source IN = %q | Source OUT = %q\n", fileIN, fileOUT)
 
@@ -196,22 +241,23 @@ func parseFCM(eData edlData, line string) (edlData, error) {
 	return eData, nil
 }
 
-func parseComment(eData edlData, line string) (edlData, error) {
+func parseComment(line string) (fromFile, toFile string) {
+	//func parseComment( line string) (fromFile, toFile string) {
 	switch {
 	default:
-		return eData, fmt.Errorf("index field err = %v", line)
 	case strings.HasPrefix(line, "* FROM CLIP NAME: "):
 		//заполняем Source file name для клипа
-		source := strings.TrimPrefix(line, "* FROM CLIP NAME: ")
-		fmt.Printf("Source file name: %q\n", source)
-		eData.inputFileCheckMap[source] = true
+		fromFile = strings.TrimPrefix(line, "* FROM CLIP NAME: ")
+		//fmt.Printf("Source file name: %q\n", source)
+		//eData.inputFileCheckMap[source] = true
 	case strings.HasPrefix(line, "* TO CLIP NAME: "):
 		//заполняем Dest file name для клипа
-		source := strings.TrimPrefix(line, "* TO CLIP NAME: ")
-		fmt.Printf("Dest file name: %q\n", source)
-		eData.inputFileCheckMap[source] = true
+		toFile = strings.TrimPrefix(line, "* TO CLIP NAME: ")
+		//fmt.Printf("Dest file name: %q\n", source)
+		//eData.inputFileCheckMap[source] = true
+
 	}
-	return eData, nil
+	return
 }
 
 func parseFileTime(fileIN, fileOUT string) (timeSegment, error) {
