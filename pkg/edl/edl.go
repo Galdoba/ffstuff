@@ -15,7 +15,6 @@ import (
 type edlData struct {
 	edlSource         string //источник самого edl (не обязательно файл)
 	title             string //title внутри edl
-	fcm               string //fcm внутри edl
 	track             []clip //последовательность найденых клипов
 	inputFilePaths    []string
 	inputFileCheckMap map[string]bool
@@ -26,16 +25,23 @@ type clip struct {
 	//технически это означает что nextclip должно стать lastclip
 	nextClip     *clip  //адресс следующего клипа
 	mix          string //тип склейки - если не "C" то дальше идем в nextClip
+	mixx         mixType
 	sourcefile   string //имя файла из которого берем данные
 	fileTime     timeSegment
 	sequanceTime timeSegment
 	effects      []string
+	fcm          string //fcm внутри clip
 }
 
 type State struct {
 	currentClip  *clip
 	waitFileName bool
 	waitMix      bool
+}
+
+type mixType struct {
+	mixCode string
+	mixLen  float64
 }
 
 type timeSegment struct {
@@ -54,7 +60,7 @@ func (ed edlData) String() string {
 	str := ""
 	str += fmt.Sprintf("edlSource = %v\n", ed.edlSource)
 	str += fmt.Sprintf("title = %v\n", ed.title)
-	str += fmt.Sprintf("fcm = %v\n", ed.fcm)
+	//str += fmt.Sprintf("fcm = %v\n", ed.fcm)
 	for i, val := range ed.track {
 		str += fmt.Sprintf("track %v = %v\n", i, val)
 	}
@@ -102,6 +108,7 @@ func Parse(r io.Reader) (*edlData, error) {
 		if line == "" {
 			continue
 		}
+
 		var index string
 		var reel string
 		var trackType string
@@ -122,10 +129,10 @@ func Parse(r io.Reader) (*edlData, error) {
 			sequenceIN = fields[6]
 			sequenceOUT = fields[7]
 		}
-
+		fmt.Println(state)
 		switch {
 		default:
-			return &eData, fmt.Errorf("unknown err = %v", line)
+			return &eData, fmt.Errorf("unknown err = %v | %v", line, parseError)
 		case parseError != nil:
 			return &eData, parseError
 		case index == "*":
@@ -136,6 +143,7 @@ func Parse(r io.Reader) (*edlData, error) {
 				}
 				//заполняем в state поля fromFile
 				state.waitFileName = false
+
 			}
 
 			if toFile != "" { //TODO: улучшить запись
@@ -184,14 +192,16 @@ func Parse(r io.Reader) (*edlData, error) {
 				state.waitMix = true
 
 			}
+
 		case state.currentClip != nil && state.waitMix:
 			switch reel {
 			default:
-				parseError = fmt.Errorf("Unknown err")
+				parseError = fmt.Errorf("Unknown err2")
 			case "AX":
 				//state.currentClip  TODO: добавляем данные со следующей строки в currentClip
 				state.waitMix = false
 			}
+
 		}
 		if state.currentClip != nil && !state.waitFileName && !state.waitMix {
 			//аппендим clip в edlData
@@ -307,46 +317,59 @@ func isFolower(cl clip) bool {
 	return false
 }
 
-/*
-index
-reel
-trackType
-effect
-fileIN
-fileOUT
-sequenceIN
-sequenceOUT
+func isStandardStatement(line string) bool {
+	if len(strings.Fields(line)) < 7 {
+		return false
+	}
+	return true
+}
 
+type StandardStatement struct {
+	index        string
+	reel         string
+	channels     string
+	editType     string
+	editDuration string
+	fileIN       types.Timecode
+	fileOUT      types.Timecode
+	sequanceIN   types.Timecode
+	sequanceOUT  types.Timecode
+}
 
-*/
+func parseFields(line string) (*StandardStatement, error) {
+	ss := StandardStatement{}
+	err := errors.New("Initial")
+	err = nil
+	fields := strings.Fields(line)
+	switch len(fields) {
 
-// func readFile(fPath string) error {
-// 	fmt.Println("readFileWithReadString")
-// 	file, err := os.Open(fPath)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	defer file.Close()
+	case 9:
+		for i, _ := range fields {
+			if err != nil {
+				return nil, err
+			}
+			switch i {
+			case 0:
+				ss.index = fields[i]
+			case 1:
+				ss.reel = fields[i]
+			case 2:
+				ss.channels = fields[i]
+			case 3:
+				ss.editType = fields[i]
+			case 4:
+				ss.editDuration = fields[i]
+			case 5:
+				ss.fileIN, err = types.ParseTimecode(fields[i])
+			case 6:
+				ss.fileOUT, err = types.ParseTimecode(fields[i])
+			case 7:
+				ss.sequanceIN, err = types.ParseTimecode(fields[i])
+			case 8:
+				ss.sequanceOUT, err = types.ParseTimecode(fields[i])
+			}
+		}
 
-// 	// Start reading from the file with a reader.
-// 	reader := bufio.NewReader(file)
-// 	var line string
-// 	for {
-// 		line, err = reader.ReadString('\n')
-// 		if err != nil && err != io.EOF {
-// 			break
-// 		}
-
-// 		// Process the line here.
-// 		fmt.Printf(" > Read %d characters\n", len(line))
-
-// 		if err != nil {
-// 			break
-// 		}
-// 	}
-// 	if err != io.EOF {
-// 		fmt.Printf(" > Failed with error: %v\n", err)
-// 		return err
-// 	}
-// 	return nil
-// }
+	}
+	return &ss, nil
+}
