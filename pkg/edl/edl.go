@@ -369,6 +369,30 @@ func parseFields(line string) (*StandardStatement, error) {
 				ss.sequanceOUT, err = types.ParseTimecode(fields[i])
 			}
 		}
+	case 8:
+		for i, _ := range fields {
+			if err != nil {
+				return nil, err
+			}
+			switch i {
+			case 0:
+				ss.index = fields[i]
+			case 1:
+				ss.reel = fields[i]
+			case 2:
+				ss.channels = fields[i]
+			case 3:
+				ss.editType = fields[i]
+			case 4:
+				ss.fileIN, err = types.ParseTimecode(fields[i])
+			case 5:
+				ss.fileOUT, err = types.ParseTimecode(fields[i])
+			case 6:
+				ss.sequanceIN, err = types.ParseTimecode(fields[i])
+			case 7:
+				ss.sequanceOUT, err = types.ParseTimecode(fields[i])
+			}
+		}
 
 	}
 	return &ss, nil

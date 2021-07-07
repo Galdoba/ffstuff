@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/Galdoba/ffstuff/pkg/edl"
+	"github.com/Galdoba/ffstuff/pkg/edl2"
 )
 
 func main() {
 
-	edlData, err := edl.ParseFile("d:\\IN\\IN_2021-07-05\\test.edl")
+	edlData, err := edl2.ParseFile("d:\\IN\\IN_2021-07-07\\test0707.edl")
 	fmt.Println("End Parse File")
 	fmt.Println("////////////////////////////")
 	fmt.Printf("%v\n", edlData)
