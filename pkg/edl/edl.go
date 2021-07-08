@@ -344,7 +344,7 @@ func parseFields(line string) (*StandardStatement, error) {
 	switch len(fields) {
 
 	case 9:
-		for i, _ := range fields {
+		for i := range fields {
 			if err != nil {
 				return nil, err
 			}
@@ -370,7 +370,7 @@ func parseFields(line string) (*StandardStatement, error) {
 			}
 		}
 	case 8:
-		for i, _ := range fields {
+		for i := range fields {
 			if err != nil {
 				return nil, err
 			}
