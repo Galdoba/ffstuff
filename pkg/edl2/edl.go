@@ -48,14 +48,11 @@ type editType struct {
 
 func ParseFile(path string) (*edlData, error) {
 	fmt.Println("Start Parse File")
-
 	f, err := os.Open(path)
 	if err != nil {
-		fmt.Println(err.Error())
 		return nil, err
 	}
 	defer f.Close()
-
 	return Parse(f)
 }
 
@@ -68,7 +65,6 @@ type Decidion struct {
 func Parse(r io.Reader) (*edlData, error) {
 	fmt.Println("Start Parse Reader")
 	eData := edlData{}
-	//eData, parseError = parseLine()
 	scanner := bufio.NewScanner(r)
 	activeDesidion := Decidion{"", []Statement{}, false}
 	newStatement, parseError := newNote("Test line")
@@ -102,6 +98,7 @@ func Parse(r io.Reader) (*edlData, error) {
 		//////////////////////////////////
 	}
 	eData.decidions = append(eData.decidions, activeDesidion)
+	//ИЛИ ЗДЕСЬ//
 	if parseError != nil {
 		return nil, parseError
 	}
