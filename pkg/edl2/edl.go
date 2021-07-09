@@ -11,9 +11,9 @@ import (
 	"github.com/macroblock/imed/pkg/types"
 )
 
+var ErrBlankLine = errors.New("blank line detected")
+
 const (
-	titleID           = "TITLE:"
-	fcmID             = "FCM:"
 	fcmModeDF         = "DROP FRAME"
 	fcmModeNDF        = "NON-DROP FRAME"
 	standardStatement = "STANDARD"
@@ -21,7 +21,16 @@ const (
 
 type edlData struct {
 	edlSource string //источник самого edl (не обязательно файл)
+	fcmMode   string
 	decidions []Decidion
+}
+
+func (ed *edlData) String() string {
+	str := "Source File: " + ed.edlSource + "\n"
+	for i, v := range ed.decidions {
+		str += fmt.Sprintf("Decidion %d: %v\n", i, v)
+	}
+	return str
 }
 
 type timeSegment struct {
@@ -51,9 +60,9 @@ func ParseFile(path string) (*edlData, error) {
 }
 
 type Decidion struct {
-	index    string
-	phrase   []Statement
-	endAlert bool
+	index     string
+	phrase    []Statement
+	concluded bool
 }
 
 func Parse(r io.Reader) (*edlData, error) {
@@ -61,51 +70,38 @@ func Parse(r io.Reader) (*edlData, error) {
 	eData := edlData{}
 	//eData, parseError = parseLine()
 	scanner := bufio.NewScanner(r)
-	parseError := errors.New("Initial")
-	parseError = nil
-	i := 0
-
 	activeDesidion := Decidion{"", []Statement{}, false}
+	newStatement, parseError := newNote("Test line")
 	for scanner.Scan() {
-		// parseLine(state, &eData, scanner.Text()) (state, err)
-
-		i++
 		line := strings.TrimSpace(scanner.Text())
-		newStatement, err := parseLine(line)
-		switch { //DEBUG
-		default:
-			if newStatement.Type() == standardStatement {
-				data, _ := newStatement.Declare()
-				if data[0] != activeDesidion.index {
-					fmt.Println("\n---INITIATE NEW DECIDION HERE---")
-					activeDesidion.index = data[0]
-				}
-
-			}
-			tp := newStatement.Type()
-			for len(tp) < 10 {
-				tp += " "
-			}
-			fmt.Printf("%v | %v\n", tp, line)
-
-		case err != nil:
-			if err.Error() == "BLANK LINE" {
-				continue
-			}
-			fmt.Printf("UNKNOWN    | %v \n", line)
-			parseError = err
+		newStatement, parseError = parseLine(line)
+		if newStatement == nil {
+			parseError = fmt.Errorf("no statemend received for Decidion %v", activeDesidion.index)
 		}
+		switch parseError {
+		default:
+			return &eData, parseError
+		case ErrBlankLine:
+			continue
+		case nil:
+		}
+		if newStatement.Type() == STATEMENT_STANDARD {
+			data, _ := newStatement.Declare()
+			if data[0] != activeDesidion.index {
+				//fmt.Println(activeDesidion)
+				eData.decidions = append(eData.decidions, activeDesidion)
+				activeDesidion = Decidion{data[0], []Statement{}, false}
+				//fmt.Println("\n---INITIATE NEW DECIDION HERE---")
+			}
+		}
+		activeDesidion.phrase = append(activeDesidion.phrase, newStatement)
+		//fmt.Println(newStatement.Declare())
 		//////////////////////////////////
 		//АНАЛИЗИРОВАТЬ СТЭЙТМЕНТЫ ЗДЕСЬ//
 
 		//////////////////////////////////
-		if newStatement == nil {
-			continue
-		}
-		fmt.Println(newStatement)
-		parseError = err
-		//eData.statment = append(eData.statment, newStatement)
 	}
+	eData.decidions = append(eData.decidions, activeDesidion)
 	if parseError != nil {
 		return nil, parseError
 	}
@@ -116,35 +112,10 @@ func Parse(r io.Reader) (*edlData, error) {
 func parseLine(line string) (Statement, error) {
 	switch {
 	default:
-		return nil, fmt.Errorf("line is UNKNOWN type statement:\n%v", line)
-	case isHeader(line):
-		return newHeader(line)
-	case isFCM(line):
-		return newFCM(line)
-	case isM2(line):
-		return newM2(line)
+		return newNote(line)
 	case isStandard(line):
 		return newStandard(line)
-	case isEvent(line):
-		return newEvent(line)
 	case line == "":
-		return nil, fmt.Errorf("BLANK LINE")
-	case strings.Contains(line, "EFFECTS NAME IS"):
-		line = "* " + line
-		return newEvent(line)
+		return nil, ErrBlankLine
 	}
-
 }
-
-// type blankLine struct {
-// 	err       error
-// 	blConfirm bool
-// }
-
-// func (bl *blankLine) Declare() ([]string, error) {
-// 	return []string{}, nil
-// }
-
-// func (bl *blankLine) Type() string {
-// 	return "BLANK LINE"
-// }

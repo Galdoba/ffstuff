@@ -8,6 +8,21 @@ import (
 	"github.com/macroblock/imed/pkg/types"
 )
 
+const (
+	TITLE              = "TITLE:"
+	FCM                = "FCM:"
+	SPLIT              = "SPLIT:"
+	GPI                = "GPI"
+	MS                 = "M/S"
+	SWN                = "SWM"
+	M2                 = "M2"
+	AUD                = "AUD"
+	EVENT              = "*"
+	STATEMENT_HEADER   = "HEADER"
+	STATEMENT_NOTE     = "NOTE"
+	STATEMENT_STANDARD = "STANDARD"
+)
+
 type Statement interface {
 	Declare() ([]string, error)
 	Type() string
@@ -31,7 +46,7 @@ func isHeader(line string) bool {
 	if len(fld) < 1 {
 		return false
 	}
-	if fld[0] != titleID {
+	if fld[0] != TITLE {
 		return false
 	}
 	return true
@@ -42,10 +57,60 @@ func newHeader(line string) (*header, error) {
 		return nil, fmt.Errorf("line IS NOT a header statement:\n%v", line)
 	}
 	h := header{}
-	h.id = titleID
-	h.data = strings.Split(line, titleID+" ")[1]
+	h.id = TITLE
+	h.data = strings.Split(line, TITLE+" ")[1]
 	return &h, nil
 }
+
+type note struct {
+	id      string
+	message string
+}
+
+func (n *note) Declare() ([]string, error) {
+	return []string{n.message}, nil
+}
+
+func (n *note) Type() string {
+	return "NOTE"
+}
+
+func newNote(line string) (Statement, error) {
+	fld := strings.Fields(line)
+	switch fld[0] {
+	default:
+		n := note{"note", line}
+		return &n, nil
+	case TITLE:
+		return newHeader(line)
+	case FCM:
+		return newFCM(line)
+	case M2:
+		return newM2(line)
+	case AUD:
+		return newAud(line)
+	case EVENT:
+		return newEvent(line)
+		// case fcmID, splitID, gpiID, mstrSlvID, m2ID, machineDataID:
+		// return nil, nil
+	}
+
+}
+
+// func isValidNote(line string) bool { - бессмысленно, любая строка является стейтментом. если это не стандартное, то это ноут
+// 	fld := strings.Fields(line)
+// 	if len(fld) < 1 {
+// 		return false
+// 	}
+// 	switch fld[0] {
+// 	case fcmID, splitID, gpiID, mstrSlvID, m2ID, machineDataID:
+// 		return
+// 	}
+// 	if fld[0] != fcmID {
+// 		return false
+// 	}
+// 	return true
+// }
 
 type fcm struct {
 	id   string
@@ -57,7 +122,7 @@ func isFCM(line string) bool {
 	if len(fld) < 1 {
 		return false
 	}
-	if fld[0] != fcmID {
+	if fld[0] != FCM {
 		return false
 	}
 	return true
@@ -76,8 +141,8 @@ func newFCM(line string) (*fcm, error) {
 		return nil, fmt.Errorf("line IS NOT a FCM statement:\n%v", line)
 	}
 	h := fcm{}
-	h.id = fcmID
-	h.data = strings.Split(line, fcmID+" ")[1]
+	h.id = FCM
+	h.data = strings.Split(line, FCM+" ")[1]
 	return &h, nil
 }
 
@@ -245,9 +310,8 @@ func (mm *motionMemory) Type() string {
 }
 
 type aud struct {
-	id             string
-	chan3Indicator bool
-	chan4Indicator bool
+	id            string
+	chanIndicator string
 }
 
 func newAud(line string) (*aud, error) {
@@ -258,10 +322,10 @@ func newAud(line string) (*aud, error) {
 	fields := strings.Fields(line)
 	a.id = fields[0]
 	switch fields[1] {
-	case "3":
-		a.chan3Indicator = true
-	case "4":
-		a.chan4Indicator = true
+	default:
+		return nil, fmt.Errorf("unknown channel indecator '%v'", fields[1])
+	case "3", "4":
+		a.chanIndicator = fields[1]
 	}
 	return &a, nil
 }
@@ -278,10 +342,11 @@ func isAud(line string) bool {
 }
 
 func (a *aud) Declare() ([]string, error) {
-	return []string{"[TEMPLATE OF MOTION MEMORY DECLARATION]"}, nil
+	return []string{a.id, a.chanIndicator}, nil
 }
 
 func (a *aud) Type() string {
-	//TODO: низко приоритетно. закончить когда будет готов сам парсер
 	return "AUD"
 }
+
+///////////////
