@@ -150,7 +150,8 @@ type standard struct {
 	index        string
 	reel         string
 	channels     string
-	editDesidion editType
+	editType     string
+	editDuration float64
 	fileTime     timeSegment
 	sequanceTime timeSegment
 }
@@ -163,11 +164,8 @@ func isStandard(line string) bool {
 	if _, err := strconv.Atoi(fields[0]); err != nil { //если не число, то не std
 		return false
 	}
-	if len(fields[1]) > 4 || len(fields[2]) > 4 || len(fields[3]) > 4 {
-		return false
-	}
 	for _, v := range last4IndexesOf(fields) { //последние 4 поля
-		if _, err := types.ParseTimecode(fields[v]); err != nil {
+		if _, err := types.ParseTimecode(fields[v]); err != nil { //должны быть корректными таймстампами
 			return false
 		}
 	}
@@ -203,21 +201,23 @@ func NewStandard(line string) (*standard, error) {
 	}
 	ss.fileTime.lenght = ss.fileTime.out - ss.fileTime.in
 	ss.sequanceTime.lenght = ss.sequanceTime.out - ss.sequanceTime.in
-	ss.editDesidion.editStatement = fields[3]
+	ss.editType = fields[3]
 	if len(fields) == 9 {
 		trDur, err := strconv.ParseFloat(fields[4], 64)
 		if err != nil {
 			return nil, fmt.Errorf("variable %v is not a float64", fields[4])
 		}
-		ss.editDesidion.transitionDiration = trDur
+		ss.editDuration = trDur
 	}
 	return &ss, nil
 }
 
 func (std *standard) Declare() ([]string, error) {
 	dc := []string{std.index, std.reel, std.channels}
-	dc = append(dc, std.editDesidion.editStatement)
-	dc = append(dc, strconv.FormatFloat(std.editDesidion.transitionDiration, 'f', 1, 64))
+	dc = append(dc, std.editType)
+	if std.editDuration != 0 {
+		dc = append(dc, strconv.FormatFloat(std.editDuration, 'f', 1, 64))
+	}
 	dc = append(dc, strconv.FormatFloat(std.fileTime.in.InSeconds(), 'f', 1, 64))
 	dc = append(dc, strconv.FormatFloat(std.fileTime.out.InSeconds(), 'f', 1, 64))
 	dc = append(dc, strconv.FormatFloat(std.fileTime.lenght.InSeconds(), 'f', 1, 64))

@@ -70,10 +70,12 @@ func Parse(r io.Reader) (*edlData, error) {
 	newStatement, parseError := newNote("Test line")
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
+		fmt.Println(line)
 		newStatement, parseError = parseLine(line)
-		if newStatement == nil {
-			parseError = fmt.Errorf("no statemend received for Decidion %v", activeDesidion.index)
-		}
+
+		// if newStatement == nil {
+		// 	parseError = fmt.Errorf("no statemend received for Decidion %v", activeDesidion.index)
+		// }
 		switch parseError {
 		default:
 			return &eData, parseError
@@ -115,4 +117,8 @@ func parseLine(line string) (Statement, error) {
 	case line == "":
 		return nil, ErrBlankLine
 	}
+}
+
+func Sum(a, b int) int {
+	return a + b
 }

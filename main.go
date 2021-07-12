@@ -9,7 +9,7 @@ import (
 
 func main() {
 
-	edlData, err := edl2.ParseFile("d:\\IN\\IN_2021-07-09\\test.edl")
+	edlData, err := edl2.ParseFile("d:\\IN\\IN_2021-07-12\\Filmz.edl")
 	fmt.Println("End Parse File")
 	fmt.Println("////////////////////////////")
 
