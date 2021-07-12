@@ -174,7 +174,7 @@ func isStandard(line string) bool {
 	return true
 }
 
-func newStandard(line string) (*standard, error) {
+func NewStandard(line string) (*standard, error) {
 	if !isStandard(line) {
 		return nil, fmt.Errorf("statement is not Standard:\n%v", line)
 	}

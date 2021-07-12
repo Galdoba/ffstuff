@@ -111,7 +111,7 @@ func parseLine(line string) (Statement, error) {
 	default:
 		return newNote(line)
 	case isStandard(line):
-		return newStandard(line)
+		return NewStandard(line)
 	case line == "":
 		return nil, ErrBlankLine
 	}
