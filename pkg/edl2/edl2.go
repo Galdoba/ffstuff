@@ -20,15 +20,17 @@ const (
 )
 
 type edlData struct {
-	edlSource string //источник самого edl (не обязательно файл)
-	fcmMode   string
-	decidions []Decidion
+	edlSource         string //источник самого edl (не обязательно файл)
+	data              []Statement
+	scanningConcluded bool
+	pseudoResults     [][]string
+	//resultMap map[int]trackData
 }
 
 func (ed *edlData) String() string {
 	str := "Source File: " + ed.edlSource + "\n"
-	for i, v := range ed.decidions {
-		str += fmt.Sprintf("Decidion %d: %v\n", i, v)
+	for i, v := range ed.data {
+		str += fmt.Sprintf("Statement %d: %v\n", i, v)
 	}
 	return str
 }
@@ -56,56 +58,36 @@ func ParseFile(path string) (*edlData, error) {
 	return Parse(f)
 }
 
-type Decidion struct {
-	index     string
-	phrase    []Statement
-	concluded bool
-}
-
 func Parse(r io.Reader) (*edlData, error) {
 	fmt.Println("Start Parse Reader")
 	eData := edlData{}
 	scanner := bufio.NewScanner(r)
-	activeDesidion := Decidion{"", []Statement{}, false}
-	newStatement, parseError := newNote("Test line")
+
+	newStatement, parseError := newNote("NULL STATEMENT")
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
-		fmt.Println(line)
 		newStatement, parseError = parseLine(line)
-
-		// if newStatement == nil {
-		// 	parseError = fmt.Errorf("no statemend received for Decidion %v", activeDesidion.index)
-		// }
-		switch parseError {
+		switch {
 		default:
-			return &eData, parseError
-		case ErrBlankLine:
+			return &eData, fmt.Errorf("Unknown or missed error: %v", parseError.Error())
+		case parseError == ErrBlankLine:
 			continue
-		case nil:
-		}
-		if newStatement.Type() == STATEMENT_STANDARD {
-			data, _ := newStatement.Declare()
-			if data[0] != activeDesidion.index {
-				//fmt.Println(activeDesidion)
-				eData.decidions = append(eData.decidions, activeDesidion)
-				activeDesidion = Decidion{data[0], []Statement{}, false}
-				//fmt.Println("\n---INITIATE NEW DECIDION HERE---")
-			}
-		}
-		activeDesidion.phrase = append(activeDesidion.phrase, newStatement)
-		//fmt.Println(newStatement.Declare())
-		//////////////////////////////////
-		//АНАЛИЗИРОВАТЬ СТЭЙТМЕНТЫ ЗДЕСЬ//
+		case parseError == nil:
+			eData.data = append(eData.data, newStatement)
 
-		//////////////////////////////////
+		}
 	}
-	eData.decidions = append(eData.decidions, activeDesidion)
-	//ИЛИ ЗДЕСЬ//
-	if parseError != nil {
-		return nil, parseError
-	}
+	eData.scanningConcluded = true
+
+	//////////////////////////////////
+	//АНАЛИЗИРОВАТЬ СТЭЙТМЕНТЫ ЗДЕСЬ//
+	fmt.Println("CONCLUDE DATA HERE:")
+	ShowResults(eData)
+	//////////////////////////////////
+
 	fmt.Println("End Parse Reader")
-	return &eData, nil
+
+	return &eData, parseError
 }
 
 func parseLine(line string) (Statement, error) {
@@ -113,12 +95,98 @@ func parseLine(line string) (Statement, error) {
 	default:
 		return newNote(line)
 	case isStandard(line):
-		return NewStandard(line)
+		return newStandard(line)
 	case line == "":
 		return nil, ErrBlankLine
 	}
 }
 
-func Sum(a, b int) int {
-	return a + b
+////////////////////////////DATA ASSEMBLER////////////////
+
+type Constructror struct {
+	title         string
+	fcmMode       string
+	activeChannel string
+	sourcesUsed   map[string]int
+	vClips        []clip
+}
+
+func ShowResults(edl edlData) error {
+	v0 := []string{}
+	a1 := []string{}
+	a2 := []string{}
+	a3 := []string{}
+	a4 := []string{}
+	unknwn := []string{}
+	waitAUD := false
+	/////////////////////////////
+	for i, st := range edl.data {
+		fmt.Printf("Go res %d\n", i+1)
+		if st.Type() == "AUD" && waitAUD {
+			fmt.Println("1 IF")
+			fld, _ := st.Declare()
+			switch fld[1] {
+			case "3":
+				a3 = append(a3, unknwn...)
+			case "4":
+				a4 = append(a4, unknwn...)
+			}
+			unknwn = []string{}
+			waitAUD = false
+		}
+		if st.Type() != STATEMENT_STANDARD {
+			fmt.Println("2 IF")
+			continue
+		}
+
+		fields, err := st.Declare()
+		if err != nil {
+			fmt.Println("3 IF", err)
+			return err
+		}
+		if fields[1] != "AX" {
+			fmt.Println("5 IF")
+			continue
+		}
+		if fields[3] != "C" {
+			fmt.Println("6 IF")
+			continue
+		}
+		switch fields[2] {
+		default:
+			fmt.Println("4 IF", err)
+		case "V":
+			v0 = append(v0, fields[0])
+		case "A":
+			a1 = append(a1, fields[0])
+		case "A2":
+			a2 = append(a2, fields[0])
+		case "NONE":
+			unknwn = append(unknwn, fields[0])
+			waitAUD = true
+		}
+	}
+	/////////////////////////
+	fmt.Println(v0)
+	fmt.Println(a1)
+	fmt.Println(a2)
+	fmt.Println(a3)
+	fmt.Println(a4)
+	fmt.Println(unknwn)
+	return nil
+}
+
+type clip struct {
+	//name        string
+	mixType     string
+	mixDuration float64
+	channel     string
+	duration    types.Timecode
+	srcA        string
+	srcAIn      types.Timecode
+	srcADur     types.Timecode
+	srcB        string
+	srcBIn      types.Timecode
+	srcBDur     types.Timecode
+	nextClip    *clip
 }
