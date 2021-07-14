@@ -1,16 +1,14 @@
 package edl2
 
-import (
-	"testing"
-)
+import "testing"
 
-func TestSum(t *testing.T) {
-	a, b, s := 5, 2, 8
-	c := Sum(a, b)
-	// if c != s {
-	// 	t.Errorf("unexpested c=%d", c)
-	// }
-	if c == s {
-		t.Errorf("even more unexpested c=%d", c)
+func TestParse(t *testing.T) {
+	edlData, err := ParseFile("d:\\IN\\IN_2021-07-12\\Filmz.edl")
+	if !edlData.scanningConcluded {
+		t.Errorf("scanning not concluded")
 	}
+	if err != nil {
+		t.Errorf("Error: %v", err)
+	}
+
 }

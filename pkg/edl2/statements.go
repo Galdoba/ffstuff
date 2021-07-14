@@ -149,7 +149,7 @@ func newFCM(line string) (*fcm, error) {
 type standard struct {
 	index        string
 	reel         string
-	channels     string
+	mediachannel string
 	editType     string
 	editDuration float64
 	fileTime     timeSegment
@@ -172,7 +172,7 @@ func isStandard(line string) bool {
 	return true
 }
 
-func NewStandard(line string) (*standard, error) {
+func newStandard(line string) (*standard, error) {
 	if !isStandard(line) {
 		return nil, fmt.Errorf("statement is not Standard:\n%v", line)
 	}
@@ -180,7 +180,7 @@ func NewStandard(line string) (*standard, error) {
 	fields := strings.Fields(line)
 	ss.index = fields[0]
 	ss.reel = fields[1]
-	ss.channels = fields[2]
+	ss.mediachannel = fields[2]
 	for i, v := range last4IndexesOf(fields) {
 		timeCode, err := types.ParseTimecode(fields[v])
 		if err != nil {
@@ -213,7 +213,7 @@ func NewStandard(line string) (*standard, error) {
 }
 
 func (std *standard) Declare() ([]string, error) {
-	dc := []string{std.index, std.reel, std.channels}
+	dc := []string{std.index, std.reel, std.mediachannel}
 	dc = append(dc, std.editType)
 	if std.editDuration != 0 {
 		dc = append(dc, strconv.FormatFloat(std.editDuration, 'f', 1, 64))
