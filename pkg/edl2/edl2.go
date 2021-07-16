@@ -81,8 +81,8 @@ func Parse(r io.Reader) (*edlData, error) {
 
 	//////////////////////////////////
 	//АНАЛИЗИРОВАТЬ СТЭЙТМЕНТЫ ЗДЕСЬ//
-	fmt.Println("CONCLUDE DATA HERE:")
-	ShowResults(eData)
+	//fmt.Println("CONCLUDE DATA HERE:")
+	//ShowResults(eData)
 	//////////////////////////////////
 
 	fmt.Println("End Parse Reader")

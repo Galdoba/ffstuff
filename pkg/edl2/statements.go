@@ -152,6 +152,10 @@ type standard struct {
 	mediachannel string
 	editType     string
 	editDuration float64
+	fileIN       string
+	fileOUT      string
+	seqIN        string
+	seqOUT       string
 	fileTime     timeSegment
 	sequanceTime timeSegment
 }
