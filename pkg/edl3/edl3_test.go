@@ -2,6 +2,9 @@ package edl3
 
 import (
 	"fmt"
+	"reflect"
+	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/macroblock/imed/pkg/types"
@@ -10,18 +13,53 @@ import (
 func sampleLines() []string {
 	return []string{
 		"",
+		"aaa <<<",
 		"aaa",
 		"вап",
+		"вап dfg вап",
 		"TITLE: Filmz",
+		"TITLEE: Filmz",
 		"FCM: NON-DROP FRAME",
+		"FCM: DROP FRAME",
+		"FCM: NOsdOP FRAME",
+		"FCMM: NON-DROP FRAME",
 		"001  AX       V     C        00:00:00:00 01:52:06:00 00:00:00:00 01:52:06:00",
+		"01  AX       V     C        00:00:00:00 01:52:06:00 00:00:00:00 01:52:06:00",
+		"*  AX       V     C        00:00:00:00 01:52:06:00 00:00:00:00 01:52:06:00",
+		"001111  AX       V     C        00:00:00:00 01:52:06:00 00:00:00:00 01:52:06:00",
+		"-001  AX       V     C        00:00:00:00 01:52:06:00 00:00:00:00 01:52:06:00",
+		"OOI  AX       V     C        00:00:00:00 01:52:06:00 00:00:00:00 01:52:06:00",
+		"  AX       V     C        00:00:00:00 01:52:06:00 00:00:00:00 01:52:06:00",
+		"001  BY       V     C        00:00:00:00 01:52:06:00 00:00:00:00 01:52:06:00",
+		"001              C        00:00:00:00 01:52:06:00 00:00:00:00 01:52:06:00",
+		"001  AX       V     C   17     00:00:00:00 01:52:06:00 00:00:00:00 01:52:06:00",
+		"001  AX       V     R   17     00:00:00:00 01:52:06:00 00:00:00:00 01:52:06:00",
+		"001  AX       A3     R   17     00:00:00:00 01:52:06:00 00:00:00:00 01:52:06:00",
+		"001  AX       A3     C        00:00:00:00 01:52:06:00 00:00:00:00 01:52:06:00",
+		"001  AX       V     C        00:0L00:00 01:52:06:00 00:00:00:00 01:52:06:00",
+		"001  AX       V     C        00:00:00:00 01:52:06:00 00:00:00:00 01:52:0B:00",
+		"001  AX       V     C        00:00:00:00 01:527:06:00 00:00:00:00 01:52:06:00",
+		"001  AX       V     C        00:00:00:00 01:52:06:00 00:00:00:010 01:52:06:00",
+		"001  AX       V     C        00:00:00:00 01:52:06:00 00:00:00:010 01:52:06:00\n",
 		"* FROM CLIP NAME: The_conjuring_the_devil_made_me_do_it_HD.mp4",
+		"* FM CLIP NAME: The_conjuring_the_devil_made_me_do_it_HD.mp4",
+		"* FM CLIP NAME: The_conjuring_the_devil_made_me_do_it_HD.mp4",
 		"002  AX       A2    C        00:04:47:00 01:52:06:00 00:04:47:00 01:52:06:00",
 		"* FROM CLIP NAME: The_conjuring_the_devil_made_me_do_it_AUDIORUS51.m4a",
 		"004  AX       A     W001 024 00:28:40:22 01:52:06:00 00:28:40:22 01:52:06:00",
+		"004  AX       A     W211 024 00:28:40:22 01:52:06:00 00:28:40:22 01:52:06:00",
+		"004  AX       A     W101 024.2 00:28:40:22 01:52:06:00 00:28:40:22 01:52:06:00",
+		"004  AX       A     W101 024.B 00:28:40:22 01:52:06:00 00:28:40:22 01:52:06:00",
 		"EFFECTS NAME IS Constant Power",
 		"* TO CLIP NAME: The_conjuring_the_devil_made_me_do_it_AUDIOENG51.m4a",
 		"005  BL       V     C        00:00:00:00 00:03:15:13 01:52:06:00 01:55:21:13",
+		"AUD       4",
+		"AUD  3    ",
+		"AUD  3    4",
+		"AUD       ",
+		"AUD       5",
+		"AUD  B    6",
+		"AUD  B     ",
 	}
 }
 
@@ -37,27 +75,19 @@ func TestNewNote(t *testing.T) {
 				continue
 			}
 		}
-		// exp := &note{"example", "example", nil}
-		// if n == exp {
-		// 	t.Errorf("construct %v == %v, must not be", n, exp)
-		// }
 		if n.format != "NOTE" {
-			fmt.Println("line: ", line)
 			t.Errorf("format == %v, but expect 'NOTE'", n.format)
 		}
 		if n.content == "" {
 			t.Errorf("n.content = '%v', from line = '%v' must not be blank", n.content, line)
 		}
-
 		if n.definedDataFields == nil {
 			t.Errorf("n.definedDataFields (%v) is not initiated", n.definedDataFields)
 		}
 		if len(n.definedDataFields) != 0 {
 			t.Errorf("n.definedDataFields (%v) contain data. It should not", n.definedDataFields)
 		}
-
 	}
-
 }
 
 func TestNewTitle(t *testing.T) {
@@ -100,6 +130,8 @@ func TestNewFCM(t *testing.T) {
 				continue
 			case "statement is not a FCM":
 				continue
+			case "unknown FCM mode":
+				continue
 			}
 		}
 		if fcm.mode != "NON-DROP FRAME" && fcm.mode != "DROP FRAME" {
@@ -116,35 +148,126 @@ func TestNewStandard(t *testing.T) {
 		}
 		st, err := newStandard(n)
 		if err != nil {
-			switch err.Error() {
+			switch {
 			default:
-				t.Errorf("error: '%v' is unexpected", err.Error())
+				fmt.Println("feed:", line)
+				t.Errorf("UNEXPECTED error: %v", err.Error())
 				continue
-			case "input line have no data":
+			case err.Error() == "statement is not a Standard":
 				continue
-			case "statement is not a Standard":
+			case strings.Contains(err.Error(), "invalid statement syntax: "):
 				continue
 			}
 		}
-		if st.id == "" {
-			t.Errorf("error: index '%v' is unexpected, expect 001-999", st.id)
+		index, errIndex := strconv.Atoi(st.id)
+		if errIndex != nil {
+			t.Errorf("error: index '%v' not a number", st.id)
 		}
-		if st.reel == "" {
-			t.Errorf("error: reel '%v' is unexpected, expect BL or AX", st.reel)
+		if index < 1 || index > 999 {
+			t.Errorf("error: index '%v' is unexpected, expecting '001-999'", st.id)
 		}
-		if st.channel == "" {
-			t.Errorf("error: channel '%v' is unexpected, expect V, A, A2 or NONE", st.channel)
+		if st.reel != "BL" && st.reel != "AX" {
+			t.Errorf("error: reel '%v' is unexpected, expecting BL or AX", st.reel)
 		}
-		if st.editType == "" {
-			t.Errorf("error: editType '%v' is unexpected, expect C, D or Wxxx", st.editType)
+		if !listContains([]string{"V", "A", "A2", "NONE"}, st.channel) {
+			t.Errorf("error: channel '%v' is unexpected, expecting V, A, A2 or NONE", st.channel)
 		}
-		if st.editDuration != 0 && st.editType != "C" {
-			t.Errorf("error: editDuration 0 is unexpected if editType is 'C'", st.editDuration)
+		if !listContains(validWipeCodes(), st.editType) {
+			t.Errorf("error: editType '%v' is unexpected, expecting C, D or Wxxx", st.editType)
 		}
-		_, errFI := types.ParseTimecode(st.fileIN)
-		if errFI != nil {
-			t.Errorf("error: timeStamp FI have unexpected error %v", err.Error())
+		if st.editDuration != 0 && st.editType == "C" {
+			t.Errorf("error: editDuration %v is unexpected if editType is 'C'", st.editDuration)
 		}
-		fmt.Println("")
+		if !isTimecode(st.fileIN) {
+			t.Errorf("error: fileIN is not types.Timecode %v", st.fileIN)
+		}
+		if !isTimecode(st.fileOUT) {
+			t.Errorf("error: fileOUT is not types.Timecode %v", st.fileOUT)
+		}
+		if !isTimecode(st.seqIN) {
+			t.Errorf("error: seqIN is not types.Timecode %v", st.seqIN)
+		}
+		if !isTimecode(st.seqOUT) {
+			t.Errorf("error: seqOUT is not types.Timecode %v", st.seqOUT)
+		}
+	}
+}
+
+func isTimecode(ts types.Timecode) bool {
+	test, err := types.ParseTimecode("00:00:00:01")
+	switch {
+	case reflect.TypeOf(ts) == reflect.TypeOf(test):
+		return true
+	case err != nil:
+		return false
+	default:
+		return false
+	}
+}
+
+func TestNewSource(t *testing.T) {
+	for _, line := range sampleLines() {
+		n, errN := newNote(line)
+		if errN != nil {
+			continue
+		}
+		src, err := newSource(n)
+		if err != nil {
+			switch err.Error() {
+			default:
+				t.Errorf("error: '%v' is unexpected %v, %v", err.Error(), src, line)
+				continue
+			case "statement is not a Source":
+				continue
+			}
+		}
+		if src.sourceA == "" && src.sourceB == "" {
+			t.Errorf("sourceA and sourceB can not be unfilled at the same time: line = '%v'", line)
+		}
+		if src.sourceA != "" && src.sourceB != "" {
+			t.Errorf("sourceA and sourceB can not be filled at the same time: line = '%v'", line)
+		}
+	}
+}
+
+func TestNewAud(t *testing.T) {
+	for _, line := range sampleLines() {
+		n, errN := newNote(line)
+		if errN != nil {
+			continue
+		}
+		a, err := newAud(n)
+		if err != nil {
+			switch {
+			default:
+				t.Errorf("error: '%v' is unexpected %v, %v", err.Error(), a, line)
+				continue
+			case err.Error() == "statement is not a Aud":
+				continue
+			case strings.Contains(err.Error(), "invalid statement "):
+				continue
+			}
+		}
+		if a.channel != 3 && a.channel != 4 {
+			t.Errorf("error: a.channel = '%v', expecting 3 or 4 from line '%v'", a.channel, line)
+		}
+
+	}
+}
+
+func TestStatement(t *testing.T) {
+	for _, line := range sampleLines() {
+		stType, stData := Statement(line)
+		if stType != "NOTE" {
+			switch len(stData) {
+			case 0:
+				t.Errorf("Statement defined as %v, but no data detected", stType)
+			default:
+				if stData[0] == "" {
+					t.Errorf("Statement defined as %v, but no data contained", stType)
+				}
+			}
+
+		}
 	}
 }
