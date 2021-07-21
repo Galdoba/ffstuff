@@ -15,15 +15,11 @@ type media struct {
 }
 
 type clip struct {
-	id        string
-	channel   string
-	mixType   string
-	sourceA   string
-	inPointA  types.Timecode
-	durationA types.Timecode
-	sourceB   string
-	inPointB  types.Timecode
-	durationB types.Timecode
+	id      string
+	channel string
+	mixType string
+	sourceA sample
+	sourceB sample
 }
 
 type sample struct {
@@ -34,10 +30,25 @@ type sample struct {
 
 func newSample(source string, inPoint, outPoint types.Timecode) (sample, error) {
 	s := sample{}
+	s.source = source
+	s.inPoint = inPoint
+	s.duration = outPoint - inPoint
 	return s, nil
 }
 
 func newClip(channel, mixType string, sources ...sample) (clip, error) {
 	c := clip{}
+	c.channel = channel
+	c.mixType = mixType
+	for i, src := range sources {
+		switch i {
+		default:
+			break
+		case 0:
+			c.sourceA = src
+		case 1:
+			c.sourceB = src
+		}
+	}
 	return c, nil
 }

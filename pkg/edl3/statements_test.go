@@ -255,6 +255,27 @@ func TestNewAud(t *testing.T) {
 	}
 }
 
+func TestEffectStatement(t *testing.T) {
+	for _, line := range sampleLines() {
+		n, errN := newNote(line)
+		if errN != nil {
+			continue
+		}
+		es, err := newEffectStatement(n)
+		if err != nil {
+			switch {
+			default:
+				t.Errorf("error: is %v, expect nil ('%v' '%v')", err.Error(), es, line)
+				continue
+			case err.Error() == "statement is not a EffectStatement":
+				continue
+			case strings.Contains(err.Error(), "invalid statement "):
+				continue
+			}
+		}
+	}
+}
+
 func TestStatement(t *testing.T) {
 	for _, line := range sampleLines() {
 		stType, stData := Statement(line)

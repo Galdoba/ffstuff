@@ -237,6 +237,23 @@ func (a *aud) State() (string, []string) {
 	return "AUD", []string{strconv.Itoa(a.channel)}
 }
 
+type effectStatement struct {
+	effectName string
+}
+
+func newEffectStatement(n *note) (*effectStatement, error) {
+	es := effectStatement{}
+	err := errors.New("Unimplemented")
+	if !strings.HasPrefix(n.content, "EFFECTS NAME IS ") {
+		return nil, errors.New("statement is not a EffectStatement")
+	}
+	err = nil
+	effect := strings.TrimPrefix(n.content, "EFFECTS NAME IS ")
+	es.effectName = effect
+
+	return &es, err
+}
+
 /////////////////HELPERS//////////////////
 
 func validWipeCodes() []string {

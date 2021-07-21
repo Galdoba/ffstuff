@@ -20,12 +20,17 @@ func sampleDataList() [][]string {
 
 func TestSample(t *testing.T) {
 	for _, data := range sampleDataList() {
-		inPoint, _ := types.ParseTimecode(data[1])
-		outPoint, _ := types.ParseTimecode(data[2])
-
+		inPoint, errIN := types.ParseTimecode(data[1])
+		if errIN != nil {
+			t.Errorf("errIN = '%v', expect nil from %v", errIN.Error(), data[1])
+		}
+		outPoint, errOUT := types.ParseTimecode(data[2])
+		if errOUT != nil {
+			t.Errorf("errOUT = '%v', expect nil from %v", errOUT.Error(), data[2])
+		}
 		s, err := newSample(data[0], inPoint, outPoint)
 		if !listContains(validWipeCodes(), s.source) {
-			t.Errorf("test content error %v %v %v", s.source, s.inPoint, s.duration)
+			t.Errorf("test content error '%v' '%v' '%v', expect WipeCode and two Timecodes", s.source, s.inPoint, s.duration)
 		}
 		if err != nil {
 			t.Errorf("clip err = '%v', expect nil from %v", err.Error(), s)
