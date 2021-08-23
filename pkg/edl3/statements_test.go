@@ -12,6 +12,7 @@ import (
 
 func sampleLines() []string {
 	return []string{
+		//INVALID LINES
 		"",
 		"aaa <<<",
 		"aaa",
@@ -60,6 +61,58 @@ func sampleLines() []string {
 		"AUD       5",
 		"AUD  B    6",
 		"AUD  B     ",
+		//VALID EDL
+		"TITLE: sample_test",
+		"FCM: NON-DROP FRAME",
+		"",
+		"001  BL       V     C        00:00:00:00 00:01:52:07 00:00:00:00 00:01:52:07",
+		"",
+		"002  BL       A     C        00:00:00:00 00:00:00:04 00:00:00:00 00:00:00:00",
+		"",
+		"003  BL       A     C        00:00:00:00 00:00:00:00 00:01:52:07 00:01:52:07",
+		"FCM: NON-DROP FRAME",
+		"003  AX       A     W001 004 00:01:52:07 00:03:21:09 00:01:52:07 00:03:21:09",
+		"EFFECTS NAME IS Constant Power",
+		"* FROM CLIP NAME: BL",
+		"* TO CLIP NAME: vyskochka_s02_01_2020__hd_rus51.m4a",
+		"",
+		"004  BL       V     C        00:00:00:00 00:00:01:05 00:00:00:00 00:00:00:00",
+		"",
+		"005  BL       V     C        00:00:00:00 00:00:00:00 00:01:52:07 00:01:52:07",
+		"FCM: NON-DROP FRAME",
+		"005  AX       V     D    030 00:01:52:07 00:03:20:08 00:01:52:07 00:03:20:08",
+		"EFFECTS NAME IS CROSS DISSOLVE",
+		"* FROM CLIP NAME: BL",
+		"* TO CLIP NAME: vyskochka_s02_01_2020__hd.mp4",
+		"",
+		"006  AX       V     C        00:03:20:08 00:03:20:08 00:03:20:08 00:03:20:08",
+		"FCM: NON-DROP FRAME",
+		"006  AX       V     D    030 00:59:58:20 01:00:02:20 00:03:20:08 00:03:24:08",
+		"EFFECTS NAME IS CROSS DISSOLVE",
+		"* FROM CLIP NAME: vyskochka_s02_01_2020__hd.mp4",
+		"* TO CLIP NAME: Title 97",
+		"",
+		"007  AX       A     C        00:03:21:09 00:03:21:09 00:03:21:09 00:03:21:09",
+		"FCM: NON-DROP FRAME",
+		"007  BL       A     W001 004 00:00:00:00 03:56:38:12 00:03:21:09 04:00:00:00",
+		"EFFECTS NAME IS Constant Power",
+		"* FROM CLIP NAME: vyskochka_s02_01_2020__hd_rus51.m4a",
+		"* TO CLIP NAME: BL",
+		"",
+		"008  AX       V     C        00:03:21:13 00:03:21:13 00:03:21:13 00:03:21:13",
+		"FCM: NON-DROP FRAME",
+		"008  AX       V     D    030 01:00:00:00 01:00:02:20 00:03:21:13 00:03:24:08",
+		"EFFECTS NAME IS CROSS DISSOLVE",
+		"* FROM CLIP NAME: vyskochka_s02_01_2020__hd.mp4",
+		"* TO CLIP NAME: Title 97",
+		"",
+		"009  AX       V     C        01:00:02:20 01:00:02:20 00:03:24:08 00:03:24:08",
+		"FCM: NON-DROP FRAME",
+		"009  BL       V     D    030 00:00:00:00 03:56:34:12 00:03:24:08 04:00:00:00",
+		"EFFECTS NAME IS CROSS DISSOLVE",
+		"* FROM CLIP NAME: Title 97",
+		"* TO CLIP NAME: BL",
+		"",
 	}
 }
 
@@ -278,7 +331,10 @@ func TestEffectStatement(t *testing.T) {
 
 func TestStatement(t *testing.T) {
 	for _, line := range sampleLines() {
-		stType, stData := Statement(line)
+		stType, stData, err := Statement(line)
+		if err != nil {
+			t.Errorf("error : %v", err.Error())
+		}
 		if stType != "NOTE" {
 			switch len(stData) {
 			case 0:

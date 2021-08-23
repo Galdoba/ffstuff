@@ -19,27 +19,33 @@ type Stater interface {
 	State() (string, []string)
 }
 
-func Statement(str string) (string, []string) {
+func Statement(str string) (string, []string, error) {
 	n, err := newNote(str)
 	if err != nil {
-		return "NONE", []string{"line separator"}
+		return "NONE", []string{"line separator"}, nil
 	}
-	if title, errT := newTitle(n); errT == nil {
-		return title.State()
+	if title, err := newTitle(n); err == nil {
+		tp, dt := title.State()
+		return tp, dt, nil
 	}
-	if fcm, errF := newFCM(n); errF == nil {
-		return fcm.State()
+	if fcm, err := newFCM(n); err == nil {
+		tp, dt := fcm.State()
+		return tp, dt, nil
 	}
-	if st, errST := newStandard(n); errST == nil {
-		return st.State()
+	if st, err := newStandard(n); err == nil {
+		tp, dt := st.State()
+		return tp, dt, nil
 	}
-	if a, errA := newAud(n); errA == nil {
-		return a.State()
+	if a, err := newAud(n); err == nil {
+		tp, dt := a.State()
+		return tp, dt, nil
 	}
-	if src, errSRC := newSource(n); errSRC == nil {
-		return src.State()
+	if src, err := newSource(n); err == nil {
+		tp, dt := src.State()
+		return tp, dt, nil
 	}
-	return n.State()
+	tp, dt := n.State()
+	return tp, dt, err
 }
 
 func newNote(line string) (*note, error) {
@@ -243,10 +249,11 @@ type effectStatement struct {
 
 func newEffectStatement(n *note) (*effectStatement, error) {
 	es := effectStatement{}
-	err := errors.New("Unimplemented")
+	err := errors.New("Unimplemented555")
 	if !strings.HasPrefix(n.content, "EFFECTS NAME IS ") {
 		return nil, errors.New("statement is not a EffectStatement")
 	}
+
 	err = nil
 	effect := strings.TrimPrefix(n.content, "EFFECTS NAME IS ")
 	es.effectName = effect

@@ -3,15 +3,7 @@ package edl3
 import "github.com/macroblock/imed/pkg/types"
 
 type edlData struct {
-	output []media
-}
-
-type media struct {
-	video  []clip
-	audio1 []clip
-	audio2 []clip
-	audio3 []clip
-	audio4 []clip
+	data []statementData
 }
 
 type clip struct {

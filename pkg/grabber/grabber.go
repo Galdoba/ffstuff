@@ -111,7 +111,8 @@ func copyContent(source, destination string) error {
 		return err
 	}
 	defer out.Close()
-	_, err = io.Copy(out, in)
+	//_, err = io.Copy(out, in)
+	err = CopyM(out, in)
 	if err != nil {
 		return err
 	}
@@ -354,4 +355,91 @@ func Download(logger glog.Logger, source, destination string) error {
 		//logger.TRACE(msg)
 	}
 	return nil
+}
+
+////////////////////////
+
+func CopyM(out io.Writer, in io.Reader) error {
+	const (
+		minSize = 1024
+		bufSize = 1024 * 1024
+		numBufs = 8
+	)
+	type Chunk struct {
+		buf [bufSize]byte
+		len int
+	}
+
+	if minSize > bufSize {
+		panic("bufSize must be >= minSize")
+	}
+	errch := make(chan error, 1)
+	datach := make(chan *Chunk, numBufs)
+	reusech := make(chan *Chunk, numBufs)
+
+	for range [numBufs]struct{}{} {
+		reusech <- &Chunk{}
+	}
+
+	go func() {
+		defer close(datach)
+
+		for {
+			b := <-reusech
+			var err error
+			var n int
+			for {
+				n, err = in.Read(b.buf[b.len:])
+
+				rest := len(b.buf[b.len:])
+				if n < 0 || rest < n {
+					if err == nil {
+						err = fmt.Errorf("Invalid read operation: 0 <= n:%v <= buflen:%v", n, rest)
+					}
+					break
+				}
+				b.len += n
+
+				if b.len >= minSize || err != nil {
+					break
+				}
+			} // for
+
+			if b.len > 0 {
+				datach <- b
+			}
+			if err != nil {
+				if err != io.EOF {
+					errch <- err
+				}
+				return
+			}
+		} // for
+	}()
+
+	var err error
+	for b := range datach {
+		var n int
+		n, err = out.Write(b.buf[:b.len])
+		if err != nil {
+			break
+		}
+		if n != b.len {
+			errch <- fmt.Errorf("Invalid write operation: n:%v == buflen:%v", n, b.len)
+			break
+		}
+		b.len = 0
+		reusech <- b
+	}
+
+	close(reusech)
+	for range reusech {
+	}
+
+	close(errch)
+	e := <-errch
+	if e != nil {
+		err = e
+	}
+	return err
 }
