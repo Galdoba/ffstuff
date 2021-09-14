@@ -107,40 +107,28 @@ func durationFromFields(fA, fB string) (types.Timecode, error) {
 func clipDataComplete(val clipdata) bool {
 	switch {
 	case val.transitionType == "":
-		fmt.Println("CLIP NOT COMPLETED. REASON: case val.transitionType == ''.")
 		return false
 	case val.sourceA == "":
-		fmt.Println("CLIP NOT COMPLETED. REASON: case val.sourceA == ''.")
 		return false
 	case val.transitionType == "C" && val.sourceB != "":
-		fmt.Println("CLIP NOT COMPLETED. REASON: case val.transitionType == 'C' && val.sourceB != ''.")
 		return false
 	case val.transitionType != "C" && val.sourceB == "":
-		fmt.Println("CLIP NOT COMPLETED. REASON: case val.transitionType != 'C' && val.sourceB == ''.")
 		return false
 	case (val.sourceA == val.sourceB) && (val.inPointA == val.inPointB):
-		fmt.Println("CLIP NOT COMPLETED. REASON: case (val.sourceA == val.sourceB) && (val.inPointA == val.inPointB):")
 		return false
 	case val.duration <= 0:
-		fmt.Println("CLIP NOT COMPLETED. REASON: case val.duration <= 0:")
 		return false
 	case val.inPointA < 0:
-		fmt.Println("CLIP NOT COMPLETED. REASON: case val.inPointA < 0:")
 		return false
 	case val.inPointB < 0:
-		fmt.Println("CLIP NOT COMPLETED. REASON: case val.inPointB < 0:")
 		return false
 	case val.sourceB == "" && val.inPointB > 0:
-		fmt.Println("CLIP NOT COMPLETED. REASON: case val.sourceB == '' && val.inPointB > 0:")
 		return false
 	case !utils.ListContains(validWipeCodes(), val.transitionType):
-		fmt.Println("CLIP NOT COMPLETED. REASON: case !utils.ListContains(validWipeCodes(), val.transitionType):")
 		return false
 	case val.sourceA == "BL" && val.inPointA != 0:
-		fmt.Println("CLIP NOT COMPLETED. REASON: case val.sourceA == 'BL' && val.inPointA != 0:")
 		return false
 	case !utils.ListContains(validChannels(), val.channel):
-		fmt.Println("CLIP NOT COMPLETED. REASON: case !utils.ListContains(validChannels(), val.channel):")
 		return false
 	}
 	return true
