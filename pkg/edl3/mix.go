@@ -5,11 +5,10 @@ import "github.com/macroblock/imed/pkg/types"
 type mix struct {
 	mixEffectCode string
 	sourceA       string
-	inPointA      types.Timecode
-	durA          types.Timecode
 	sourceB       string
+	inPointA      types.Timecode
 	inPointB      types.Timecode
-	durB          types.Timecode
+	durA          types.Timecode
 }
 
 func (m *mix) CollectInfo(sBlock []statementData) error {

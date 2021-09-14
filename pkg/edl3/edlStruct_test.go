@@ -60,6 +60,6 @@ func TestClip(t *testing.T) {
 
 }
 
-func validChannels() []string {
-	return []string{"V", "A", "A2", "A3", "A4", "NONE"}
-}
+// func validChannels() []string {
+// 	return []string{"V", "A", "A2", "A3", "A4", "NONE"}
+// }
