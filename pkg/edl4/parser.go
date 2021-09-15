@@ -22,7 +22,7 @@ func ParseFile(path string) (parcedData, error) {
 }
 
 func Parse(r io.Reader) (parcedData, error) {
-	fmt.Println("Start Parse Reader")
+	//fmt.Println("Start Parse Reader")
 	var eData []statementData
 	scanner := bufio.NewScanner(r)
 
@@ -40,7 +40,7 @@ func Parse(r io.Reader) (parcedData, error) {
 		case parseError == nil:
 			eData = append(eData, statementData{newStatement.sType, newStatement.fields})
 			//fmt.Printf("Input: '%v'\n", line)
-			fmt.Printf("Parsed: %v	'%v'\n", newStatement.sType, newStatement.fields)
+			//	fmt.Printf("Parsed: %v	'%v'\n", newStatement.sType, newStatement.fields)
 		}
 	}
 
@@ -50,7 +50,7 @@ func Parse(r io.Reader) (parcedData, error) {
 	//ShowResults(eData)
 	//////////////////////////////////
 
-	fmt.Println("End Parse Reader")
+	//fmt.Println("End Parse Reader")
 	pd := parcedData{eData}
 	return pd, parseError
 }

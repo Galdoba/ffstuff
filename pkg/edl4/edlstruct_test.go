@@ -10,10 +10,15 @@ import (
 
 func testInput() []string {
 	return []string{
-		"d:\\IN\\IN_2021-09-14\\Test.edl",
-		"d:\\IN\\IN_2021-09-14\\Test2.edl",
-		"d:\\IN\\IN_2021-09-14\\test3.edl",
-		"d:\\IN\\IN_2021-09-14\\Test4.edl",
+		// "d:\\IN\\IN_2021-09-14\\Test.edl",
+		// "d:\\IN\\IN_2021-09-14\\Test2.edl",
+		// "d:\\IN\\IN_2021-09-14\\test3.edl",
+		// "d:\\IN\\IN_2021-09-14\\Test4.edl",
+		// "d:\\IN\\IN_2021-09-15\\Simple.edl",
+		// "d:\\IN\\IN_2021-09-15\\Simple2.edl",
+		// "d:\\IN\\IN_2021-09-15\\Simple3.edl",
+		// "d:\\IN\\IN_2021-09-15\\hard.edl",
+		"d:\\IN\\IN_2021-09-15\\hard2.edl",
 	}
 }
 
@@ -28,15 +33,18 @@ func TestEDLstruct(t *testing.T) {
 		}
 		fmt.Println("/////////")
 		cData, err := BuildClips(parced)
-		for _, v := range cData {
+		for i, v := range cData {
 			fmt.Println(v)
+			if !clipDataComplete(v) {
+				t.Errorf("File: %v\nClip %v data incomplete: %v", file, i, v)
+			}
 		}
 		fmt.Println("/////////")
 
-		if len(cData) < 1 {
-			t.Errorf("enexpected len(cData) = %v", len(cData))
-		}
-		fmt.Println("/////////")
+		// if len(cData) < 1 {
+		// 	t.Errorf("enexpected len(cData) = %v", len(cData))
+		// }
+		//fmt.Println("/////////")
 		//fmt.Println(parced, err)
 	}
 }
@@ -47,7 +55,7 @@ func InputClips() []clipdata {
 	sources := []string{"", "file1", "file2", "BL"}
 	testDurations := []types.Timecode{-5, 0, 5}
 	testInpoints := []types.Timecode{-5, 0, 5}
-	testChennels := []string{"V", "A", "A2", "3", "4", "?"}
+	testChennels := []string{"V", "A", "A2", "3", "4", "?", "NONE"}
 
 	//////////////////////////////////////////////////////////////
 	for _, wc := range wipeCodes {
@@ -105,8 +113,4 @@ func TestClipdata(t *testing.T) {
 			t.Errorf("unknown channel: testObject %v, %v", index, val)
 		}
 	}
-}
-
-func TestBuildClips(t *testing.T) {
-
 }
