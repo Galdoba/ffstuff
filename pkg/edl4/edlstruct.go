@@ -1,7 +1,6 @@
 package edl4
 
 import (
-	"fmt"
 	"strconv"
 
 	"github.com/Galdoba/utils"
@@ -32,29 +31,68 @@ func BuildClips(pd parcedData) ([]clipdata, error) {
 	pd.statements = append(pd.statements, statementData{})
 	statementMap := make(map[int]statementData)
 	currentClip := &clipdata{inPointA: -1, duration: -1}
+	bufferClip := &clipdata{}
 	for i, statemnt := range pd.statements {
 		if clipDataComplete(*currentClip) {
+			if clipDataComplete(*bufferClip) {
+				if bufferClip.sourceA == "WAIT" {
+					//fmt.Println(i, "Outsorce NAME", currentClip.sourceB)
+					bufferClip.sourceA = currentClip.sourceB
+				}
+			}
+			if clipDataComplete(*bufferClip) {
+				//fmt.Println(i, "Add buffer clip", bufferClip)
+				bufferClip, currentClip = currentClip, bufferClip
+				cd = append(cd, *bufferClip)
+				bufferClip = &clipdata{}
+			}
 			cd = append(cd, *currentClip)
-			fmt.Println("Add currentClip", i)
+			//fmt.Println("Add currentClip", i)
+			//fmt.Println(i, "bufferClip", bufferClip)
 			currentClip = &clipdata{previousClip: currentClip, inPointA: -1, duration: -1}
-		}
 
+		}
 		statementMap[i] = statemnt
 		switch {
 		case statemnt.sType == "STANDARD":
 			currentClip.transitionType = statemnt.fields[2]
-			//if currentClip.inPointA == -1 {
 			inPoint, _ := types.ParseTimecode(statemnt.fields[5])
 			currentClip.inPointA = inPoint
 			dur, _ := durationFromFields(statemnt.fields[5], statemnt.fields[6])
 			currentClip.duration = dur
 			if statemnt.fields[4] != "0.0" {
 				dur, _ := types.ParseTimecode(statemnt.fields[4])
-				//dur = utils.RoundFloat64(dur * 0.04, 3)
 				currentClip.duration = dur * 0.04
 			}
-
-			//}
+			if statemnt.fields[1] == "BL" && statemnt.fields[2] == "C" {
+				currentClip.sourceA = "BL"
+			}
+			if statemnt.fields[1] == "BL" && statemnt.fields[2] != "C" {
+				last := closestStandard(statementMap)
+				inPoint, _ := types.ParseTimecode(last.fields[5])
+				currentClip.inPointA = inPoint
+				currentClip.inPointB = types.NewTimecode(0, 0, 0)
+				currentClip.duration = duration_Field4(statemnt.fields[4])
+			}
+			if statemnt.fields[1] != "BL" && statemnt.fields[2] != "C" {
+				inPoint, _ := types.ParseTimecode(statemnt.fields[5])
+				currentClip.inPointB = inPoint + duration_Field4(statemnt.fields[4])
+				long := twoClosestStandard(statementMap)
+				switch long {
+				case nil:
+				default:
+					durat := durationFromSTANDARD(*long[0]) - duration_Field4(*&long[0].fields[4])
+					inPoint, _ = types.ParseTimecode(*&long[1].fields[5])
+					bufferClip = &clipdata{
+						previousClip:   currentClip,
+						transitionType: "C",
+						sourceA:        "WAIT",
+						inPointA:       inPoint + +duration_Field4(*&long[0].fields[4]),
+						duration:       durat,
+						channel:        currentClip.channel,
+					}
+				}
+			}
 			if currentClip.channel == "" {
 				currentClip.channel = statemnt.fields[3]
 			}
@@ -69,26 +107,17 @@ func BuildClips(pd parcedData) ([]clipdata, error) {
 			}
 		case statemnt.sType == "SOURCE B":
 			currentClip.sourceB = statemnt.fields[0]
-			closestST := closestStandard(statementMap)
-			currentClip.inPointB, _ = types.ParseTimecode(closestST.fields[5])
-			//currentClip.duration = durationFromSTANDARD(*closestST)
-			// currentClip.sourceB = statemnt.fields[0]
-			// closestST := closestStandard(statementMap)
-			// currentClip.inPointB = currentClip.inPointA + duration_Field4(closestST.fields[4])
-			// currentClip.duration, _ = durationFromFields(closestST.fields[5], closestST.fields[6])
-			// if currentClip.sourceB == "BL" {
-			// 	currentClip.inPointB = 0
-			// 	currentClip.duration = duration_Field4(closestST.fields[4])
-			// 	if currentClip.previousClip != nil {
-			// 		currentClip.inPointA = currentClip.previousClip.inPointA + currentClip.previousClip.duration
-			// 	}
-			// }
 		case statemnt.sType == "AUD":
 			switch statemnt.fields[0] {
 			case "3", "4":
 				currentClip.channel = statemnt.fields[0]
 			}
-
+		}
+		switch clipDataComplete(*currentClip) {
+		case true:
+			//fmt.Println("CLIP COMPLETE:", currentClip)
+		default:
+			//	fmt.Println("CLIP NOT COMPLETE:", currentClip)
 		}
 
 	}
@@ -124,10 +153,33 @@ func duration_Field4(f4 string) types.Timecode {
 
 func closestStandard(stMap map[int]statementData) *statementData {
 	last := len(stMap)
-	for i := last; i >= 0; i-- {
+	if last < 2 {
+		return nil
+	}
+	for i := last - 2; i >= 0; i-- {
+
 		chkStatement := stMap[i]
+		//fmt.Println("CHECK", i, chkStatement)
 		if chkStatement.sType == "STANDARD" {
 			return &chkStatement
+		}
+	}
+	return nil
+}
+
+func twoClosestStandard(stMap map[int]statementData) []*statementData {
+	last := len(stMap)
+
+	var best []*statementData
+	for i := last - 1; i >= 0; i-- {
+
+		chkStatement := stMap[i]
+		//fmt.Println("CHECK", i, chkStatement)
+		if chkStatement.sType == "STANDARD" {
+			best = append(best, &chkStatement)
+			if len(best) > 1 {
+				return best
+			}
 		}
 	}
 	return nil

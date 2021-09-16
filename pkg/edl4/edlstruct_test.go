@@ -18,7 +18,7 @@ func testInput() []string {
 		// "d:\\IN\\IN_2021-09-15\\Simple2.edl",
 		// "d:\\IN\\IN_2021-09-15\\Simple3.edl",
 		// "d:\\IN\\IN_2021-09-15\\hard.edl",
-		"d:\\IN\\IN_2021-09-15\\hard2.edl",
+		"d:\\IN\\IN_2021-09-16\\simple.edl",
 	}
 }
 
