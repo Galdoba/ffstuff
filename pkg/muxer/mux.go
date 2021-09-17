@@ -8,6 +8,7 @@ package muxer
 import (
 	"bufio"
 	"errors"
+	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -456,4 +457,94 @@ func assertInputFiles(filePath ...string) error {
 		}
 	}
 	return nil
+}
+
+type Task struct {
+	instruction string
+	video       string
+	audio1      string
+	audio2      string
+	subtitles   string
+	err         error
+}
+
+func (t *Task) Validate() {
+	base := baseOf(t)
+
+	switch {
+	default:
+		t.err = nil
+	case !strings.Contains(t.instruction, "2") && !strings.Contains(t.instruction, "6"):
+		t.err = fmt.Errorf("instruction has no valid channel layout (expecting '2' or '6')")
+	case !strings.Contains(t.instruction, "r") && !strings.Contains(t.instruction, "e") && !strings.Contains(t.instruction, "qqq"):
+		t.err = fmt.Errorf("instruction has no valid language marker (expecting 'r', 'e' or 'qqq')")
+	case strings.Contains(t.instruction, "qqq2qqq") || strings.Contains(t.instruction, "qqq6qqq"):
+		t.err = fmt.Errorf("instruction can not have same language")
+	case strings.Contains(t.instruction, "rus2rus") || strings.Contains(t.instruction, "rus6rus"):
+		t.err = fmt.Errorf("instruction can not have same language")
+	case strings.Contains(t.instruction, "eng2eng") || strings.Contains(t.instruction, "eng6eng"):
+		t.err = fmt.Errorf("instruction can not have same language")
+	case strings.Contains(t.instruction, "aqqq") && !strings.Contains(t.audio1, "_qqq"):
+		t.err = fmt.Errorf("audio1 does not match with instruction")
+	case strings.Contains(t.instruction, "ar") && !strings.Contains(t.audio1, "_rus"):
+		t.err = fmt.Errorf("audio1 does not match with instruction")
+	case strings.Contains(t.instruction, "ae") && !strings.Contains(t.audio1, "_eng"):
+		t.err = fmt.Errorf("audio1 does not match with instruction")
+	case strings.Contains(t.instruction, "2qqq") && !strings.Contains(t.audio2, "_qqq"):
+		t.err = fmt.Errorf("audio1 does not match with instruction")
+	case strings.Contains(t.instruction, "2r") && !strings.Contains(t.audio2, "_rus"):
+		t.err = fmt.Errorf("audio1 does not match with instruction")
+	case strings.Contains(t.instruction, "2e") && !strings.Contains(t.audio2, "_eng"):
+		t.err = fmt.Errorf("audio1 does not match with instruction")
+	case strings.Contains(t.instruction, "6qqq") && !strings.Contains(t.audio2, "_qqq"):
+		t.err = fmt.Errorf("audio1 does not match with instruction")
+	case strings.Contains(t.instruction, "6r") && !strings.Contains(t.audio2, "_rus"):
+		t.err = fmt.Errorf("audio1 does not match with instruction")
+	case strings.Contains(t.instruction, "6e") && !strings.Contains(t.audio2, "_eng"):
+		t.err = fmt.Errorf("audio1 does not match with instruction")
+	case strings.Contains(t.instruction, "_sr") && t.subtitles != baseOf(t)+".srt":
+		t.err = fmt.Errorf("subtitles does not match with instruction (have '%v', expect '%v'", t.subtitles, base+".srt")
+	case !strings.Contains(t.instruction, "_sr") && t.subtitles != "":
+		t.err = fmt.Errorf("subtitles defined but not instructed")
+
+	}
+}
+
+func baseOf(t *Task) string {
+	base := strings.TrimSuffix(t.video, ".mp4")
+	base = strings.TrimSuffix(t.video, ".mpeg")
+	return base
+}
+
+func decodeInstruction(t *Task) (string, string, string) {
+	a1, a2, s := "", "", ""
+	left := t.instruction
+	if strings.TrimSuffix(t.instruction, "_sr") != left {
+		left = strings.TrimSuffix(t.instruction, "_sr")
+		s = baseOf(t) + ".srt"
+	}
+	instrMap := make(map[string]string)
+	instrMap["ar2"] = "_rus20.ac3"
+	instrMap["ae2"] = "_eng20.ac3"
+	instrMap["aqqq2"] = "_qqq20.ac3"
+	instrMap["ar6"] = "_rus51.ac3"
+	instrMap["ae6"] = "_eng51.ac3"
+	instrMap["aqqq6"] = "_qqq51.ac3"
+	instrMap["r2"] = "_rus20.ac3"
+	instrMap["e2"] = "_eng20.ac3"
+	instrMap["qqq2"] = "_qqq20.ac3"
+	instrMap["r6"] = "_rus51.ac3"
+	instrMap["e6"] = "_eng51.ac3"
+	instrMap["qqq6"] = "_qqq51.ac3"
+	first := []string{"ar2", "ar6", "ae2", "ae6", "aqqq2", "aqqq6"}
+	for _, p1 := range first {
+		if strings.TrimPrefix(t.instruction, p1) != left {
+			left = strings.TrimSuffix(t.instruction, p1)
+			a1 = baseOf(t) + instrMap[p1]
+		}
+	}
+	if left != "" {
+		a2 = baseOf(t) + instrMap[left]
+	}
+	return a1, a2, s
 }
