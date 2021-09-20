@@ -68,6 +68,7 @@ func TestMuxTask(t *testing.T) {
 	for i, task := range taskList {
 		//fmt.Printf("Test %v: task = %v \n", i+1, task)
 		task.Validate()
+		//fmt.Printf("Test %v of %v: task = %v \n", i+1, alltests, task)
 		if task.err != nil {
 			valid++
 			continue

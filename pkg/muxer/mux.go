@@ -469,43 +469,63 @@ type Task struct {
 }
 
 func (t *Task) Validate() {
-	base := baseOf(t)
-
+	//base := baseOf(t)
+	//a1, a2, s := decodeInstruction(t)
+	//fmt.Println(t.instruction, a1, a2, s)
 	switch {
 	default:
-		t.err = nil
-	case !strings.Contains(t.instruction, "2") && !strings.Contains(t.instruction, "6"):
-		t.err = fmt.Errorf("instruction has no valid channel layout (expecting '2' or '6')")
-	case !strings.Contains(t.instruction, "r") && !strings.Contains(t.instruction, "e") && !strings.Contains(t.instruction, "qqq"):
-		t.err = fmt.Errorf("instruction has no valid language marker (expecting 'r', 'e' or 'qqq')")
-	case strings.Contains(t.instruction, "qqq2qqq") || strings.Contains(t.instruction, "qqq6qqq"):
-		t.err = fmt.Errorf("instruction can not have same language")
-	case strings.Contains(t.instruction, "rus2rus") || strings.Contains(t.instruction, "rus6rus"):
-		t.err = fmt.Errorf("instruction can not have same language")
-	case strings.Contains(t.instruction, "eng2eng") || strings.Contains(t.instruction, "eng6eng"):
-		t.err = fmt.Errorf("instruction can not have same language")
-	case strings.Contains(t.instruction, "aqqq") && !strings.Contains(t.audio1, "_qqq"):
-		t.err = fmt.Errorf("audio1 does not match with instruction")
-	case strings.Contains(t.instruction, "ar") && !strings.Contains(t.audio1, "_rus"):
-		t.err = fmt.Errorf("audio1 does not match with instruction")
-	case strings.Contains(t.instruction, "ae") && !strings.Contains(t.audio1, "_eng"):
-		t.err = fmt.Errorf("audio1 does not match with instruction")
-	case strings.Contains(t.instruction, "2qqq") && !strings.Contains(t.audio2, "_qqq"):
-		t.err = fmt.Errorf("audio1 does not match with instruction")
-	case strings.Contains(t.instruction, "2r") && !strings.Contains(t.audio2, "_rus"):
-		t.err = fmt.Errorf("audio1 does not match with instruction")
-	case strings.Contains(t.instruction, "2e") && !strings.Contains(t.audio2, "_eng"):
-		t.err = fmt.Errorf("audio1 does not match with instruction")
-	case strings.Contains(t.instruction, "6qqq") && !strings.Contains(t.audio2, "_qqq"):
-		t.err = fmt.Errorf("audio1 does not match with instruction")
-	case strings.Contains(t.instruction, "6r") && !strings.Contains(t.audio2, "_rus"):
-		t.err = fmt.Errorf("audio1 does not match with instruction")
-	case strings.Contains(t.instruction, "6e") && !strings.Contains(t.audio2, "_eng"):
-		t.err = fmt.Errorf("audio1 does not match with instruction")
-	case strings.Contains(t.instruction, "_sr") && t.subtitles != baseOf(t)+".srt":
-		t.err = fmt.Errorf("subtitles does not match with instruction (have '%v', expect '%v'", t.subtitles, base+".srt")
-	case !strings.Contains(t.instruction, "_sr") && t.subtitles != "":
-		t.err = fmt.Errorf("subtitles defined but not instructed")
+		t.err = errors.New("Undecided")
+	// case !strings.Contains(t.instruction, "2") && !strings.Contains(t.instruction, "6"):
+	// t.err = fmt.Errorf("instruction has no valid channel layout (expecting '2' or '6')")
+	// case !strings.Contains(t.instruction, "r") && !strings.Contains(t.instruction, "e") && !strings.Contains(t.instruction, "qqq"):
+	// t.err = fmt.Errorf("instruction has no valid language marker (expecting 'r', 'e' or 'qqq')")
+	// case strings.Contains(t.instruction, "qqq2qqq") || strings.Contains(t.instruction, "qqq6qqq"):
+	// t.err = fmt.Errorf("instruction can not have same language")
+	// case strings.Contains(t.instruction, "rus2rus") || strings.Contains(t.instruction, "rus6rus"):
+	// t.err = fmt.Errorf("instruction can not have same language")
+	// case strings.Contains(t.instruction, "eng2eng") || strings.Contains(t.instruction, "eng6eng"):
+	// t.err = fmt.Errorf("instruction can not have same language")
+	//
+	// case strings.Contains(t.instruction, "ar") && !strings.Contains(t.audio1, "_rus"):
+	// t.err = fmt.Errorf("audio1 does not match with instruction")
+	// case strings.Contains(t.instruction, "ae") && !strings.Contains(t.audio1, "_eng"):
+	// t.err = fmt.Errorf("audio1 does not match with instruction")
+	// case strings.Contains(t.instruction, "2qqq") && !strings.Contains(t.audio2, "_qqq"):
+	// t.err = fmt.Errorf("audio1 does not match with instruction")
+	// case strings.Contains(t.instruction, "2r") && !strings.Contains(t.audio2, "_rus"):
+	// t.err = fmt.Errorf("audio1 does not match with instruction")
+	// case strings.Contains(t.instruction, "2e") && !strings.Contains(t.audio2, "_eng"):
+	// t.err = fmt.Errorf("audio1 does not match with instruction")
+	// case strings.Contains(t.instruction, "6qqq") && !strings.Contains(t.audio2, "_qqq"):
+	// t.err = fmt.Errorf("audio1 does not match with instruction")
+	// case strings.Contains(t.instruction, "6r") && !strings.Contains(t.audio2, "_rus"):
+	// t.err = fmt.Errorf("audio1 does not match with instruction")
+	// case strings.Contains(t.instruction, "6e") && !strings.Contains(t.audio2, "_eng"):
+	// t.err = fmt.Errorf("audio1 does not match with instruction")
+	// case strings.Contains(t.instruction, "_sr") && !strings.Contains(t.subtitles, ".srt"):
+	// t.err = fmt.Errorf("subtitles does not defined properly")
+	// case !strings.Contains(t.instruction, "_sr") && t.subtitles != "":
+	// t.err = fmt.Errorf("subtitles defined but not instructed")
+	// case !strings.Contains(t.instruction, "6e6") && strings.Contains(t.audio2, "_eng51"):
+	// t.err = fmt.Errorf("audio2 instructed as eng51, but not defined")
+	// case !strings.Contains(t.instruction, "6e2") && strings.Contains(t.audio2, "_eng20"):
+	// t.err = fmt.Errorf("audio2 instructed as eng20, but not defined")
+	// case !strings.Contains(t.instruction, "2e6") && strings.Contains(t.audio2, "_eng51"):
+	// t.err = fmt.Errorf("audio2 instructed as eng51, but not defined")
+	// case !strings.Contains(t.instruction, "2e2") && strings.Contains(t.audio2, "_eng20"):
+	// 	t.err = fmt.Errorf("audio2 instructed as eng20, but not defined")
+	// case !strings.Contains(t.instruction, "6qqq6") && strings.Contains(t.audio2, "_qqq51"):
+	// t.err = fmt.Errorf("audio2 instructed as eng51, but not defined")
+	// case !strings.Contains(t.instruction, "6qqq2") && strings.Contains(t.audio2, "_qqq20"):
+	// t.err = fmt.Errorf("audio2 instructed as eng20, but not defined")
+	// case !strings.Contains(t.instruction, "2qqq6") && strings.Contains(t.audio2, "_qqq51"):
+	// t.err = fmt.Errorf("audio2 instructed as eng51, but not defined")
+	// case !strings.Contains(t.instruction, "2qqq2") && strings.Contains(t.audio2, "_qqq20"):
+	// t.err = fmt.Errorf("audio2 instructed as eng20, but not defined")
+	case strings.Contains(t.instruction, "ar6e2") && !strings.Contains(t.audio1, "_rus51"):
+		t.err = fmt.Errorf("audio1 instructed as rus51, but not defined")
+	case strings.Contains(t.instruction, "ar6e2") && !strings.Contains(t.audio2, "_eng20"):
+		t.err = fmt.Errorf("audio2 instructed as eng20, but not defined")
 
 	}
 }
@@ -521,7 +541,7 @@ func decodeInstruction(t *Task) (string, string, string) {
 	left := t.instruction
 	if strings.TrimSuffix(t.instruction, "_sr") != left {
 		left = strings.TrimSuffix(t.instruction, "_sr")
-		s = baseOf(t) + ".srt"
+		s = ".srt"
 	}
 	instrMap := make(map[string]string)
 	instrMap["ar2"] = "_rus20.ac3"
@@ -540,11 +560,9 @@ func decodeInstruction(t *Task) (string, string, string) {
 	for _, p1 := range first {
 		if strings.TrimPrefix(t.instruction, p1) != left {
 			left = strings.TrimSuffix(t.instruction, p1)
-			a1 = baseOf(t) + instrMap[p1]
+			a1 = instrMap[p1]
 		}
 	}
-	if left != "" {
-		a2 = baseOf(t) + instrMap[left]
-	}
+	a2 = instrMap[left]
 	return a1, a2, s
 }
