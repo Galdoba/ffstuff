@@ -5,33 +5,11 @@ import (
 	"testing"
 )
 
-func instructionConstructor() []string {
-	prefix := "a"
-	l1 := []string{"r", "e", "qqq"}
-	c1 := []string{"2", "6"}
-	l2 := []string{"e", "qqq"}
-	c2 := []string{"2", "6"}
-	postfix := []string{"", "_sr"}
-	var instructions []string
-	for _, a := range l1 {
-		for _, b := range c1 {
-			for _, c := range l2 {
-				for _, d := range c2 {
-					for _, e := range postfix {
-						instructions = append(instructions, prefix+a+b+c+d+e)
-					}
-				}
-			}
-		}
-	}
-	return instructions
-}
-
-func emulatedTasks() []Task {
+func emulatedInstructions() []Task {
 	instructions := []string{
 		"",
 	}
-	instructions = append(instructions, instructionConstructor()...)
+	instructions = append(instructions, validInstructions()...)
 	video := []string{
 		"file.mp4", "file.mpeg",
 		"",
@@ -41,6 +19,7 @@ func emulatedTasks() []Task {
 		"file_eng20.ac3", "file_eng51.ac3",
 		"file_qqq20.ac3", "file_qqq51.ac3",
 		"", "file.aac", "file.m4a",
+		"file_rus51.aac",
 	}
 	subs := []string{
 		"file.srt",
@@ -52,7 +31,7 @@ func emulatedTasks() []Task {
 			for _, aud1 := range audio {
 				for _, aud2 := range audio {
 					for _, srt := range subs {
-						taskList = append(taskList, Task{inst, vid, aud1, aud2, srt, nil})
+						taskList = append(taskList, Task{"", inst, vid, aud1, aud2, srt, nil, "", ""})
 					}
 				}
 			}
@@ -62,19 +41,38 @@ func emulatedTasks() []Task {
 }
 
 func TestMuxTask(t *testing.T) {
-	taskList := emulatedTasks()
-	alltests := len(taskList)
-	valid := 0
+	taskList := emulatedInstructions()
+	//alltests := len(taskList)
+	undecided := 0
 	for i, task := range taskList {
-		//fmt.Printf("Test %v: task = %v \n", i+1, task)
 		task.Validate()
-		//fmt.Printf("Test %v of %v: task = %v \n", i+1, alltests, task)
 		if task.err != nil {
-			valid++
+			if task.err.Error() == "Undecided" {
+				fmt.Printf("Task %v undecided : %v\n", i, task)
+				t.Errorf("Task %v (%v): error: %v\n", i, task, task.err.Error())
+				undecided++
+				continue
+			}
 			continue
 		}
-		fmt.Printf("Test %v of %v: task = %v \n", i+1, alltests, task)
-		//fmt.Printf("Task invalid. reason: %v\n", task.err.Error())
+		//fmt.Printf("Test %v of %v: task = %v - VALID \n", i+1, alltests, task)
 	}
-	fmt.Printf("Undesided Tests %v of %v\n", alltests-valid, alltests)
+	//fmt.Printf("Undesided Tests %v of %v\n", undecided, alltests)
+}
+
+func emulatedTXTInstructions() []string {
+	return []string{
+		"somefile.mp4 ar2e6_sr",
+		"somefile.mp4 ar2e5_sr",
+		"somefile.mp4 ar2e6sr",
+	}
+}
+
+func TestTaskCreation(t *testing.T) {
+	for i, val := range emulatedTXTInstructions() {
+		task := NewTask(val)
+		if task.err != nil {
+			t.Errorf("Task %v (%v): error: %v\n", i, task, task.err.Error())
+		}
+	}
 }

@@ -20,10 +20,13 @@ import (
 )
 
 const (
-	MuxerAR2    = "ar2"
-	MuxerA6     = "ar6"
-	MuxerAE2    = "ae2"
-	MuxerAE6    = "ae6"
+	MuxerAR2 = "ar2"
+	MuxerAR6 = "ar6"
+	MuxerAE2 = "ae2"
+	MuxerAE6 = "ae6"
+	MuxerAQ2 = "ae2"
+	MuxerAQ6 = "ae6"
+
 	MuxerAR2E2  = "ar2e2"
 	MuxerAR2E6  = "ar2e6"
 	MuxerA6E2   = "ar6e2"
@@ -85,6 +88,37 @@ func MuxList() ([]string, error) {
 	return list, scanner.Err()
 }
 
+func MuxListV2() ([]*Task, error) {
+	var tl []*Task
+	file, err := os.Open(fldr.MuxPath() + "muxlist.txt")
+	if err != nil {
+		if os.IsNotExist(err) {
+			return tl, err
+		}
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		tl = append(tl, NewTask(scanner.Text()))
+	}
+	if err := scanner.Err(); err != nil {
+		log.Fatal(err)
+	}
+	return tl, scanner.Err()
+}
+
+func AssertTasks(tl []*Task) []error {
+	var errList []error
+	for i, tsk := range tl {
+		if tsk.err != nil {
+			errList = append(errList, fmt.Errorf("Task %v error: %v", i, tsk.err.Error()))
+			//fmt.Printf("Task %v error: %v\nline '%v'\n", i, tsk.err.Error(), tsk.input)
+		}
+	}
+	return errList
+}
+
 func ChooseMuxer(task string) ([]string, string, error) {
 	data := strings.Split(task, " ")
 	if data[0] == "" {
@@ -96,10 +130,42 @@ func ChooseMuxer(task string) ([]string, string, error) {
 	switch data[1] {
 	default:
 		return []string{}, MuxerSKIP, errors.New("muxer not recognised")
-	case MuxerAR2, MuxerA6, MuxerAE2, MuxerAE6, MuxerAR2E2, MuxerAR2E6, MuxerA6E2, MuxerA6E6, MuxerAR2s, MuxerA6s, MuxerAR2E2s, MuxerAR2E6s, MuxerA6E2s, MuxerA6E6s:
+	case MuxerAR2, MuxerAR6, MuxerAE2, MuxerAE6, MuxerAR2E2, MuxerAR2E6, MuxerA6E2, MuxerA6E6, MuxerAR2s, MuxerA6s, MuxerAR2E2s, MuxerAR2E6s, MuxerA6E2s, MuxerA6E6s:
 		paths := defineFiles(task)
 		return paths, data[1], nil
 	}
+}
+
+func MuxV2(t *Task) error {
+	fmt.Println(t)
+	base := baseOf(t)
+	prog := "ffmpeg"
+	args2 := []string{
+		"-i", fldr.MuxPath() + t.video,
+		"-i", fldr.MuxPath() + t.audio1,
+	}
+	if t.audio2 != "" {
+		args2 = append(args2, "-i")
+		args2 = append(args2, fldr.MuxPath()+t.audio2)
+	}
+	if t.subtitles != "" {
+		args2 = append(args2, "-i")
+		args2 = append(args2, fldr.MuxPath()+t.subtitles)
+	}
+	args2 = append(args2, []string{
+		"-codec", "copy", "-codec:s", "mov_text",
+		"-map", "0:v",
+		"-map", "1:a", "-metadata:s:a:0", "language=" + t.l1,
+	}...)
+	if t.audio2 != "" {
+		args2 = append(args2, "-map", "2:a", "-metadata:s:a:1", "language="+t.l2)
+	}
+	if t.subtitles != "" {
+		args2 = append(args2, "-map", "3:s", "-metadata:s:s:0", "language=rus")
+	}
+	args2 = append(args2, fldr.OutPath()+base+"_"+t.instruction+".mp4")
+	_, _, err := cli.RunConsole(prog, args2...)
+	return err
 }
 
 func Run(muxerTask string, files []string) error {
@@ -111,7 +177,7 @@ func Run(muxerTask string, files []string) error {
 		return errors.New("undefined muxer task")
 	case MuxerAR2:
 		return MuxA2(files[0], files[1])
-	case MuxerA6:
+	case MuxerAR6:
 		return MuxA6(files[0], files[1])
 	case MuxerAE2:
 		return MuxAE2(files[0], files[1])
@@ -149,7 +215,7 @@ func defineFiles(task string) []string {
 	switch data[1] {
 	case MuxerAR2:
 		paths = append(paths, base+"_rus20.ac3")
-	case MuxerA6:
+	case MuxerAR6:
 		paths = append(paths, base+"_rus51.ac3")
 	case MuxerAE2:
 		paths = append(paths, base+"_eng20.ac3")
@@ -459,86 +525,96 @@ func assertInputFiles(filePath ...string) error {
 	return nil
 }
 
+////////
+
 type Task struct {
+	input       string
 	instruction string
 	video       string
 	audio1      string
 	audio2      string
 	subtitles   string
 	err         error
+	l1          string
+	l2          string
+}
+
+func NewTask(instructionData string) *Task {
+	t := Task{}
+	t.input = instructionData
+	data := strings.Split(instructionData, " ")
+	if len(data) < 2 {
+		t.err = fmt.Errorf("Can not create instruction with line '%v'\n", instructionData)
+		return &t
+	}
+	if !utils.ListContains(validInstructions(), data[1]) {
+		t.err = fmt.Errorf("instruction '%v' is invalid\n", data)
+		return &t
+	}
+	t.instruction = data[1]
+	t.video = data[0]
+	a1, a2, s := decodeInstruction(&t)
+	base := baseOf(&t)
+	t.audio1 = base + a1
+	if a2 != "" {
+		t.audio2 = base + a2
+	}
+	if s != "" {
+		t.subtitles = base + s
+	}
+	t.l1 = a1
+	t.l1 = strings.TrimPrefix(t.l1, "_")
+	t.l1 = strings.TrimSuffix(t.l1, "51.ac3")
+	t.l1 = strings.TrimSuffix(t.l1, "20.ac3")
+	t.l2 = a2
+	t.l2 = strings.TrimPrefix(t.l2, "_")
+	t.l2 = strings.TrimSuffix(t.l2, "51.ac3")
+	t.l2 = strings.TrimSuffix(t.l2, "20.ac3")
+	return &t
+}
+
+func (t *Task) Line() string {
+	return t.input
 }
 
 func (t *Task) Validate() {
 	//base := baseOf(t)
-	//a1, a2, s := decodeInstruction(t)
-	//fmt.Println(t.instruction, a1, a2, s)
+	a1, a2, s := decodeInstruction(t)
 	switch {
 	default:
-		t.err = errors.New("Undecided")
-	// case !strings.Contains(t.instruction, "2") && !strings.Contains(t.instruction, "6"):
-	// t.err = fmt.Errorf("instruction has no valid channel layout (expecting '2' or '6')")
-	// case !strings.Contains(t.instruction, "r") && !strings.Contains(t.instruction, "e") && !strings.Contains(t.instruction, "qqq"):
-	// t.err = fmt.Errorf("instruction has no valid language marker (expecting 'r', 'e' or 'qqq')")
-	// case strings.Contains(t.instruction, "qqq2qqq") || strings.Contains(t.instruction, "qqq6qqq"):
-	// t.err = fmt.Errorf("instruction can not have same language")
-	// case strings.Contains(t.instruction, "rus2rus") || strings.Contains(t.instruction, "rus6rus"):
-	// t.err = fmt.Errorf("instruction can not have same language")
-	// case strings.Contains(t.instruction, "eng2eng") || strings.Contains(t.instruction, "eng6eng"):
-	// t.err = fmt.Errorf("instruction can not have same language")
-	//
-	// case strings.Contains(t.instruction, "ar") && !strings.Contains(t.audio1, "_rus"):
-	// t.err = fmt.Errorf("audio1 does not match with instruction")
-	// case strings.Contains(t.instruction, "ae") && !strings.Contains(t.audio1, "_eng"):
-	// t.err = fmt.Errorf("audio1 does not match with instruction")
-	// case strings.Contains(t.instruction, "2qqq") && !strings.Contains(t.audio2, "_qqq"):
-	// t.err = fmt.Errorf("audio1 does not match with instruction")
-	// case strings.Contains(t.instruction, "2r") && !strings.Contains(t.audio2, "_rus"):
-	// t.err = fmt.Errorf("audio1 does not match with instruction")
-	// case strings.Contains(t.instruction, "2e") && !strings.Contains(t.audio2, "_eng"):
-	// t.err = fmt.Errorf("audio1 does not match with instruction")
-	// case strings.Contains(t.instruction, "6qqq") && !strings.Contains(t.audio2, "_qqq"):
-	// t.err = fmt.Errorf("audio1 does not match with instruction")
-	// case strings.Contains(t.instruction, "6r") && !strings.Contains(t.audio2, "_rus"):
-	// t.err = fmt.Errorf("audio1 does not match with instruction")
-	// case strings.Contains(t.instruction, "6e") && !strings.Contains(t.audio2, "_eng"):
-	// t.err = fmt.Errorf("audio1 does not match with instruction")
-	// case strings.Contains(t.instruction, "_sr") && !strings.Contains(t.subtitles, ".srt"):
-	// t.err = fmt.Errorf("subtitles does not defined properly")
-	// case !strings.Contains(t.instruction, "_sr") && t.subtitles != "":
-	// t.err = fmt.Errorf("subtitles defined but not instructed")
-	// case !strings.Contains(t.instruction, "6e6") && strings.Contains(t.audio2, "_eng51"):
-	// t.err = fmt.Errorf("audio2 instructed as eng51, but not defined")
-	// case !strings.Contains(t.instruction, "6e2") && strings.Contains(t.audio2, "_eng20"):
-	// t.err = fmt.Errorf("audio2 instructed as eng20, but not defined")
-	// case !strings.Contains(t.instruction, "2e6") && strings.Contains(t.audio2, "_eng51"):
-	// t.err = fmt.Errorf("audio2 instructed as eng51, but not defined")
-	// case !strings.Contains(t.instruction, "2e2") && strings.Contains(t.audio2, "_eng20"):
-	// 	t.err = fmt.Errorf("audio2 instructed as eng20, but not defined")
-	// case !strings.Contains(t.instruction, "6qqq6") && strings.Contains(t.audio2, "_qqq51"):
-	// t.err = fmt.Errorf("audio2 instructed as eng51, but not defined")
-	// case !strings.Contains(t.instruction, "6qqq2") && strings.Contains(t.audio2, "_qqq20"):
-	// t.err = fmt.Errorf("audio2 instructed as eng20, but not defined")
-	// case !strings.Contains(t.instruction, "2qqq6") && strings.Contains(t.audio2, "_qqq51"):
-	// t.err = fmt.Errorf("audio2 instructed as eng51, but not defined")
-	// case !strings.Contains(t.instruction, "2qqq2") && strings.Contains(t.audio2, "_qqq20"):
-	// t.err = fmt.Errorf("audio2 instructed as eng20, but not defined")
-	case strings.Contains(t.instruction, "ar6e2") && !strings.Contains(t.audio1, "_rus51"):
-		t.err = fmt.Errorf("audio1 instructed as rus51, but not defined")
-	case strings.Contains(t.instruction, "ar6e2") && !strings.Contains(t.audio2, "_eng20"):
-		t.err = fmt.Errorf("audio2 instructed as eng20, but not defined")
-
+		t.err = fmt.Errorf("Undecided")
+	case t.instruction == "":
+		t.err = fmt.Errorf("instruction not set")
+	case t.video == "":
+		t.err = fmt.Errorf("video not set")
+	case strings.Contains(t.video, ".mpeg"):
+		t.err = fmt.Errorf("[WARNING] '.mpeg' is not used anymore")
+	case !strings.Contains(t.audio1, a1):
+		t.err = fmt.Errorf("audio1 is not correct: have '%v', expect '%v'", t.audio1, a1)
+	case !strings.Contains(t.audio2, a2):
+		t.err = fmt.Errorf("audio1 is not correct: have '%v', expect '%v'", t.audio2, a2)
+	case !strings.Contains(t.subtitles, s):
+		t.err = fmt.Errorf("subtitles is not correct: have '%v', expect '%v'", t.subtitles, s)
+	case a2 == "" && t.audio2 != a2:
+		t.err = fmt.Errorf("audio2 is not correct: have '%v', expect '%v'", t.audio2, a2)
+	case s == "" && t.subtitles != s:
+		t.err = fmt.Errorf("subtitles is not correct: have '%v', expect '%v'", t.subtitles, s)
+	}
+	if t.err.Error() == "Undecided" && utils.ListContains(validInstructions(), t.instruction) {
+		t.err = nil
 	}
 }
 
 func baseOf(t *Task) string {
 	base := strings.TrimSuffix(t.video, ".mp4")
-	base = strings.TrimSuffix(t.video, ".mpeg")
 	return base
 }
 
 func decodeInstruction(t *Task) (string, string, string) {
 	a1, a2, s := "", "", ""
 	left := t.instruction
+	prefixes := []string{"ar2", "ar6", "ae2", "ae6", "aqqq2", "aqqq6"}
+	middlefixes := []string{"", "r2", "r6", "e2", "e6", "qqq2", "qqq6"}
 	if strings.TrimSuffix(t.instruction, "_sr") != left {
 		left = strings.TrimSuffix(t.instruction, "_sr")
 		s = ".srt"
@@ -556,13 +632,43 @@ func decodeInstruction(t *Task) (string, string, string) {
 	instrMap["r6"] = "_rus51.ac3"
 	instrMap["e6"] = "_eng51.ac3"
 	instrMap["qqq6"] = "_qqq51.ac3"
-	first := []string{"ar2", "ar6", "ae2", "ae6", "aqqq2", "aqqq6"}
-	for _, p1 := range first {
-		if strings.TrimPrefix(t.instruction, p1) != left {
-			left = strings.TrimSuffix(t.instruction, p1)
+	mid := "???"
+	for _, p1 := range prefixes {
+		mid = strings.TrimPrefix(t.instruction, p1)
+		if mid != t.instruction {
 			a1 = instrMap[p1]
+			break
 		}
 	}
-	a2 = instrMap[left]
+	mid = strings.TrimSuffix(mid, "_sr")
+	for _, p2 := range middlefixes {
+		if p2 == mid {
+			a2 = instrMap[mid]
+			break
+		}
+	}
+	//a2 = instrMap[left]
 	return a1, a2, s
+}
+
+func validInstructions() []string {
+	prefix := "a"
+	l1 := []string{"r", "e", "qqq"}
+	c1 := []string{"2", "6"}
+	l2 := []string{"r", "e", "qqq"}
+	c2 := []string{"2", "6"}
+	postfix := []string{"", "_sr"}
+	var instructions []string
+	for _, a := range l1 {
+		for _, b := range c1 {
+			for _, c := range l2 {
+				for _, d := range c2 {
+					for _, e := range postfix {
+						instructions = append(instructions, prefix+a+b+c+d+e)
+					}
+				}
+			}
+		}
+	}
+	return instructions
 }

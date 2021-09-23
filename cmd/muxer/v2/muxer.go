@@ -33,8 +33,8 @@ func init() {
 func main() {
 	logger := glog.New(glog.LogPathDEFAULT, glog.LogLevelINFO)
 	app := cli.NewApp()
-	app.Version = "v 0.0.1"
-	app.Name = "muxer2"
+	app.Version = "v 0.0.2"
+	app.Name = "muxer"
 	app.Usage = "Muxes media files using 'muxlist.txt' as a directions"
 	app.Commands = []cli.Command{
 		//////////////////////////////////////
@@ -49,28 +49,32 @@ func main() {
 			},
 			Action: func(c *cli.Context) error {
 				///
-				tasks, err := muxer.MuxList()
-				if err != nil {
+				fmt.Println("TEst")
+				os.Exit(2)
+				tasks, listError := muxer.MuxListV2()
+				if listError != nil {
+					logger.ERROR(listError.Error())
+					fmt.Printf("end program")
+					os.Exit(2)
+				}
+				for _, err := range muxer.AssertTasks(tasks) {
 					logger.ERROR(err.Error())
 					if !c.Bool("unsafe") {
 						fmt.Printf("end program")
 						os.Exit(2)
 					}
 				}
+
 				for i, task := range tasks {
 					fmt.Print("Task ", i+1, "/", len(tasks), ":\n")
-					files, muxTask, err := muxer.ChooseMuxer(task)
+					err := muxer.MuxV2(task)
 					if err != nil {
 						logger.ERROR(err.Error())
 						fmt.Println(err)
 						continue
 					}
-					err = muxer.Run(muxTask, files)
-					if err != nil {
-						logger.ERROR(err.Error())
-						fmt.Println(err)
-					}
-					logger.TRACE("Task Complete: " + task)
+
+					logger.TRACE("Task Complete: " + task.Line())
 				}
 				logger.INFO("Muxig Complete")
 				///

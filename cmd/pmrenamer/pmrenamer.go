@@ -38,8 +38,8 @@ func init() {
 func main() {
 	muxRoot := configMap[constant.MuxPath] + "\\"
 	muxFolder := muxRoot + "MUX_" + utils.DateStamp() + "\\"
-	logPath := muxFolder + "logfile.txt"
-	logger = glog.New(logPath, glog.LogLevelINFO)
+
+	logger := glog.New(glog.LogPathDEFAULT, glog.LogLevelINFO)
 	app := cli.NewApp()
 	app.Version = "v 0.0.1"
 	app.Name = "grabber"
