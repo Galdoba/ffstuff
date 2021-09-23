@@ -31,7 +31,7 @@ func emulatedInstructions() []Task {
 			for _, aud1 := range audio {
 				for _, aud2 := range audio {
 					for _, srt := range subs {
-						taskList = append(taskList, Task{"", inst, vid, aud1, aud2, srt, nil, "", ""})
+						taskList = append(taskList, Task{"", inst, vid, aud1, aud2, srt, nil, "", "", ""})
 					}
 				}
 			}
@@ -70,7 +70,7 @@ func emulatedTXTInstructions() []string {
 
 func TestTaskCreation(t *testing.T) {
 	for i, val := range emulatedTXTInstructions() {
-		task := NewTask(val)
+		task := NewTask("disk:\\path\\dir", val)
 		if task.err != nil {
 			t.Errorf("Task %v (%v): error: %v\n", i, task, task.err.Error())
 		}

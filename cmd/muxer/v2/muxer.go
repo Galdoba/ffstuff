@@ -51,7 +51,7 @@ func main() {
 				///
 				fmt.Println("TEst")
 				os.Exit(2)
-				tasks, listError := muxer.MuxListV2()
+				tasks, listError := muxer.MuxListV2(fldr.MuxPath())
 				if listError != nil {
 					logger.ERROR(listError.Error())
 					fmt.Printf("end program")

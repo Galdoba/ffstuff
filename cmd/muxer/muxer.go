@@ -50,18 +50,25 @@ func main() {
 			Action: func(c *cli.Context) error {
 				///
 				if !c.Bool("unsafe") {
-					fmt.Println("UNSAFE IS OFF")
+					fmt.Println("SAFE MODE is ON")
 				}
-				tasks, listError := muxer.MuxListV2()
-				if listError != nil {
+				path := fldr.MuxPath()
+				tasks, listError := muxer.MuxListV2(path)
+				fmt.Println("Mux List Constructed")
+				logger.TRACE("mux list Constructed")
+				muxer.ShowTaskList(tasks)
+				switch {
+				default:
+					logger.TRACE("no errors detected")
+				case listError != nil:
 					logger.ERROR(listError.Error())
-					fmt.Printf("end program")
 					os.Exit(2)
 				}
+
 				for _, err := range muxer.AssertTasks(tasks) {
 					logger.ERROR(err.Error())
 					if !c.Bool("unsafe") {
-						fmt.Printf("end program")
+						fmt.Println("program ended because of SAFE MODE")
 						os.Exit(2)
 					}
 				}
