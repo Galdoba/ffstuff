@@ -56,7 +56,7 @@ func main() {
 				tasks, listError := muxer.MuxListV2(path)
 				fmt.Println("Mux List Constructed")
 				logger.TRACE("mux list Constructed")
-				muxer.ShowTaskList(tasks)
+
 				switch {
 				default:
 					logger.TRACE("no errors detected")
@@ -64,7 +64,9 @@ func main() {
 					logger.ERROR(listError.Error())
 					os.Exit(2)
 				}
-
+				fmt.Println("Mux List Constructed")
+				logger.TRACE("mux list Constructed")
+				muxer.ShowTaskList(tasks)
 				for _, err := range muxer.AssertTasks(tasks) {
 					logger.ERROR(err.Error())
 					if !c.Bool("unsafe") {

@@ -96,10 +96,16 @@ func MuxListV2(path string) ([]*Task, error) {
 		}
 	}
 	defer file.Close()
-
+	scanned := []string{}
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
-		tl = append(tl, NewTask(path, scanner.Text()))
+		line := scanner.Text()
+		scanned = append(scanned, line)
+		if utils.ListContains(scanned, line) {
+			return tl, fmt.Errorf("muxlist has duplicated input: [%v]", line)
+		}
+		scanned = append(scanned, line)
+		tl = append(tl, NewTask(path, line))
 	}
 	if err := scanner.Err(); err != nil {
 		log.Fatal(err)
@@ -114,7 +120,7 @@ func AssertTasks(tl []*Task) []error {
 			errList = append(errList, fmt.Errorf("Task %v error: %v", i, tsk.err.Error()))
 		}
 		errList = append(errList, checkFileExistiense(tsk)...) //проверка наличия файлов
-		//errList = append(errList, checkOutputFileExistience(tsk))
+		errList = append(errList, checkOutputFileExistience(tsk))
 	}
 	return errList
 }
@@ -211,6 +217,9 @@ func NewTask(path, instructionData string) *Task {
 	t := Task{}
 	t.path = path
 	t.input = instructionData
+	if instructionData == "" {
+		return nil
+	}
 	data := strings.Split(instructionData, " ")
 	if len(data) < 2 {
 		t.err = fmt.Errorf("Can not create instruction with line '%v'\n", instructionData)

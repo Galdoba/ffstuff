@@ -1,6 +1,7 @@
 package namedata
 
 import (
+	"fmt"
 	"strings"
 )
 
@@ -125,6 +126,25 @@ func KnownTags() []string {
 		"eng51",
 		"eng20",
 	}
+}
+
+func TrimLoudnormPrefix(name string) (string, error) {
+	newName := ""
+	if err := validateOldname(name); err != nil {
+		return newName, err
+	}
+	return newName, nil
+}
+
+func validateOldname(name string) error {
+	if strings.TrimSuffix(name, ".ac3") == name {
+		return fmt.Errorf("invalid name [%v] - is not ac3 file", name)
+	}
+	data := strings.Split(name, "__")
+	if len(data) != 2 {
+		return fmt.Errorf("invalid name [%v] - does not contain '__'", name)
+	}
+	return nil
 }
 
 /*
