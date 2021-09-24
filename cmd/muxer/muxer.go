@@ -68,10 +68,12 @@ func main() {
 				logger.TRACE("mux list Constructed")
 				muxer.ShowTaskList(tasks)
 				for _, err := range muxer.AssertTasks(tasks) {
-					logger.ERROR(err.Error())
-					if !c.Bool("unsafe") {
-						fmt.Println("program ended because of SAFE MODE")
-						os.Exit(2)
+					if err != nil {
+						logger.ERROR(err.Error())
+						if !c.Bool("unsafe") {
+							fmt.Println("program ended because of SAFE MODE")
+							os.Exit(2)
+						}
 					}
 				}
 

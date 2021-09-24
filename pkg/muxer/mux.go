@@ -100,7 +100,6 @@ func MuxListV2(path string) ([]*Task, error) {
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		line := scanner.Text()
-		scanned = append(scanned, line)
 		if utils.ListContains(scanned, line) {
 			return tl, fmt.Errorf("muxlist has duplicated input: [%v]", line)
 		}
