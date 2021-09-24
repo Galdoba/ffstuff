@@ -144,6 +144,8 @@ func validateOldname(name string) error {
 	if len(data) != 2 {
 		return fmt.Errorf("invalid name [%v] - does not contain '__'", name)
 	}
+	/////HD20
+
 	return nil
 }
 
