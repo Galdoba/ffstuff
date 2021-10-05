@@ -70,9 +70,7 @@ type StringSwitcher struct {
 func NewStringSwitcher(b string, tgs ...string) StringSwitcher {
 	ss := StringSwitcher{}
 	ss.body = b
-	for _, tag := range tgs {
-		ss.tags = append(ss.tags, tag)
-	}
+	ss.tags = append(ss.tags, tgs...)
 	ss.wideComparisonMode = true
 	return ss
 }
