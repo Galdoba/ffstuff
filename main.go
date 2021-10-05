@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/Galdoba/utils"
 )
@@ -13,7 +14,7 @@ func main() {
 	// for i, name := range usr {
 	// 	fmt.Println(i, "	", name)
 	// }
-	fmt.Println(utils.DateStamp())
+	fmt.Println(utils.DateStamp(time.Duration(time.Hour * 72)))
 	/*
 		   switcher := utils.StringSwitcher(b, true , t1, t2, t3)
 		   for _, tag := range switcher {
