@@ -133,6 +133,31 @@ func TrimLoudnormPrefix(name string) (string, error) {
 	if err := validateOldname(name); err != nil {
 		return newName, err
 	}
+	base, vid, aud, ebur := ungroupeName(name)
+	if aud == "" {
+		return newName, fmt.Errorf("audio tag can't be detected '%v'", name)
+	}
+	if ebur == "" {
+		return name, nil
+	}
+	//fmt.Println("UNGROUPE:", base, vid, aud, ebur)
+	switch {
+	default:
+		newName = ""
+		return newName, fmt.Errorf("New name undecided for '%v'", name)
+
+	case (vid == "hd" || vid == "4k") && strings.Contains(aud, "51") && strings.Contains(ebur, "-stereo"):
+		vid = "sd"
+		aud = strings.TrimSuffix(aud, "51") + "20"
+		newName = base + "__" + vid + "_" + aud + ".ac3"
+	case (vid == "hd" || vid == "4k") && strings.Contains(aud, "51") && !strings.Contains(ebur, "-stereo"):
+		newName = base + "__" + vid + "_" + aud + ".ac3"
+	case vid == "sd" && strings.Contains(aud, "51"):
+		aud = strings.TrimSuffix(aud, "51") + "20"
+		newName = base + "__" + vid + "_" + aud + ".ac3"
+	case strings.Contains(aud, "20"):
+		newName = base + "__" + vid + "_" + aud + ".ac3"
+	}
 	return newName, nil
 }
 
@@ -144,9 +169,33 @@ func validateOldname(name string) error {
 	if len(data) != 2 {
 		return fmt.Errorf("invalid name [%v] - does not contain '__'", name)
 	}
+	if len(strings.Split(data[1], "_")) != 2 {
+		return fmt.Errorf("invalid name [%v] - can not define audio and/or video tags", name)
+	}
 	/////HD20
 
 	return nil
+}
+
+func ungroupeName(name string) (base, video, audio, ebur string) {
+	data := strings.Split(name, "__")
+	base = data[0]
+	data2 := strings.Split(data[1], "_")
+	video = data2[0]
+	if strings.Contains(data2[1], "-ebur128-stereo.ac3") {
+		audio = strings.TrimSuffix(data2[1], "-ebur128-stereo.ac3")
+		ebur = "-ebur128-stereo"
+		return
+	}
+	if strings.Contains(data2[1], "-ebur128.ac3") {
+		audio = strings.TrimSuffix(data2[1], "-ebur128.ac3")
+		ebur = "-ebur128"
+		return
+	}
+	if strings.Contains(data2[1], "51.ac3") || strings.Contains(data2[1], "20.ac3") {
+		audio = data2[1]
+	}
+	return
 }
 
 /*

@@ -136,8 +136,13 @@ func main() {
 						if !strings.Contains(val, ".ready") {
 							continue
 						}
-						logger.TRACE("delete: " + val)
-						if err := os.Remove(val); err != nil {
+						body := strings.TrimSuffix(val, ".ready")
+						logger.TRACE("rename: " + val + " >> " + body + ".petr")
+						// if err := os.Remove(val); err != nil {
+						// 	logger.ERROR(err.Error())
+						// }
+
+						if err := os.Rename(val, body+".petr"); err != nil {
 							logger.ERROR(err.Error())
 						}
 					}

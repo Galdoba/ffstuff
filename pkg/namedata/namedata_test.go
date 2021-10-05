@@ -2,26 +2,63 @@ package namedata
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 )
 
-func emulatedNamesHD20() []string {
-	return []string{
-		"amerikanskaya_istoriya_prestupleniy_s03_03_2021__hd_eng20-ebur128.ac3",
-		"amerikanskaya_istoriya_prestupleniy_s03_03_2021__hd_eng20-ebur128-stereo.ac3",
-		"amerikanskaya_istoriya_prestupleniy_s03_03_2021__hd_eng20_ebur128_stereo.ac3",
-		"amerikanskaya_istoriya_prestupleniy_s03_03_2021_hd_eng20-ebur128.ac3",
+type testData struct {
+	input          string
+	expectedOutput string
+}
+
+func emulatedNames0() []testData {
+	return []testData{
+		{"some_name_xx21__hd_eng20-ebur128.ac3", "some_name_xx21__hd_eng20.ac3"},
+		{"some_name_xx21__hd_eng51-ebur128.ac3", "some_name_xx21__hd_eng51.ac3"},
+		{"some_name_xx21__hd_eng51-ebur128-stereo.ac3", "some_name_xx21__sd_eng20.ac3"},
+		{"some_name_xx21__hd_eng20-ebur128-stereo.ac3", "some_name_xx21__sd_eng20.ac3"},
+		{"some_name_xx21__hd_eng20_ebur128_stereo.ac3", "some_name_xx21__hd_eng20.ac3"},
+		{"some_name_xx21_hd_eng20-ebur128.ac3", "some_name_xx21__hd_eng20.ac3"},
 	}
 }
 
-func TestEburTrimmer(t *testing.T) {
-	for _, oldName := range emulatedNamesHD20() {
-		newName, err := TrimLoudnormPrefix(oldName)
-		if err != nil {
-			t.Errorf("Error: %v", err.Error())
+func emulatedNames() []string {
+	var emulatedNames []string
+	base := []string{"film_name_0000", "serial_name_s00_00_0000"}
+	vidTag := []string{"sd", "hd", "4k"}
+	audTag := []string{"rus20", "rus51", "eng20", "eng51", "qqq20", "qqq51"}
+	eburTag := []string{"-ebur128", "-ebur128-stereo", ""}
+	resolutions := []string{".ac3", ".aac", ".m4a", ".txt", ".mp4"}
+	for _, name := range base {
+		for _, vt := range vidTag {
+			for _, at := range audTag {
+				for _, et := range eburTag {
+					for _, rt := range resolutions {
+						emulatedNames = append(emulatedNames, name+"__"+vt+"_"+at+et+rt)
+					}
+				}
+			}
 		}
-		fmt.Println(oldName)
-		fmt.Println(newName)
-		fmt.Println("")
 	}
+	return emulatedNames
+}
+
+func TestEburTrimmer(t *testing.T) {
+	undecided := 0
+	for i, oldName := range emulatedNames() {
+		newName, err := TrimLoudnormPrefix(oldName)
+
+		if err != nil {
+			if strings.Contains(err.Error(), "invalid name [") {
+				continue
+			}
+			t.Errorf("Test %v:	Error: %v", i, err.Error())
+			undecided++
+		}
+		if newName == oldName {
+			//t.Errorf("oldname = newname (%v)", newName)
+		}
+
+	}
+	fmt.Println("Undecided:", undecided)
 }
