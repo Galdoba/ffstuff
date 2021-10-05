@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/user"
 	"strconv"
 	"strings"
 
@@ -38,6 +39,7 @@ TZ:
 
 var configMap map[string]string
 var logger glog.Logger
+var username string
 
 func init() {
 	//err := errors.New("Initial obstract error")
@@ -53,6 +55,11 @@ func init() {
 			os.Exit(1)
 		}
 	}
+	currentUser, userErr := user.Current()
+	if err != nil {
+		fmt.Printf("Initialisation failed: %v", userErr.Error())
+	}
+	username = currentUser.Name
 }
 
 func main() {
@@ -137,12 +144,8 @@ func main() {
 							continue
 						}
 						body := strings.TrimSuffix(val, ".ready")
-						logger.TRACE("rename: " + val + " >> " + body + ".petr")
-						// if err := os.Remove(val); err != nil {
-						// 	logger.ERROR(err.Error())
-						// }
-
-						if err := os.Rename(val, body+".petr"); err != nil {
+						logger.TRACE("rename: " + val + " >> " + body + "." + username)
+						if err := os.Rename(val, body+"."+username); err != nil {
 							logger.ERROR(err.Error())
 						}
 					}

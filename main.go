@@ -4,27 +4,16 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/Galdoba/ffstuff/pkg/edl4"
+	"github.com/Galdoba/utils"
 )
 
 func main() {
-
-	edlData, err := edl4.ParseFile("d:\\IN\\IN_2021-09-21\\test.edl")
-	if err != nil {
-		fmt.Println(err.Error())
-	}
-	fmt.Println("End Parse File")
-	fmt.Println("////////////////////////////")
-	clipData, err2 := edl4.BuildClips(edlData)
-	if err2 != nil {
-		fmt.Println(err2.Error())
-	}
-
-	fmt.Println("////////////////////////////")
-	for _, val := range clipData {
-		fmt.Println(val)
-	}
-
+	// usr, err := scanner.Scan("\\\\192.168.31.4\\root\\EDIT\\", "HD.mp4")
+	// fmt.Println(err)
+	// for i, name := range usr {
+	// 	fmt.Println(i, "	", name)
+	// }
+	fmt.Println(utils.DateStamp())
 	/*
 		   switcher := utils.StringSwitcher(b, true , t1, t2, t3)
 		   for _, tag := range switcher {
