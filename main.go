@@ -79,9 +79,6 @@ func NewStringSwitcher(b string, tgs ...string) StringSwitcher {
 
 /*
 
-
-
-
 ===USER INPUT REQUIRED============
 Q: Question:
 0	APPLY
