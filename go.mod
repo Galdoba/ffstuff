@@ -6,9 +6,8 @@ replace github.com/macroblock/imed => ../../macroblock/imed
 
 require (
 	github.com/Galdoba/devtools v0.0.0-20210527091231-26d1d1b3d765
-	github.com/Galdoba/utils v0.0.0-20211005080230-fe8c7157be5e
+	github.com/Galdoba/utils v0.0.0-20211006043430-41d7b3fa4b0a
 	github.com/cpuguy83/go-md2man/v2 v2.0.1 // indirect
-	github.com/d5/tengo/v2 v2.8.0 // indirect
 	github.com/fatih/color v1.13.0
 	github.com/k0kubun/go-ansi v0.0.0-20180517002512-3bf9e2903213
 	github.com/macroblock/imed v0.0.0-20210707081444-18289eecca43

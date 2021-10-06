@@ -5,16 +5,21 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Galdoba/ffstuff/pkg/scanner"
 	"github.com/Galdoba/utils"
 )
 
 func main() {
-	// usr, err := scanner.Scan("\\\\192.168.31.4\\root\\EDIT\\", "HD.mp4")
-	// fmt.Println(err)
-	// for i, name := range usr {
-	// 	fmt.Println(i, "	", name)
-	// }
-	fmt.Println(utils.DateStamp(time.Duration(time.Hour * 72)))
+	usr, err := scanner.Scan("\\\\192.168.31.4\\root\\EDIT\\", "_HD.mp4")
+	fmt.Println(err)
+	for i, name := range usr {
+		fmt.Println(i, "	", name)
+	}
+	usr = scanner.SortPriority(usr)
+	for i, name := range usr {
+		fmt.Println(i, "N	", name)
+	}
+	fmt.Println(utils.DateStampFrom(time.Now().AddDate(0, 0, -2)))
 	/*
 		   switcher := utils.StringSwitcher(b, true , t1, t2, t3)
 		   for _, tag := range switcher {

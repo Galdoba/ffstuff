@@ -7,6 +7,7 @@ import (
 	"os/user"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/Galdoba/ffstuff/pkg/namedata"
 	"github.com/Galdoba/utils"
@@ -147,4 +148,41 @@ func AppendIfContainsStr(targetSl []string, selectionSl []string, marker string)
 		}
 	}
 	return targetSl
+}
+
+func SortPriority(rf []string) []string {
+	sorted := []string{}
+
+	keys := []string{}
+	currentTime := time.Now()
+	for i := -30; i < 8; i++ {
+		date := utils.DateStampFrom(currentTime.AddDate(0, 0, i))
+		date = strings.TrimPrefix(date, "20")
+		date = strings.Replace(date, "-", "_", -1)
+		keys = append(keys, date)
+	}
+	keys = append(keys, "_amedia", "_wb", "_disney")
+	sorted = sortByKeys(rf, keys...)
+	return sorted
+}
+
+func sortByKeys(sl []string, keys ...string) []string {
+	newSl := []string{}
+	for _, key := range keys {
+		for _, val := range sl {
+			if strings.Contains(val, key) {
+				newSl = append(newSl, val)
+			}
+		}
+	}
+	for _, val := range sl {
+		if !utils.ListContains(newSl, val) {
+			newSl = append(newSl, val)
+		}
+	}
+	resSl := []string{}
+	for _, val := range newSl {
+		resSl = utils.AppendUniqueStr(resSl, val)
+	}
+	return resSl
 }

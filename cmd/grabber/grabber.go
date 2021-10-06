@@ -69,7 +69,7 @@ func main() {
 	//logPath := configMap[constant.MuxPath] + "MUX_" + utils.DateStamp() + "\\logfile.txt"
 	//logger = glog.New(logPath, glog.LogLevelINFO)
 	logger = glog.New(glog.LogPathDEFAULT, glog.LogLevelINFO)
-
+	destination := configMap[constant.InPath] + "IN_" + utils.DateStamp() + "\\"
 	app := cli.NewApp()
 	app.Version = "v 0.0.3"
 	app.Name = "grabber"
@@ -89,7 +89,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				//paths := c.Args().Slice() //	path := c.String("path") //*cli.Context.String(key) - вызывает флаг с именем key и возвращает значение Value
 				paths := c.Args().Tail()
-				dest := configMap[constant.InPath] + "IN_" + utils.DateStamp() + "\\"
+				dest := destination
 				for _, path := range paths {
 					fmt.Println("GRABBER DOWNLOADING FILE:", path)
 					if strings.Contains(path, "_Proxy_") {
@@ -123,7 +123,7 @@ func main() {
 				fileList := scanner.ListReady(takeFile)
 				logger.TRACE(strconv.Itoa(len(fileList)) + " files detected")
 				for _, path := range fileList {
-					dest := configMap[constant.InPath] + "IN_" + utils.DateStamp() + "\\"
+					dest := destination
 					if strings.Contains(path, "_Proxy_") {
 						dest = dest + "proxy\\"
 					}
@@ -154,6 +154,38 @@ func main() {
 				return nil
 			},
 		},
+		////////////////////////////////////
+		{
+			Name:        "takeready",
+			ShortName:   "",
+			Aliases:     []string{},
+			Usage:       "Call Scanner to get list of new and ready files",
+			UsageText:   "TODO:Usage",
+			Description: "TODO:Descr",
+			ArgsUsage:   "TODO:ArgsUsage",
+			Category:    "TODO:Category",
+			Flags: []cli.Flag{
+				&cli.StringFlag{
+					Name:     "connectedwith",
+					Usage:    "Setups exact .ready file to grab associated files with",
+					Required: true,
+				},
+			},
+			Action: func(c *cli.Context) error {
+				readyfile := c.String("connectedwith")
+				fmt.Println(readyfile)
+				if err := checkMediaFile(readyfile, ".ready"); err != nil {
+					logger.ERROR(err.Error())
+					return err
+				}
+				allFiles := scanner.ListReady([]string{readyfile})
+				allFiles = ensureValidOrder(allFiles)
+				if err := downloadAssociatedWith(logger, allFiles, destination); err != nil {
+					logger.ERROR(err.Error())
+				}
+				return nil
+			},
+		},
 	}
 	args := os.Args
 	if len(args) < 2 {
@@ -163,3 +195,73 @@ func main() {
 		fmt.Println(err.Error())
 	}
 }
+
+func checkMediaFile(path string, keys ...string) error {
+	f, err := os.Stat(path)
+	if err != nil {
+		return err
+	}
+	for _, key := range keys {
+		switch key {
+		default:
+		case ".ready", ".mp4", ".m4a":
+			if !strings.Contains(f.Name(), key) {
+				return fmt.Errorf("%v is not a '%v' file", path, key)
+			}
+		}
+	}
+	return nil
+}
+
+func downloadAssociatedWith(l glog.Logger, paths []string, destination string) error {
+	marker := ""
+	for _, path := range paths {
+		if strings.Contains(path, ".ready") {
+			marker = strings.TrimSuffix(path, ".ready") + "." + username
+			err := os.Rename(path, marker)
+			fmt.Println("Rename", path)
+			if err != nil {
+				return err
+			}
+			continue
+		}
+		if err := grabber.Download(logger, path, destination); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func ensureValidOrder(sl []string) []string {
+	valid := []string{}
+	for _, val := range sl {
+		if strings.Contains(val, ".ready") {
+			valid = append(valid, val)
+		}
+	}
+	for _, val := range sl {
+		valid = utils.AppendUniqueStr(valid, val)
+	}
+	return valid
+}
+
+/*
+
+1 2 3 4 5 6
+6 5 4 3 2 1 = 7 * (6/2) = 21
+
+1 2 3 4 5 6 7
+7 6 5 4 3 2 1 = 28
+
+X1 + Xn = 8
+X2 + Xn-1 = 8 + y - y
+X3 + Xn-2 = 8 + 2y - 2y
+X4 + Xn-3 = 8 + 3y - 3y
+28/(8/2) = 7
+
+
+
+
+
+*/

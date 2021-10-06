@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/Galdoba/ffstuff/pkg/disk"
@@ -281,10 +280,6 @@ func LogWith(l glog.Logger, err error) error {
 }
 
 func Download(logger glog.Logger, source, destination string) error {
-	if strings.Contains(source, ".ready") {
-		logger.TRACE("skip " + source)
-		return nil
-	}
 	srcInfo, errS := os.Stat(source)
 	if errS != nil {
 		return LogWith(logger, errors.New("source: "+errS.Error()))

@@ -183,6 +183,94 @@ func main() {
 				return nil
 			},
 		},
+		//////////////////////////////////////
+		{
+			Name:  "probe_test",
+			Usage: "Searches all files in the root which associated with marker and downloading by order",
+			Flags: []cli.Flag{
+				&cli.BoolFlag{
+					Name:  "check, c",
+					Usage: "If flag is active run incheker on every found file individualy",
+				},
+				&cli.BoolFlag{
+					Name:     "grab, g",
+					Usage:    "If flag is active grabber will try to download all new files",
+					Required: false,
+					Hidden:   false,
+				},
+				&cli.StringFlag{
+					Name:     "repeat, r",
+					Usage:    "repeat action every N seconds",
+					EnvVar:   "",
+					FilePath: "",
+					Required: false,
+					Hidden:   false,
+					Value:    "",
+				},
+			},
+			Action: func(c *cli.Context) error {
+				if c.GlobalString("delay") != "" {
+					sec := utils.TimeStampToSeconds(c.GlobalString("delay"))
+					for i := 0; i <= sec; i++ {
+						fmt.Print("Searcher will start in ", stamp.Seconds(int64(sec-i)), "                       \r")
+						time.Sleep(time.Second)
+					}
+					fmt.Print("\n")
+					fcli.RunConsole("dirmaker", "daily")
+				}
+				restart := true
+				if c.String("repeat") != "" {
+					restart = true
+				}
+				for restart {
+					if c.GlobalBool("vocal") {
+						logger.ShoutWhen(glog.LogLevelALL) //вещаем в терминал все сообщения логгера
+					}
+					if c.GlobalBool("clear") {
+						utils.ClearScreen() //обновляем экран
+					}
+					takeFile, err := scanner.Scan(root, marker) //сканируем
+					if err != nil {
+						//fmt.Println(err)
+						logger.ERROR("scan failed: " + err.Error())
+						//return err
+					}
+					takeFile = scanner.SortPriority(takeFile)
+					if len(takeFile) == 0 {
+						fmt.Println("Nothing to Grab")
+						return nil
+					} else {
+						fmt.Println("Grab order:")
+						for i, val := range takeFile {
+							fmt.Println(i, "	", val)
+						}
+					}
+					fileReady := takeFile[0]
+					if c.Bool("grab") {
+						prog := "grabber"
+						args := []string{}
+						if c.Bool("vocal") {
+							args = append(args, "--vocal")
+						}
+						args = append(args, "takeready")
+						args = append(args, fileReady)
+						fcli.RunConsole(prog, args...) //хватем найденое
+						//fmt.Println("RUN:", prog, args)
+						restart = true
+					}
+
+					if len(takeFile) == 0 {
+						restart = false
+					}
+
+					// if c.String("repeat") != "" {
+					// 	break
+					// }
+				}
+				repeatIfNeeded(c)
+				return nil
+			},
+		},
 	}
 	args := os.Args
 	if len(args) < 2 {
