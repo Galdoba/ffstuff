@@ -3,11 +3,11 @@ package main
 import (
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/Galdoba/ffstuff/constant"
 	"github.com/Galdoba/ffstuff/pkg/config"
 	"github.com/Galdoba/ffstuff/pkg/glog"
+	"github.com/Galdoba/ffstuff/pkg/namedata"
 	"github.com/Galdoba/ffstuff/pkg/scanner"
 	"github.com/Galdoba/utils"
 	"github.com/urfave/cli"
@@ -57,51 +57,56 @@ func main() {
 					fmt.Println("ERROR:", err)
 					return err
 				}
-				for _, v := range fileList {
-					fmt.Println(v)
+				for _, oldName := range fileList {
+					newName, err := namedata.TrimLoudnormPrefix(oldName)
+					if err != nil {
+						logger.ERROR(err.Error())
+						continue
+					}
+					os.Rename(oldName, newName)
 				}
-				for _, audioFile := range fileList {
-					if !strings.Contains(audioFile, "-ebur128") {
-						continue
-					}
-					if strings.Contains(audioFile, "51-ebur128.ac3") {
-						base := strings.TrimSuffix(audioFile, "51-ebur128.ac3")
-						er := os.Rename(audioFile, base+"51.ac3")
-						if er != nil {
-							logger.ERROR("rename failed: " + er.Error())
-						}
-						logger.TRACE("renamed: " + audioFile + " -->" + muxFolder + base + "51.ac3")
-						continue
-					}
-					if strings.Contains(audioFile, "20-ebur128.ac3") {
-						base := strings.TrimSuffix(audioFile, "20-ebur128.ac3")
-						er := os.Rename(audioFile, base+"20.ac3")
-						if er != nil {
-							logger.ERROR("rename failed: " + er.Error())
-						}
-						logger.TRACE("renamed: " + audioFile + " -->" + muxFolder + base + "20.ac3")
-						continue
-					}
-					if strings.Contains(audioFile, "51-ebur128-stereo.ac3") {
-						base := strings.TrimSuffix(audioFile, "51-ebur128-stereo.ac3")
-						er := os.Rename(audioFile, base+"51.ac3")
-						if er != nil {
-							logger.ERROR("rename failed: " + er.Error())
-						}
-						logger.TRACE("renamed: " + audioFile + " -->" + muxFolder + base + "20.ac3")
-						continue
-					}
-					if strings.Contains(audioFile, "20-ebur128-stereo.ac3") {
-						base := strings.TrimSuffix(audioFile, "20-ebur128-stereo.ac3")
-						er := os.Rename(audioFile, base+"51.ac3")
-						if er != nil {
-							logger.ERROR("rename failed: " + er.Error())
-						}
-						logger.TRACE("renamed: " + audioFile + " -->" + muxFolder + base + "20.ac3")
-						continue
-					}
-					logger.ERROR("rename failed: " + audioFile)
-				}
+				// for _, audioFile := range fileList {
+				// 	if !strings.Contains(audioFile, "-ebur128") {
+				// 		continue
+				// 	}
+				// 	if strings.Contains(audioFile, "51-ebur128.ac3") {
+				// 		base := strings.TrimSuffix(audioFile, "51-ebur128.ac3")
+				// 		er := os.Rename(audioFile, base+"51.ac3")
+				// 		if er != nil {
+				// 			logger.ERROR("rename failed: " + er.Error())
+				// 		}
+				// 		logger.TRACE("renamed: " + audioFile + " -->" + muxFolder + base + "51.ac3")
+				// 		continue
+				// 	}
+				// 	if strings.Contains(audioFile, "20-ebur128.ac3") {
+				// 		base := strings.TrimSuffix(audioFile, "20-ebur128.ac3")
+				// 		er := os.Rename(audioFile, base+"20.ac3")
+				// 		if er != nil {
+				// 			logger.ERROR("rename failed: " + er.Error())
+				// 		}
+				// 		logger.TRACE("renamed: " + audioFile + " -->" + muxFolder + base + "20.ac3")
+				// 		continue
+				// 	}
+				// 	if strings.Contains(audioFile, "51-ebur128-stereo.ac3") {
+				// 		base := strings.TrimSuffix(audioFile, "51-ebur128-stereo.ac3")
+				// 		er := os.Rename(audioFile, base+"51.ac3")
+				// 		if er != nil {
+				// 			logger.ERROR("rename failed: " + er.Error())
+				// 		}
+				// 		logger.TRACE("renamed: " + audioFile + " -->" + muxFolder + base + "20.ac3")
+				// 		continue
+				// 	}
+				// 	if strings.Contains(audioFile, "20-ebur128-stereo.ac3") {
+				// 		base := strings.TrimSuffix(audioFile, "20-ebur128-stereo.ac3")
+				// 		er := os.Rename(audioFile, base+"51.ac3")
+				// 		if er != nil {
+				// 			logger.ERROR("rename failed: " + er.Error())
+				// 		}
+				// 		logger.TRACE("renamed: " + audioFile + " -->" + muxFolder + base + "20.ac3")
+				// 		continue
+				// 	}
+				// 	logger.ERROR("rename failed: " + audioFile)
+				// }
 				return nil
 			},
 		},

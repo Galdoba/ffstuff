@@ -82,13 +82,16 @@ func main() {
 					if err != nil {
 						fmt.Println(err.Error())
 					}
-					detected, sErr := scanner.Scan(configMap[constant.SearchRoot], "."+usr.Username)
+					fmt.Println("Scan:", configMap[constant.SearchRoot], "."+usr.Name)
+					detected, sErr := scanner.Scan(configMap[constant.SearchRoot], "."+usr.Name)
 					if sErr != nil {
 						fmt.Println(sErr.Error())
 					}
 					for _, val := range detected {
 						if err := os.Remove(val); err != nil {
 							fmt.Println(err.Error())
+						} else {
+							fmt.Println(val, "deleted...")
 						}
 					}
 				}

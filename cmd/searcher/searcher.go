@@ -49,7 +49,7 @@ func main() {
 	//logger = glog.New(logLocation, glog.LogLevelINFO)
 	logger = glog.New(glog.LogPathDEFAULT, glog.LogLevelINFO)
 	app := cli.NewApp()
-	app.Version = "v 0.0.3"
+	app.Version = "v 0.0.4"
 	app.Name = "searcher"
 	app.Usage = "Scans root directory and all subdirectories to create list of files that matches queary"
 	app.Flags = []cli.Flag{
@@ -192,19 +192,12 @@ func main() {
 					Usage: "If flag is active run incheker on every found file individualy",
 				},
 				&cli.BoolFlag{
-					Name:     "grab, g",
-					Usage:    "If flag is active grabber will try to download all new files",
-					Required: false,
-					Hidden:   false,
+					Name:  "grab, g",
+					Usage: "If flag is active grabber will try to download all new files",
 				},
 				&cli.StringFlag{
-					Name:     "repeat, r",
-					Usage:    "repeat action every N seconds",
-					EnvVar:   "",
-					FilePath: "",
-					Required: false,
-					Hidden:   false,
-					Value:    "",
+					Name:  "repeat, r",
+					Usage: "repeat action every N seconds",
 				},
 			},
 			Action: func(c *cli.Context) error {
@@ -238,6 +231,7 @@ func main() {
 						switch err { //                    если ничего не найдено смотрим надо ли ждать
 						default: //                        и ждем поле чего начинаем поиск с начала
 							logger.TRACE(err.Error())
+							fmt.Printf("%v: New files not found", time.Now().Format("2006-01-02 15:04:05.000"))
 							continue
 						case nil: //                       или выходим
 							logger.TRACE("End Program")

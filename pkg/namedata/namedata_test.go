@@ -40,6 +40,7 @@ func emulatedNames() []string {
 			}
 		}
 	}
+	emulatedNames = append(emulatedNames, "film_name_0000__sd.mp4")
 	return emulatedNames
 }
 
@@ -55,8 +56,8 @@ func TestEburTrimmer(t *testing.T) {
 			t.Errorf("Test %v:	Error: %v", i, err.Error())
 			undecided++
 		}
-		if newName == oldName {
-			//t.Errorf("oldname = newname (%v)", newName)
+		if newName != oldName {
+			t.Errorf("oldname > newname (%v > %v)", oldName, newName)
 		}
 
 	}

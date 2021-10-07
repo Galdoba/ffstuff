@@ -52,7 +52,7 @@ func (ch *Checker) AddTask(path string) {
 	//исключаем файлы которые не проверяем точно
 	usr, _ := user.Current()
 
-	if stringsContainsAnyOf(path, ".srt", ".ready", "."+usr.Username) {
+	if stringsContainsAnyOf(path, ".srt", ".ready", "."+usr.Name) {
 		return
 	}
 	ch.pathList = append(ch.pathList, path)
