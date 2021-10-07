@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -25,7 +24,7 @@ func RunConsole(program string, args ...string) (string, io.Writer, error) {
 	var line []string
 	line = append(line, program)
 	line = append(line, args...)
-	fmt.Println("Run:", line)
+	//fmt.Println("Run:", line)
 	time.Sleep(time.Millisecond * 2)
 	cmd := exec.Command(program, args...)
 	cmd.Stdout = os.Stdout

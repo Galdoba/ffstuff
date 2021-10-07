@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"os/user"
 	"strconv"
 	"strings"
 
@@ -49,7 +50,9 @@ func NewChecker() Checker {
 
 func (ch *Checker) AddTask(path string) {
 	//исключаем файлы которые не проверяем точно
-	if stringsContainsAnyOf(path, ".srt", ".ready") {
+	usr, _ := user.Current()
+
+	if stringsContainsAnyOf(path, ".srt", ".ready", "."+usr.Username) {
 		return
 	}
 	ch.pathList = append(ch.pathList, path)

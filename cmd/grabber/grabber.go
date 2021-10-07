@@ -173,7 +173,7 @@ func main() {
 			},
 			Action: func(c *cli.Context) error {
 				readyfile := c.String("connectedwith")
-				fmt.Println(readyfile)
+				//	fmt.Println(readyfile)
 				if err := checkMediaFile(readyfile, ".ready"); err != nil {
 					logger.ERROR(err.Error())
 					return err
@@ -219,7 +219,7 @@ func downloadAssociatedWith(l glog.Logger, paths []string, destination string) e
 		if strings.Contains(path, ".ready") {
 			marker = strings.TrimSuffix(path, ".ready") + "." + username
 			err := os.Rename(path, marker)
-			fmt.Println("Rename", path)
+			//fmt.Println("Rename", path)
 			if err != nil {
 				return err
 			}

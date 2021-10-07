@@ -3,10 +3,12 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/user"
 
 	"github.com/Galdoba/ffstuff/constant"
 	"github.com/Galdoba/ffstuff/fldr"
 	"github.com/Galdoba/ffstuff/pkg/config"
+	"github.com/Galdoba/ffstuff/pkg/scanner"
 	"github.com/Galdoba/utils"
 	"github.com/urfave/cli"
 )
@@ -69,21 +71,34 @@ func main() {
 			Name:  "daily",
 			Usage: "Create today's work directories and daily files",
 			Action: func(c *cli.Context) error {
-				paths := []string{
-					configMap[constant.InPath] + "IN_" + utils.DateStamp() + "\\",
-					configMap[constant.InPath] + "IN_" + utils.DateStamp() + "\\proxy\\",
-					configMap[constant.MuxPath] + "MUX_" + utils.DateStamp() + "\\",
-					configMap[constant.OutPath] + "OUT_" + utils.DateStamp() + "\\",
-				}
+				paths := []string{configMap[constant.InPath] + "IN_" + utils.DateStamp() + "\\", configMap[constant.InPath] + "IN_" + utils.DateStamp() + "\\proxy\\", configMap[constant.MuxPath] + "MUX_" + utils.DateStamp() + "\\", configMap[constant.OutPath] + "OUT_" + utils.DateStamp() + "\\"}
 				for _, path := range paths {
-					dir := fldr.New("",
-						fldr.Set(fldr.AddressFormula, path),
-					)
+					dir := fldr.New("", fldr.Set(fldr.AddressFormula, path))
 					dir.Make()
 				}
 				ensureFileExistiense(configMap[constant.MuxPath] + "MUX_" + utils.DateStamp() + "\\" + "muxlist.txt")
-
+				if c.Bool("clean") {
+					usr, err := user.Current()
+					if err != nil {
+						fmt.Println(err.Error())
+					}
+					detected, sErr := scanner.Scan(configMap[constant.SearchRoot], "."+usr.Username)
+					if sErr != nil {
+						fmt.Println(sErr.Error())
+					}
+					for _, val := range detected {
+						if err := os.Remove(val); err != nil {
+							fmt.Println(err.Error())
+						}
+					}
+				}
 				return nil
+			},
+			Flags: []cli.Flag{
+				cli.BoolFlag{
+					Name:  "clean",
+					Usage: "deletes all Username markers",
+				},
 			},
 		},
 		//////////////////////////////////////
