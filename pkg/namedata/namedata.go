@@ -2,7 +2,27 @@ package namedata
 
 import (
 	"fmt"
+	"os"
+	"os/user"
+	"strconv"
 	"strings"
+
+	"github.com/Galdoba/utils"
+)
+
+const (
+	RESOLUTION_MP4 = "mp4"
+	RESOLUTION_M4A = "m4a"
+	RESOLUTION_AAC = "aac"
+	RESOLUTION_SRT = "srt"
+	TAG_HD         = "_HD"
+	TAG_SD         = "_SD"
+	TAG_4K         = "_4K"
+	TAG_SUB        = "_SUB"
+	TAG_AUDIORUS20 = "_AUDIORUS20"
+	TAG_AUDIORUS51 = "_AUDIORUS51"
+	TAG_AUDIOENG20 = "_AUDIOENG20"
+	TAG_AUDIOENG51 = "_AUDIOENG51"
 )
 
 /*
@@ -198,16 +218,183 @@ func ungroupeName(name string) (base, video, audio, ebur string) {
 	return
 }
 
-/*
-Дата:  212-1099
-Место сбора: Pax Rulin (A402231-E)
-Миссия: Вызволить VIP находящегося на территории частной коммерческой организации на планете Magen.
-Ожидаемый состав отряда:
-  -специалист по стрелковому вооружению
-  -боевой инженер
-  -полевой разведчик
-  -медик
-  -пилот антигравитационной техники
-Оплата: 20  000 Cr каждому участнику перед началом миссии. 50 000 Сr каждому при доставке VIP'а к заказчику.
-Комментарии: Наёмный отряд будет снабжен экипировкой, транспортом и актуальными разведданными.  Дополнительные вопросы от Исполнителей не приветствуются.
-*/
+func renamerMapLocation() string {
+	cu, _ := user.Current()
+	return "c:\\Users\\" + cu.Name + "\\config\\ffstuff\\renamerMap.txt"
+}
+
+func AddToRenamerMap(oldName, newName string) error {
+	f, err := os.OpenFile(renamerMapLocation(), os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+	if _, err = f.WriteString(oldName + " ==> " + newName); err != nil {
+		return err
+	}
+	return nil
+}
+
+func RenamerMap() (map[string]string, error) {
+	rnMap := make(map[string]string)
+	lines := utils.LinesFromTXT(renamerMapLocation())
+	for _, ln := range lines {
+		data := strings.Split(ln, " ==> ")
+		if len(data) != 2 {
+			return rnMap, fmt.Errorf("Invalid entry '%v'", ln)
+		}
+		rnMap[data[0]] = data[1]
+	}
+	return rnMap, nil
+}
+
+type NameForm struct {
+	name       string
+	season     int
+	episode    int
+	seTag      string
+	year       string
+	tag        string
+	resolution string
+}
+
+func ParseName(file string) *NameForm {
+	n := NameForm{}
+	n.resolution = detectResolution(file)
+	n.tag = detectTag(file)
+	n.season, n.episode, n.seTag = detectSeasonEpisode(file)
+	nm := strings.TrimSuffix(file, "."+n.resolution)
+	nm = strings.TrimSuffix(nm, n.tag)
+	nm = strings.TrimSuffix(nm, n.seTag)
+	n.name = nm
+	return &n
+}
+
+func detectResolution(file string) string {
+	file = reverse(file)
+	data := strings.Split(file, ".")
+	//validResolutions := []string{RESOLUTION_MP4, RESOLUTION_M4A, RESOLUTION_AAC}
+	for _, resol := range validResolutions() {
+		if reverse(resol) == data[0] {
+			return resol
+		}
+	}
+	return ""
+}
+
+func detectTag(file string) string {
+	switch {
+	case strings.Contains(file, TAG_HD):
+		return TAG_HD
+	case strings.Contains(file, TAG_SD):
+		return TAG_SD
+	case strings.Contains(file, TAG_4K):
+		return TAG_4K
+	case strings.Contains(file, TAG_SUB):
+		return TAG_SUB
+	case strings.Contains(file, TAG_AUDIORUS20):
+		return TAG_AUDIORUS20
+	case strings.Contains(file, TAG_AUDIORUS51):
+		return TAG_AUDIORUS51
+	case strings.Contains(file, TAG_AUDIOENG20):
+		return TAG_AUDIOENG20
+	case strings.Contains(file, TAG_AUDIOENG51):
+		return TAG_AUDIOENG51
+	}
+	return "_TAG_ERROR"
+}
+
+func validYears() []string {
+	tags := []string{}
+	for i := 1900; i < 2025; i++ {
+		yearTag := fmt.Sprintf("_%v__", i)
+		yearTag = reverse(yearTag)
+		tags = append(tags, yearTag)
+	}
+	return tags
+}
+
+func detectSeasonEpisode(file string) (int, int, string) {
+	for s := 0; s < 30; s++ {
+		for e := 0; e < 100; e++ {
+			sT, eT := strconv.Itoa(s), strconv.Itoa(e)
+			if s < 10 {
+				sT = "0" + sT
+			}
+			if e < 10 {
+				eT = "0" + eT
+			}
+			seTag := "_s" + sT + "e" + eT
+			if strings.Contains(file, seTag) {
+				return s, e, seTag
+			}
+		}
+	}
+	return -1, -1, ""
+}
+
+func validResolutions() []string {
+	return []string{
+		RESOLUTION_MP4,
+		RESOLUTION_M4A,
+		RESOLUTION_AAC,
+		RESOLUTION_SRT,
+	}
+}
+
+func reverse(str string) string {
+	r := []rune(str)
+	var res []rune
+	for i := len(r) - 1; i >= 0; i-- {
+		res = append(res, r[i])
+	}
+	return string(res)
+}
+
+func (nf *NameForm) ReconstructName() (string, error) {
+	rnMap, err := RenamerMap()
+	if err != nil {
+		return "", err
+	}
+	newName := nf.name
+	if rnMap[nf.name] != "" {
+		newName = rnMap[nf.name]
+	}
+	if nf.season != -1 {
+		newName += "_s" + intToIndex(nf.season, 2)
+	}
+	if nf.episode != -1 {
+		newName += "_" + intToIndex(nf.episode, 2)
+	}
+	newName += "_0000_"
+	switch nf.tag {
+	default:
+		return "", fmt.Errorf("unknown tag '%v'", nf.tag)
+	case TAG_HD:
+		newName += "_hd" + "." + nf.resolution
+	case TAG_SD:
+		newName += "_sd" + "." + nf.resolution
+	case TAG_4K:
+		newName += "_4k" + "." + nf.resolution
+	case TAG_SUB:
+		newName += "_hd" + "." + nf.resolution
+	case TAG_AUDIORUS20:
+		newName += "_hd_rus20" + "." + nf.resolution
+	case TAG_AUDIORUS51:
+		newName += "_hd_rus51" + "." + nf.resolution
+	case TAG_AUDIOENG20:
+		newName += "_hd_eng20" + "." + nf.resolution
+	case TAG_AUDIOENG51:
+		newName += "_hd_eng51" + "." + nf.resolution
+	}
+	return newName, nil
+}
+
+func intToIndex(i, f int) string {
+	index := strconv.Itoa(i)
+	for len(index) < f {
+		index = "0" + index
+	}
+	return index
+
+}

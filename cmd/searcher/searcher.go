@@ -209,7 +209,7 @@ func main() {
 						time.Sleep(time.Second)
 					}
 					fmt.Print("\n")
-					fcli.RunConsole("dirmaker", "daily")
+					fcli.RunConsole("dirmaker", "daily", "-clean")
 				}
 				restart := true
 				if c.String("repeat") != "" {
@@ -231,7 +231,7 @@ func main() {
 						switch err { //                    если ничего не найдено смотрим надо ли ждать
 						default: //                        и ждем поле чего начинаем поиск с начала
 							logger.TRACE(err.Error())
-							fmt.Printf("%v: New files not found", time.Now().Format("2006-01-02 15:04:05.000"))
+							fmt.Printf("%v: New files not found\n", time.Now().Format("2006-01-02 15:04:05.000"))
 							continue
 						case nil: //                       или выходим
 							logger.TRACE("End Program")

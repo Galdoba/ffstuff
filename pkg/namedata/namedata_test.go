@@ -63,3 +63,42 @@ func TestEburTrimmer(t *testing.T) {
 	}
 	fmt.Println("Undecided:", undecided)
 }
+
+func testNames() []string {
+	return []string{
+		"Banshi_predystoriya_s01e07_HD.mp4",
+		"Banshi_predystoriya_s01e08_AUDIOENG20.m4a",
+		"Banshi_predystoriya_s01e08_AUDIORUS51.m4a",
+		"Banshi_predystoriya_s01e08_HD.mp4",
+		"Banshi_predystoriya_s01e09_AUDIOENG20.m4a",
+		"Banshi_predystoriya_s01e09_AUDIORUS51.m4a",
+		"Banshi_predystoriya_s01e09_HD.mp4",
+		"Davay_znakomitsya_kino_MOV_00350_AUDIOENG20.m4a",
+		"Davay_znakomitsya_kino_MOV_00350_AUDIORUS51.m4a",
+		"Davay_znakomitsya_kino_MOV_00350_HD.mp4",
+		"Dryu_maykl_MOV_00855_AUDIOENG20.m4a",
+		"Dryu_maykl_MOV_00855_AUDIORUS20.m4a",
+		"Dryu_maykl_MOV_00855_HD.mp4",
+		"Dryu_maykl_MOV_00855_SUB.srt",
+		"Dve_zvezdy_kerri_fisher_i_debbi_reynolds_MOV_00554_AUDIOENG20.m4a",
+		"Dve_zvezdy_kerri_fisher_i_debbi_reynolds_MOV_00554_AUDIORUS51.m4a",
+		"Dve_zvezdy_kerri_fisher_i_debbi_reynolds_MOV_00554_HD.mp4",
+		"Titane_AUDIORUS51.m4a",
+		"Titane_HD.mp4",
+		"Titane_SD.mp4",
+	}
+}
+
+func TestNameSplitting(t *testing.T) {
+	for _, val := range testNames() {
+		fmt.Println(val)
+		nf := ParseName(val)
+		fmt.Println(nf)
+		fmt.Println(nf.ReconstructName())
+	}
+	rnMap, err := RenamerMap()
+	fmt.Println(err)
+	for k, v := range rnMap {
+		fmt.Println(k, "*", v)
+	}
+}
