@@ -37,11 +37,13 @@ func init() {
 
 func main() {
 	muxRoot := configMap[constant.MuxPath] + "\\"
+	inRoot := configMap[constant.InPath] + "\\"
 	muxFolder := muxRoot + "MUX_" + utils.DateStamp() + "\\"
+	inFolder := inRoot + "IN_" + utils.DateStamp() + "\\"
 
 	logger := glog.New(glog.LogPathDEFAULT, glog.LogLevelINFO)
 	app := cli.NewApp()
-	app.Version = "v 0.0.1"
+	app.Version = "v 0.0.2"
 	app.Name = "grabber"
 	app.Usage = "dowloads files and sort it to working directories"
 	app.Flags = []cli.Flag{}
@@ -111,6 +113,43 @@ func main() {
 			},
 		},
 		////////////////////////////////////
+		{
+			Name:        "preapare",
+			ShortName:   "",
+			Aliases:     []string{},
+			Usage:       "------",
+			UsageText:   "",
+			Description: "",
+			ArgsUsage:   "",
+			Category:    "",
+			Action: func(c *cli.Context) error {
+				if inFolder == "000" {
+					fmt.Println(inFolder)
+				}
+				file := c.String("input")
+				nf := namedata.ParseName(file)
+				newName, err := nf.ReconstructName()
+				if err != nil {
+					fmt.Println(err.Error())
+					return fmt.Errorf("Cannot rename %v\nError: %v", file, err.Error())
+				}
+				logger.INFO(fmt.Sprintf("renaming: '%v' => '%v'", file, newName))
+				renamingErr := os.Rename(file, newName)
+				if renamingErr != nil {
+					fmt.Println(renamingErr.Error())
+					return renamingErr
+				}
+				return nil
+			},
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:     "input",
+					Usage:    "sets file to preapare name",
+					Required: true,
+				},
+			},
+		},
+		//////////////////////////////
 		// {
 		// 	Name:  "todays",
 		// 	Usage: "Create one or more new directories",
@@ -133,8 +172,8 @@ func main() {
 	}
 	fmt.Println("RUN")
 	if err := app.Run(args); err != nil {
-
-		fmt.Println(err.Error())
+		logger.FATAL(err.Error())
+		//fmt.Println(err.Error())
 	}
 	fmt.Println("END")
 }

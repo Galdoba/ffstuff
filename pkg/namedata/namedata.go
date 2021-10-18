@@ -220,6 +220,7 @@ func ungroupeName(name string) (base, video, audio, ebur string) {
 
 func renamerMapLocation() string {
 	cu, _ := user.Current()
+	fmt.Println("Call:", "c:\\Users\\"+cu.Name+"\\config\\ffstuff\\renamerMap.txt")
 	return "c:\\Users\\" + cu.Name + "\\config\\ffstuff\\renamerMap.txt"
 }
 
@@ -243,6 +244,7 @@ func RenamerMap() (map[string]string, error) {
 		if len(data) != 2 {
 			return rnMap, fmt.Errorf("Invalid entry '%v'", ln)
 		}
+		fmt.Println("FOUND:", rnMap[data[0]], "|", data[1], "||", data[0])
 		rnMap[data[0]] = data[1]
 	}
 	return rnMap, nil
@@ -265,8 +267,9 @@ func ParseName(file string) *NameForm {
 	n.season, n.episode, n.seTag = detectSeasonEpisode(file)
 	nm := strings.TrimSuffix(file, "."+n.resolution)
 	nm = strings.TrimSuffix(nm, n.tag)
-	nm = strings.TrimSuffix(nm, n.seTag)
-	n.name = nm
+	nms := strings.Split(nm, n.seTag)
+	nm = nms[0]
+	n.name = strings.ToLower(nm)
 	return &n
 }
 
@@ -357,6 +360,7 @@ func (nf *NameForm) ReconstructName() (string, error) {
 		return "", err
 	}
 	newName := nf.name
+	fmt.Println("oldName:", nf.name)
 	if rnMap[nf.name] != "" {
 		newName = rnMap[nf.name]
 	}
