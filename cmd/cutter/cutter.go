@@ -45,7 +45,7 @@ func main() {
 		clipMap[cl.Index()] = cl
 		newTask := cli.NewTask(clipmaker.CutClip(cl))
 		cliTasks = append(cliTasks, newTask)
-		if _, err = f.WriteString(newTask.LastArg() + "\n"); err != nil {
+		if _, err = f.WriteString(newTask.String() + "\n"); err != nil {
 			fmt.Println(err)
 		}
 	}

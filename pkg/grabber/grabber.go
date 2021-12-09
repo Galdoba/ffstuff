@@ -12,6 +12,7 @@ import (
 	"github.com/Galdoba/ffstuff/pkg/glog"
 	"github.com/Galdoba/ffstuff/pkg/namedata"
 	"github.com/Galdoba/ffstuff/pkg/stamp"
+	"github.com/Galdoba/utils"
 )
 
 //CopyFile - takes file path, and making a copy of the file in the destination directory
@@ -280,6 +281,10 @@ func LogWith(l glog.Logger, err error) error {
 }
 
 func Download(logger glog.Logger, source, destination string) error {
+	if utils.InFileContains("c:\\Users\\pemaltynov\\.ffstuff\\dowloaded.txt", source) != -1 {
+		return LogWith(logger, errors.New("file was downloaded recently"))
+	}
+
 	srcInfo, errS := os.Stat(source)
 	if errS != nil {
 		return LogWith(logger, errors.New("source: "+errS.Error()))
@@ -349,6 +354,7 @@ func Download(logger glog.Logger, source, destination string) error {
 		fmt.Print(msg)
 		//logger.TRACE(msg)
 	}
+	utils.AddLineToFile("c:\\Users\\pemaltynov\\.ffstuff\\dowloaded.txt", source)
 	return nil
 }
 
