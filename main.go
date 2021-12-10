@@ -2,165 +2,47 @@ package main
 
 import (
 	"fmt"
-	"strings"
-	"time"
-
-	"github.com/Galdoba/ffstuff/pkg/scanner"
-	"github.com/Galdoba/utils"
+	"image"
+	"image/png"
+	"os"
 )
 
 func main() {
-	usr, err := scanner.Scan("\\\\192.168.31.4\\root\\EDIT\\", "_HD.mp4")
-	fmt.Println(err)
-	for i, name := range usr {
-		fmt.Println(i, "	", name)
+	imageFile, err := os.Open("c:\\Users\\pemaltynov\\go\\src\\github.com\\Galdoba\\ffstuff\\assets\\waveform_test_sqrt_t.png")
+	if err != nil {
+		panic(1)
 	}
-	usr = scanner.SortPriority(usr)
-	for i, name := range usr {
-		fmt.Println(i, "N	", name)
+	imData, imType, err := image.Decode(imageFile)
+	fmt.Println(imData.At(2000, 100))
+	fmt.Println(imType)
+	if err != nil {
+		panic(2)
 	}
-	fmt.Println(utils.DateStampFrom(time.Now().AddDate(0, 0, -2)))
-	/*
-		   switcher := utils.StringSwitcher(b, true , t1, t2, t3)
-		   for _, tag := range switcher {
-		   	switch tag {
-		   	case tag:
-		   		Do Stuff
-		   	default (not tag):
-				Do Nothing
+	imageFile.Seek(0, 0)
+	loadedIm, err := png.Decode(imageFile)
+	if err != nil {
+		panic(3)
+	}
+	rec := loadedIm.Bounds()
+	i := 1
+	empty := 0
+	filled := 0
+	for y := 0; y < rec.Dy(); y++ {
+		for x := 0; x < rec.Dx(); x++ {
+			if y == rec.Dy()/2 {
+				fmt.Printf("Pixel %v	 (%v, %v) is [%v]\n", i, x, y, loadedIm.At(x, y))
+			}
+			r, g, b, a := loadedIm.At(x, y).RGBA()
+			if r+g+b+a == 0 {
+				empty++
+			} else {
+
+				//fmt.Printf("Pixel %v	 (%v, %v) is [%v]\n", i, x, y, loadedIm.At(x, y))
+				filled++
 			}
 
-
-	*/
-	// name := "gorod_na_holme_s02_05_2021__hd__proxy.mp4"
-	// for _, val := range contained(name, "mp4", "hd", "hd__proxy", "sd", "gorod", "sd") {
-	// 	switch val {
-	// 	default:
-	// 		fmt.Println("Undefined thing:", val)
-	// 	case "mp4":
-	// 		fmt.Println("DO mp4 stuff with", val)
-	// 	case "sd":
-	// 		fmt.Println("DO  sd stuff with", val)
-	// 	case "hd":
-	// 		fmt.Println("DO  hd stuff with", val)
-	// 	case "hd__proxy":
-	// 		fmt.Println("DO  hd__proxy stuff with", val)
-	// 	}
-	// }
-
-}
-
-//gorod_na_holme_s02_05_2021__hd.mp4
-
-func contained(name string, values ...string) []string {
-	found := []string{}
-	for i, val := range values {
-		switch strings.Contains(name, val) {
-		case true:
-			fmt.Println("val", i, val, "is TRUE")
-			found = append(found, val)
-		case false:
-			fmt.Println("val", i, val, "is FALSE")
+			i++
 		}
 	}
-	return found
+	fmt.Println("done", empty, filled)
 }
-
-type StringSwitcher struct {
-	body               string
-	tags               []string
-	wideComparisonMode bool
-}
-
-func NewStringSwitcher(b string, tgs ...string) StringSwitcher {
-	ss := StringSwitcher{}
-	ss.body = b
-	ss.tags = append(ss.tags, tgs...)
-	ss.wideComparisonMode = true
-	return ss
-}
-
-/*
-
-===USER INPUT REQUIRED============
-Q: Question:
-0	APPLY
-1	[x] - Answer1
-15	[ ] - Answer2
-21	[x] - Answer3
-29	[ ] - Answer4
-125	[ ] - Answer5
-[Error message]
-==================================
-
-
-
-*/
-
-// func progressBar(now, all int64) string {
-
-// }
-
-/*
-10
-██████████ 10%
-
-20
-████████████████████ 5%
-25
-█████████████████████████ 4%
-30
-██████████████████████████████ 4%
-40
-[█████████████████████████████████████▌  ] 2.5%
-50
-██████████████████████████████████████████████████ 2%
-
-[1234567890123456789012345678901234567890]
-[ progress: 100.000% ]
-[>>>>>>              ]
-[++++++--------------]
-
-if now%4 >= 2 {
-				s += string(rune(9612))
-				continue
-*/
-
-/*
-[]
-
-*/
-
-//DurationStamp - return duration (float64 - seconds) as a string in format: [HH:MM:SS.ms]
-// func DurationStamp(dur float64) string {
-// 	if dur < 0 {
-// 		return "NEGATIVE"
-// 	}
-// 	stamp := ""
-// 	hh := int(dur) / int(3600)
-// 	hLeft := int(dur) % int(3600)
-// 	mm := hLeft / 60
-// 	ss := hLeft % 60
-// 	sLeft := dur - (float64(hh*3600) + float64(mm*60) + float64(ss))
-// 	ms := int(sLeft * 1000)
-// 	////////
-// 	hhs := strconv.Itoa(int(hh))
-// 	for len(hhs) < 2 {
-// 		hhs = "0" + hhs
-// 	}
-// 	mms := strconv.Itoa(int(mm))
-// 	for len(mms) < 2 {
-// 		mms = "0" + mms
-// 	}
-// 	sss := strconv.Itoa(int(ss))
-// 	for len(sss) < 2 {
-// 		sss = "0" + sss
-// 	}
-// 	mss := strconv.Itoa(int(ms))
-// 	for len(mss) < 3 {
-// 		mss = "0" + mss
-// 	}
-// 	stamp = hhs + ":" + mms + ":" + sss + "." + mss
-// 	return stamp
-
-// }
