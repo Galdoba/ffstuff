@@ -1,10 +1,13 @@
 package cli
 
 import (
+	"bytes"
 	"io"
 	"os"
 	"os/exec"
 	"time"
+
+	"github.com/Galdoba/utils"
 )
 
 //TODO: перестроить так чтобы запускальщик работал по типу фабрики
@@ -25,31 +28,68 @@ func RunConsole(program string, args ...string) (string, io.Writer, error) {
 	line = append(line, program)
 	line = append(line, args...)
 	//fmt.Println("Run:", line)
+
 	time.Sleep(time.Millisecond * 2)
 	cmd := exec.Command(program, args...)
-	cmd.Stdout = os.Stdout
+	cmd.Stdout = os.Stdout //&o
 	output, _ := cmd.CombinedOutput()
 	sOUT := string(output)
 	cmd.Stderr = os.Stderr
 	err := cmd.Run()
+
 	return sOUT, cmd.Stderr, err
 }
 
-// //RunConsole - запускает в дефолтовом терминале cli программу
-// func RunConsole2(program string, args ...string) (string, io.Writer, error) {
-// 	var line []string
-// 	line = append(line, program)
-// 	line = append(line, args...)
-// 	//fmt.Println("Run:", line)
-// 	time.Sleep(time.Millisecond * 2)
-// 	cmd := exec.Command(program, args...)
-// 	cmd.Stdout = os.Stdout
-// 	output, _ := cmd.CombinedOutput()
-// 	sOUT := string(output)
-// 	cmd.Stderr = os.Stderr
-// 	err := cmd.Run()
-// 	return cmd.Stdout, cmd.Stderr, cmd.Stderr
-// }
+//RunConsole - запускает в дефолтовом терминале cli программу
+func RunToFile(file, program string, args ...string) (io.Writer, error) {
+	var line []string
+	line = append(line, program)
+	line = append(line, args...)
+	//fmt.Println("Run:", line)
+	var o bytes.Buffer
+	var e bytes.Buffer
+	time.Sleep(time.Millisecond * 2)
+	cmd := exec.Command(program, args...)
+	cmd.Stdout = &o //os.Stdout
+	//output, _ := cmd.CombinedOutput()
+	//sOUT := string(output)
+	cmd.Stderr = &e //os.Stderr
+	err := cmd.Run()
+	sOUT := string(o.Bytes()) + "\n" + string(e.Bytes())
+	utils.AddLineToFile(file, sOUT)
+	return cmd.Stderr, err
+}
+
+//RunToBuffer - запускает в дефолтовом терминале cli программу но результат пишет в переменные
+func RunToBuffer(program string, args ...string) (string, string, error) {
+	var line []string
+	line = append(line, program)
+	line = append(line, args...)
+	var o bytes.Buffer
+	var e bytes.Buffer
+	time.Sleep(time.Millisecond * 2)
+	cmd := exec.Command(program, args...)
+	cmd.Stdout = &o //os.Stdout
+	cmd.Stderr = &e //os.Stderr
+
+	err := cmd.Run()
+	return o.String(), e.String(), err
+}
+
+//RunToBuffer - запускает в дефолтовом терминале cli программу но результат пишет в переменные
+func RunToAll(program string, args ...string) (string, string, error) {
+	var line []string
+	line = append(line, program)
+	line = append(line, args...)
+	var o bytes.Buffer
+	var e bytes.Buffer
+	time.Sleep(time.Millisecond * 2)
+	cmd := exec.Command(program, args...)
+	cmd.Stdout = io.MultiWriter(os.Stdout, &o)
+	cmd.Stderr = io.MultiWriter(os.Stderr, &e)
+	err := cmd.Run()
+	return string(o.Bytes()), string(e.Bytes()), err
+}
 
 type Task struct {
 	program   string

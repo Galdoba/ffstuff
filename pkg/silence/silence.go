@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"strings"
 
 	"github.com/Galdoba/ffstuff/pkg/cli"
 )
@@ -19,17 +20,19 @@ func Detect(path string) (*silence, error) {
 	if err != nil {
 		return nil, err
 	}
-	sOUT, sERR, cERR := cli.RunConsole("ffmpeg", "-i", f.Name(), "-loglevel", "verbose") //, "-loglevel", "quiet")
 
-	if sOUT != "" {
-		return nil, fmt.Errorf("sOUT != ''")
+	consoleFileName := strings.ReplaceAll(f.Name(), "\\", "\\\\")
+	fmt.Println("RUN---------------")
+	out, errors, err := cli.RunToAll("ffprobe", "-i", consoleFileName, "-show_entries", "format : stream=codec_type")
+	fmt.Println("END---------------")
+	fmt.Println("o=", out)
+	fmt.Println("e=", errors)
+	fmt.Println("err:", err)
+	fmt.Println("================")
+	if !strings.Contains(errors, ": Audio: ") {
+		return nil, fmt.Errorf("No Audio stream detected")
 	}
-	if sERR != nil {
-
-	}
-	if cERR != nil {
-		//return nil, cERR
-	}
+	//sERR, cERR := cli.RunToFile("d:\\MUX\\tests\\log2.txt", "ffmpeg", "-i", consoleFileName, "-af", "silencedetect=n=-90dB:d=2", "-f", "null", "-", "-loglevel", "info")
 
 	//fmt.Println(f.Name(), "correct\n ")
 	//debugMsg("END: Detect(f *os.File) (*silence, error)")
