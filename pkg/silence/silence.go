@@ -23,7 +23,8 @@ func Detect(path string) (*silence, error) {
 
 	consoleFileName := strings.ReplaceAll(f.Name(), "\\", "\\\\")
 	fmt.Println("RUN---------------")
-	out, errors, err := cli.RunToAll("ffprobe", "-i", consoleFileName, "-show_entries", "format : stream=codec_type")
+	//out, errors, err := cli.RunToAll("ffprobe", "-i", consoleFileName, "-show_entries", "format : stream=codec_type")
+	out, errors, err := cli.RunToAll("ffmpeg", "-i", consoleFileName, "-af", "silencedetect=n=-90dB:d=2", "-f", "null", "-", "-loglevel", "info")
 	fmt.Println("END---------------")
 	fmt.Println("o=", out)
 	fmt.Println("e=", errors)

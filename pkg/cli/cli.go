@@ -76,7 +76,7 @@ func RunToBuffer(program string, args ...string) (string, string, error) {
 	return o.String(), e.String(), err
 }
 
-//RunToBuffer - запускает в дефолтовом терминале cli программу но результат пишет в переменные
+//RunToAll - запускает в дефолтовом терминале cli программу и копирует stdout/stderr в переменные
 func RunToAll(program string, args ...string) (string, string, error) {
 	var line []string
 	line = append(line, program)
