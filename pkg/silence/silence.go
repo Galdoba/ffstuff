@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"strconv"
 	"strings"
 
-	"github.com/Galdoba/ffstuff/pkg/cli"
+	"github.com/Galdoba/devtools/cli/command"
 )
 
 type silence struct {
@@ -15,29 +16,61 @@ type silence struct {
 
 //Detect - слушает файл и возвращает координаты тишины
 func Detect(path string) (*silence, error) {
-	//debugMsg("START: Detect(f *os.File) (*silence, error)")
+	fmt.Printf("Scanning file: %v\n", path)
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}
-
-	consoleFileName := strings.ReplaceAll(f.Name(), "\\", "\\\\")
-	fmt.Println("RUN---------------")
-	//out, errors, err := cli.RunToAll("ffprobe", "-i", consoleFileName, "-show_entries", "format : stream=codec_type")
-	out, errors, err := cli.RunToAll("ffmpeg", "-i", consoleFileName, "-af", "silencedetect=n=-90dB:d=2", "-f", "null", "-", "-loglevel", "info")
-	fmt.Println("END---------------")
-	fmt.Println("o=", out)
-	fmt.Println("e=", errors)
-	fmt.Println("err:", err)
-	fmt.Println("================")
-	if !strings.Contains(errors, ": Audio: ") {
-		return nil, fmt.Errorf("No Audio stream detected")
+	if !audioStreamContained(f.Name()) {
+		fmt.Printf("Warning: no audio stream detected\n %v ", f.Name())
+		return nil, fmt.Errorf("file have no audio stream")
 	}
-	//sERR, cERR := cli.RunToFile("d:\\MUX\\tests\\log2.txt", "ffmpeg", "-i", consoleFileName, "-af", "silencedetect=n=-90dB:d=2", "-f", "null", "-", "-loglevel", "info")
+	listenReport, err := command.New(
+		command.CommandLineArguments(fmt.Sprintf("ffmpeg -i %v -vn -af silencedetect=n=-60dB:d=0.5 -f null - -loglevel info", f.Name())),
+		//command.Set(command.TERMINAL_ON),
+		command.Set(command.BUFFER_ON),
+	)
+	listenReport.Run()
+	coords, err := parseSilenceData(listenReport.StdErr())
+	if err != nil {
+		return nil, err
+	}
+	fmt.Printf("Completed\n")
+	return &silence{coords}, nil
+}
 
-	//fmt.Println(f.Name(), "correct\n ")
-	//debugMsg("END: Detect(f *os.File) (*silence, error)")
-	return nil, nil
+func parseSilenceData(data string) ([]timeCoord, error) {
+	lines := strings.Split(data, "\n")
+	info := []string{}
+	for _, l := range lines {
+		if strings.Contains(l, "silencedetect @ ") {
+			info = append(info, l)
+		}
+	}
+	start := []float64{}
+	dur := []float64{}
+	tCords := []timeCoord{}
+	for _, i := range info {
+		switch {
+		case strings.Contains(i, "silence_start"):
+			str := strings.Split(i, "silence_start: ")
+			s := strings.TrimSpace(str[1])
+			flt, _ := strconv.ParseFloat(s, 64)
+			start = append(start, flt)
+		case strings.Contains(i, "silence_duration"):
+			str := strings.Split(i, "silence_duration:")
+			s := strings.TrimSpace(str[1])
+			flt, _ := strconv.ParseFloat(s, 64)
+			dur = append(dur, flt)
+		}
+	}
+	if len(start) != len(dur) {
+		return tCords, fmt.Errorf("silence coordinated parsing failed")
+	}
+	for i := 0; i < len(start); i++ {
+		tCords = append(tCords, timeCoord{start[i], dur[i]})
+	}
+	return tCords, nil
 }
 
 //timeCoord - описывает кусок пустоты на треке. Пустотой считаем громкость ниже -104.5 Db
@@ -60,3 +93,47 @@ func round(f float64) float64 {
 func debugMsg(s string) {
 	fmt.Printf("debug Message: " + s + "\n")
 }
+
+func audioStreamContained(path string) bool {
+	//	out, errors, err := cli.RunToAll("ffprobe", "-i", path, "-show_entries", "format : stream=codec_type")
+	com, err := command.New(
+		command.CommandLineArguments(fmt.Sprintf("ffprobe -i %v", path)),
+		command.Set(command.BUFFER_ON),
+	)
+	if err != nil {
+		return false
+	}
+	err = com.Run()
+	out := com.StdErr()
+	lines := strings.Split(out, "\n")
+	for _, l := range lines {
+		if strings.Contains(l, "Stream") && strings.Contains(l, "Audio") {
+			return true
+		}
+	}
+	return false
+}
+
+/*
+Task:
+1.оценить содержит ли файл звук
+1а.оценить длительность звука
+2.общая оценка звука
+	если пустот более 3 секунд нет ==> конец
+3 создаем warning файл
+	если есть пустоты в первых или последних 3 минутах
+	3а. отрезаем первые и последние 3 минуты
+		слушаем внимательнее
+		дополняем warning файл с описанием пустот и предположение откуда отрезать
+
+
+
+*/
+
+//consoleFileName := strings.ReplaceAll(f.Name(), "\\", "\\\\")
+//out, errors, err := cli.RunToAll("ffprobe", "-i", consoleFileName, "-show_entries", "format : stream=codec_type")
+//	out, errors, err := cli.RunToAll("ffmpeg", "-i", consoleFileName, "-af", "silencedetect=n=-75dB:d=2", "-f", "null", "-", "-loglevel", "info")
+//sERR, cERR := cli.RunToFile("d:\\MUX\\tests\\log2.txt", "ffmpeg", "-i", consoleFileName, "-af", "silencedetect=n=-90dB:d=2", "-f", "null", "-", "-loglevel", "info")
+
+//fmt.Println(f.Name(), "correct\n ")
+//debugMsg("END: Detect(f *os.File) (*silence, error)")
