@@ -26,7 +26,7 @@ type silence struct {
 }
 
 //Detect - слушает файл и возвращает координаты тишины
-func Detect(path string, loudnessBorder, duration float64) (*silence, error) {
+func Detect(path string, loudnessBorder, duration float64, visual bool) (*silence, error) {
 	//Pre-check
 	for _, err := range []error{
 		assertPath(path),
@@ -37,11 +37,15 @@ func Detect(path string, loudnessBorder, duration float64) (*silence, error) {
 			return nil, err
 		}
 	}
+	mode := command.TERMINAL_OFF
+	if visual {
+		mode = command.TERMINAL_ON
+	}
 	//Body:
-	fmt.Printf("File: %v\nScanning for silence segments below %v Db with duration >= %v+ seconds...\n", path, loudnessBorder, duration)
+	fmt.Printf("File: %v\nScanning for silence segments below %v Db with duration more than %v seconds...\n", path, loudnessBorder, duration)
 	listenReport, err := command.New(
 		command.CommandLineArguments(fmt.Sprintf("ffmpeg -i %v -vn -af silencedetect=n=%vdB:d=%v -f null - -loglevel info", path, loudnessBorder, duration)),
-		//command.Set(command.TERMINAL_ON),
+		command.Set(mode),
 		command.Set(command.BUFFER_ON),
 	)
 	listenReport.Run() // чтобы трэчить текущий прогресс нужно ставить флаг читать файл?
@@ -56,7 +60,6 @@ func Detect(path string, loudnessBorder, duration float64) (*silence, error) {
 func assertPath(path string) error {
 	p, err := os.Stat(path)
 	if err != nil {
-		fmt.Printf("Error: %v\n", err.Error())
 		return fmt.Errorf("stat error: %v", err.Error())
 	}
 	mode := p.Mode()
@@ -70,13 +73,15 @@ func assertPath(path string) error {
 		return err
 	}
 	if err := audioStreamContained(f.Name()); err != nil {
-		fmt.Printf("Error: %v\n", err.Error())
 		return fmt.Errorf(err.Error())
 	}
 	return nil
 }
 
 func assertLounessBorder(loudnessBorder float64) error {
+	if loudnessBorder > 0 {
+		loudnessBorder = loudnessBorder * -1
+	}
 	if loudnessBorder >= 0 {
 		fmt.Printf("Warning: Loudness border must be negative (have '%v')\n", loudnessBorder)
 		return fmt.Errorf("loudness parameter have incorect value: %v", loudnessBorder)

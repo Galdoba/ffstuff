@@ -2,22 +2,15 @@ package main
 
 import (
 	"fmt"
-	"time"
+	"strconv"
 
 	"os"
-	"strings"
 
-	"github.com/Galdoba/ffstuff/constant"
-	"github.com/Galdoba/ffstuff/fldr"
-	"github.com/Galdoba/utils"
 	"github.com/urfave/cli"
-
-	fcli "github.com/Galdoba/ffstuff/pkg/cli"
-	"github.com/Galdoba/ffstuff/pkg/scanner"
-	"github.com/Galdoba/ffstuff/pkg/stamp"
 
 	"github.com/Galdoba/ffstuff/pkg/config"
 	"github.com/Galdoba/ffstuff/pkg/glog"
+	"github.com/Galdoba/ffstuff/pkg/silence"
 )
 
 var configMap map[string]string
@@ -41,11 +34,11 @@ func init() {
 }
 
 func main() {
-	root := configMap[constant.SearchRoot]
-	marker := configMap[constant.SearchMarker]
-	if configMap[constant.LogDirectory] == "default" {
-		logLocation = fldr.MuxPath() + "logfile.txt"
-	}
+	//root := configMap[constant.SearchRoot]
+	//marker := configMap[constant.SearchMarker]
+	// if configMap[constant.LogDirectory] == "default" {
+	// 	logLocation = fldr.MuxPath() + "logfile.txt"
+	// }
 	//logger = glog.New(logLocation, glog.LogLevelINFO)
 	logger = glog.New(glog.LogPathDEFAULT, glog.LogLevelINFO)
 	app := cli.NewApp()
@@ -54,217 +47,81 @@ func main() {
 	app.Usage = "Scans audio stream for it's loudness data"
 	app.Flags = []cli.Flag{
 		&cli.BoolFlag{
-			Name:  "vocal, v",
+			Name:  "vocal",
 			Usage: "If flag is active soundcan will print data on terminal",
 		},
-		&cli.BoolFlag{
-			Name:  "clear, cl",
-			Usage: "If flag is active searcher Clear Terminal before every Search",
-		},
-		&cli.StringFlag{
-			Name:  "delay",
-			Usage: "If flag is active searcher will delay start for N seconds",
-		},
 	}
-
 	app.Commands = []cli.Command{
 		//////////////////////////////////////
-		// {
-		// 	Name:  "probe",
-		// 	Usage: "Searches all files in the root which associated with marker",
-		// 	Flags: []cli.Flag{
-		// 		&cli.BoolFlag{
-		// 			Name:  "check, c",
-		// 			Usage: "If flag is active run incheker on every found file individualy",
-		// 		},
-		// 		&cli.BoolFlag{
-		// 			Name:     "grab, g",
-		// 			Usage:    "If flag is active grabber will try to download all new files",
-		// 			Required: false,
-		// 			Hidden:   false,
-		// 		},
-		// 		&cli.StringFlag{
-		// 			Name:     "repeat, r",
-		// 			Usage:    "repeat action every N seconds",
-		// 			EnvVar:   "",
-		// 			FilePath: "",
-		// 			Required: false,
-		// 			Hidden:   false,
-		// 			Value:    "",
-		// 		},
-		// 	},
-		// 	Action: func(c *cli.Context) error {
-		// 		if c.GlobalString("delay") != "" {
-		// 			sec := utils.TimeStampToSeconds(c.GlobalString("delay"))
-		// 			for i := 0; i <= sec; i++ {
-		// 				fmt.Print("Searcher will start in ", stamp.Seconds(int64(sec-i)), "                       \r")
-		// 				time.Sleep(time.Second)
-		// 			}
-		// 			fmt.Print("\n")
-		// 			fcli.RunConsole("dirmaker", "daily")
-		// 		}
-		// 		restart := false
-		// 		if c.String("repeat") != "" {
-		// 			restart = true
-		// 		}
-		// 	maincycle:
-		// 		for {
-		// 			if c.GlobalBool("vocal") {
-		// 				logger.ShoutWhen(glog.LogLevelALL) //вещаем в терминал все сообщения логгера
-		// 			}
-		// 			if c.GlobalBool("clear") {
-		// 				utils.ClearScreen() //обновляем экран
-		// 			}
-		// 			takeFile, err := scanner.Scan(root, marker) //сканируем
-		// 			if err != nil {
-		// 				//fmt.Println(err)
-		// 				logger.ERROR("scan failed: " + err.Error())
-		// 				//return err
-		// 			}
-		// 			fileList := scanner.ListReady(takeFile)
-		// 			if len(fileList) == 0 { //если найдено 0 новых файлов - то дальже либо ждем либо прекращаем работу
-		// 				logger.INFO("No new files found")
-		// 				switch restart {
-		// 				case true:
-		// 					repeatIfNeeded(c)
-		// 					continue
-		// 				case false:
-		// 					break maincycle
-		// 				}
-		// 			}
-		// 			for _, fl := range fileList {
-		// 				logger.TRACE("detected " + fl)
-		// 			}
-		// 			if c.Bool("check") {
-		// 				arguments := append([]string{"check"}, fileList...)
-		// 				fcli.RunConsole("inchecker", arguments...) //проверяем инчекером
-		// 			}
-		// 			logger.INFO(strconv.Itoa(len(fileList)-len(takeFile)) + " new files found")
-		// 			if c.Bool("grab") {
-		// 				prog := "grabber"
-		// 				args := []string{}
-		// 				if c.Bool("vocal") {
-		// 					args = append(args, "--vocal")
-		// 				}
-		// 				args = append(args, "takenew")
-		// 				fcli.RunConsole(prog, args...) //хватем найденое
-		// 			}
-		// 			repeatIfNeeded(c)
-		// 			// if c.String("repeat") != "" {
-		// 			// 	break
-		// 			// }
-		// 		}
-		// 		return nil
-		// 	},
-		// },
-		//////////////////////////////////////
 		{
-			Name:  "list",
-			Usage: "List all files in NAS",
-			Flags: []cli.Flag{},
-			Action: func(c *cli.Context) error {
-				takeFile, err := scanner.Scan(root, "") //сканируем
-				if err != nil {
-					//fmt.Println(err)
-					logger.ERROR("scan failed: " + err.Error())
-					//return err
-				}
-				lenFiles := len(takeFile)
-				for i, val := range takeFile {
-					fmt.Println("Scan position:", i+1, "/", lenFiles)
-					stat, _ := os.Stat(val)
-					if stat.IsDir() {
-						fmt.Println("Skip")
-						continue
-					}
-					fcli.RunConsole("inchecker", val) //проверяем инчекером
-				}
-				return nil
-			},
-		},
-		//////////////////////////////////////
-		{
-			Name:  "probe",
-			Usage: "Searches all files in the root which associated with marker and downloading by order",
+			Name:  "listen",
+			Usage: "Listens all files and checks silence in audio stream",
 			Flags: []cli.Flag{
-				&cli.BoolFlag{
-					Name:  "check, c",
-					Usage: "If flag is active run incheker on every found file individualy",
-				},
-				&cli.BoolFlag{
-					Name:  "grab, g",
-					Usage: "If flag is active grabber will try to download all new files",
+				&cli.StringFlag{
+					Name:  "loudnessborder, lb",
+					Usage: "Sets loudness border (everything lower than ln treated as silence)",
+					Value: "-72.0",
 				},
 				&cli.StringFlag{
-					Name:  "repeat, r",
-					Usage: "repeat action every N seconds",
+					Name:  "duration, d",
+					Usage: "Sets minimal duration for silence to record",
+					Value: "2",
 				},
 			},
 			Action: func(c *cli.Context) error {
-				logger.INFO("Run Searcher")
-				if c.GlobalString("delay") != "" {
-					sec := utils.TimeStampToSeconds(c.GlobalString("delay"))
-					for i := 0; i <= sec; i++ {
-						fmt.Print("Searcher will start in ", stamp.Seconds(int64(sec-i)), "                       \r")
-						time.Sleep(time.Second)
+				args := c.Args()
+				for _, v := range args {
+					lb, err := strconv.ParseFloat(c.String("loudnessborder"), 64)
+					if lb > 0 {
+						lb = lb * -1
 					}
-					fmt.Print("\n")
-					fcli.RunConsole("dirmaker", "daily", "-clean")
-				}
-				restart := true
-				if c.String("repeat") != "" {
-					restart = true
-				}
-				for restart {
-					if c.GlobalBool("vocal") {
-						logger.ShoutWhen(glog.LogLevelALL) //вещаем в терминал все сообщения логгера
-					}
-					if c.GlobalBool("clear") {
-						utils.ClearScreen() //обновляем экран
-					}
-					takeFile, err := scanner.Scan(root, marker) //сканируем
 					if err != nil {
-						logger.ERROR("scan failed: " + err.Error())
+						fmt.Println(err)
+						return err
 					}
-					if len(takeFile) == 0 { //если ничего не найдено смотрим надо ли ждать
-						err = repeatIfNeeded(c)
-						switch err { //                    если ничего не найдено смотрим надо ли ждать
-						default: //                        и ждем поле чего начинаем поиск с начала
-							logger.TRACE(err.Error())
-							fmt.Printf("%v: New files not found\n", time.Now().Format("2006-01-02 15:04:05.000"))
-							continue
-						case nil: //                       или выходим
-							logger.TRACE("End Program")
-							fmt.Print("Searcher: End Program")
-							restart = false
-							os.Exit(0)
-						}
+					d, err := strconv.ParseFloat(c.String("duration"), 64)
+					if err != nil {
+						fmt.Println(err)
+						return err
 					}
-					takeFile = scanner.SortPriority(takeFile) //сортируем список readyFile
-					if c.Bool("check") {
-						fileList := scanner.ListReady(takeFile)
-						arguments := append([]string{"check"}, fileList...)
-						fcli.RunConsole("inchecker", arguments...) //проверяем инчекером
-					}
-					if c.Bool("grab") {
-						fileReady := takeFile[0] // берем первый
-						prog := "grabber"
-						args := []string{}
-						if c.Bool("vocal") {
-							args = append(args, "--vocal")
-						}
-						args = append(args, "takeready")
-						args = append(args, "-connectedwith")
-						args = append(args, fileReady)
-						fcli.RunConsole(prog, args...) //хватем найденое
-						//fmt.Println("RUN:", prog, args)
-						restart = true
+					si, err := silence.Detect(v, lb, d, c.GlobalBool("vocal"))
+					if err != nil {
+						fmt.Println(err)
+					} else {
+						fmt.Println(si)
+						fmt.Println(si.Timings())
 					}
 				}
-				repeatIfNeeded(c)
 				return nil
 			},
 		},
+		//////////////////////////////////////
+		// {
+		// Name:  "list",
+		// Usage: "List all files in NAS",
+		// Flags: []cli.Flag{},
+		// Action: func(c *cli.Context) error {
+		// takeFile, err := scanner.Scan(root, "") //сканируем
+		// if err != nil {
+		//fmt.Println(err)
+		// logger.ERROR("scan failed: " + err.Error())
+		//return err
+		// }
+		// lenFiles := len(takeFile)
+		// for i, val := range takeFile {
+		// fmt.Println("Scan position:", i+1, "/", lenFiles)
+		// stat, _ := os.Stat(val)
+		// if stat.IsDir() {
+		// fmt.Println("Skip")
+		// continue
+		// }
+		// fcli.RunConsole("inchecker", val) //проверяем инчекером
+		// }
+		// return nil
+		// },
+		// },
+		//////////////////////////////////////
+
 	}
 	args := os.Args
 	if len(args) < 2 {
@@ -273,18 +130,6 @@ func main() {
 	if err := app.Run(args); err != nil {
 		fmt.Println(err.Error())
 	}
-}
-
-func repeatIfNeeded(c *cli.Context) error {
-	if c.String("repeat") != "" {
-		wait := utils.TimeStampToSeconds(c.String("repeat"))
-		for i := 0; i < wait; i++ {
-			fmt.Print("Next scan in ", stamp.Seconds(int64(wait-i)), "                 \r")
-			time.Sleep(time.Second)
-		}
-		return fmt.Errorf("Waited %v\r", stamp.Seconds(int64(wait)))
-	}
-	return nil
 }
 
 /*
@@ -299,34 +144,6 @@ func repeatIfNeeded(c *cli.Context) error {
 
 
 */
-
-func sortResults(list []string) []string {
-	sorted := []string{}
-	for _, val := range list {
-		if strings.Contains(val, ".srt") {
-			sorted = append(sorted, val)
-		}
-	}
-	for _, val := range list {
-		if strings.Contains(val, ".ready") {
-			sorted = append(sorted, val)
-		}
-	}
-	for _, val := range list {
-		if strings.Contains(val, "_Proxy_") {
-			sorted = append(sorted, val)
-		}
-	}
-	for _, val := range list {
-		if strings.Contains(val, ".m4a") {
-			sorted = append(sorted, val)
-		}
-	}
-	for _, val := range list {
-		sorted = utils.AppendUniqueStr(sorted, val)
-	}
-	return sorted
-}
 
 /*
 
