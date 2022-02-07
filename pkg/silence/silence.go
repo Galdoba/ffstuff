@@ -25,6 +25,10 @@ type silence struct {
 	totalDuration float64
 }
 
+func (si *silence) Coords() []timeCoord {
+	return si.coords
+}
+
 //Detect - слушает файл и возвращает координаты тишины
 func Detect(path string, loudnessBorder, duration float64, visual bool) (*silence, error) {
 	//Pre-check
@@ -44,7 +48,7 @@ func Detect(path string, loudnessBorder, duration float64, visual bool) (*silenc
 	//Body:
 	fmt.Printf("File: %v\nScanning for silence segments below %v Db with duration more than %v seconds...\n", path, loudnessBorder, duration)
 	listenReport, err := command.New(
-		command.CommandLineArguments(fmt.Sprintf("ffmpeg -i %v -vn -af silencedetect=n=%vdB:d=%v -f null - -loglevel info", path, loudnessBorder, duration)),
+		command.CommandLineArguments(fmt.Sprintf("ffmpeg -i %v -ss 150 -vn -af silencedetect=n=%vdB:d=%v -f null - -loglevel info", path, loudnessBorder, duration)),
 		command.Set(mode),
 		command.Set(command.BUFFER_ON),
 	)
@@ -165,6 +169,14 @@ func ffTimeStampToFloat64(stamp string) float64 {
 type timeCoord struct {
 	start    float64
 	duration float64
+}
+
+func (c timeCoord) Start() float64 {
+	return c.start
+}
+
+func (c timeCoord) Duration() float64 {
+	return c.duration
 }
 
 //end - предпологаймая точка конца пустоты

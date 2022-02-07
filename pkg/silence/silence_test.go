@@ -3,6 +3,8 @@ package silence
 import (
 	"fmt"
 	"testing"
+
+	"github.com/Galdoba/ffstuff/pkg/info"
 )
 
 func TestDetect(t *testing.T) {
@@ -10,7 +12,9 @@ func TestDetect(t *testing.T) {
 		for _, dur := range testDurat() {
 			for _, ld := range testLoudness() {
 				//fmt.Printf("start test %v\npath: %v\ndur %v\nloud %v\n", n, path, dur, ld)
-				si, err := Detect(path, ld, dur, false)
+				durat, err := info.Duration(path)
+				fmt.Println(durat, err)
+				si, err := Detect(path, ld, dur, true)
 				if err != nil {
 					t.Errorf("Detect returned error:\nfile = '%v'\nerror = '%v'\n", si, err)
 				}
@@ -27,8 +31,9 @@ func TestDetect(t *testing.T) {
 
 func testPaths() []string {
 	return []string{
-		"d:\\IN\\IN_2021-12-27\\The_Big_Bang_Theory_s06e01_AUDIO20_FOR_SYNC.m4a",
-		"d:\\IN\\IN_2021-12-27\\The_Big_Bang_Theory_s06e01_KURAZH20.m4a",
+		"d:\\MUX\\tests\\Ryad_19_TRL_AUDIORUS51.m4a",
+		"d:\\MUX\\tests\\Shang-Chi_and_the_Legend_of_the_Ten_Rings_AUDIOENG51.m4a",
+		"d:\\MUX\\tests\\Shang-Chi_and_the_Legend_of_the_Ten_Rings_AUDIORUS51.m4a",
 	}
 }
 

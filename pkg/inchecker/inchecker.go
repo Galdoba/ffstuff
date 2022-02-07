@@ -149,6 +149,10 @@ func (ch *Checker) checkDuration(path string) error {
 	return nil
 }
 
+func CollectInfo(f ffinfo.File, stream int, key string) string {
+	return collectInfo(f, stream, key)
+}
+
 func (ch *Checker) checkCodecName(path string) error {
 	switch collectInfo(ch.data[path], 0, ffinfoCodecType) {
 	case codecTypeAudio:
