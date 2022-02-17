@@ -7,6 +7,7 @@ import (
 
 	"os"
 
+	"github.com/olekukonko/tablewriter"
 	"github.com/urfave/cli"
 
 	"github.com/Galdoba/ffstuff/fldr"
@@ -99,30 +100,24 @@ func main() {
 
 						ir.files = append(ir.files, *newFileReport(f))
 					}
-					fmt.Println(ir.String())
-					ungraceful := false
-					for _, fl := range ir.files {
-						if len(ir.files) == 0 {
-							os.Exit(0)
-						}
-
-						if fl.issues[checkByLoudnorm] == "No data provided" {
-							source := fl.filepath
-							repPath := reportPathLN(source)
-							fmt.Println(fl.filepath)
-							fmt.Println("Scanning...")
-							info.MakeLoudnormReport(source, repPath)
-							ungraceful = true
-							break
-						} else {
-							continue
-						}
-					}
-					if ungraceful {
-						continue
-					}
 					ir.Print()
-					done = true
+
+					if !ir.allFilesReported() {
+						for _, fl := range ir.files {
+							if fl.loudnormReport == false {
+								source := fl.filepath
+								repPath := reportPathLN(source)
+								fmt.Println(fl.filepath)
+								fmt.Println("Scanning...")
+								info.MakeLoudnormReport(source, repPath)
+								break
+							}
+
+						}
+					} else {
+						done = true
+					}
+
 					// if len(validSources) > 0 {
 					// 	source := validSources[0]
 
@@ -174,6 +169,15 @@ track - запускает треккер
 
 */
 
+func (ir *issuesReport) allFilesReported() bool {
+	for _, fl := range ir.files {
+		if !fl.loudnormReport {
+			return false
+		}
+	}
+	return true
+}
+
 func reportPathLN(source string) string {
 	filename := strings.TrimSuffix(namedata.RetrieveShortName(source), ".m4a")
 	repDirectory := namedata.RetrieveDirectory(source)
@@ -198,11 +202,15 @@ func newIssueReport() *issuesReport {
 	return &issuesReport{reportPath: issueFilePath}
 }
 
-func (ir *issuesReport) String() string {
+func clearScreen() {
 	cmd := exec.Command("cmd", "/c", "cls") //Windows example, its tested
 	cmd.Stdout = os.Stdout
 	cmd.Run()
-	rep := fmt.Sprintf("Tracking %v file(s):\n%v", len(ir.files), ir.Summary())
+}
+
+func (ir *issuesReport) String() string {
+
+	rep := fmt.Sprintf("Tracking %v file(s):%v ", len(ir.files), ir.Summary())
 	rep += "--------------------------------------------------------------------------------\n"
 	for _, fr := range ir.files {
 		rep += fr.String()
@@ -212,7 +220,31 @@ func (ir *issuesReport) String() string {
 }
 
 func (ir *issuesReport) Print() {
-	fmt.Println("Here be Total Summary Table...")
+	clearScreen()
+	data := [][]string{}
+	for _, fl := range ir.files {
+		flData := []string{namedata.RetrieveShortName(fl.filepath)}
+		switch fl.loudnormReport {
+		case true:
+			for _, d := range info.LoudnormData(reportPathLN(fl.filepath)) {
+				flData = append(flData, d)
+			}
+		case false:
+			flData = append(flData, "No Data")
+			flData = append(flData, "No Data")
+			flData = append(flData, "No Data")
+
+		}
+
+		data = append(data, flData)
+	}
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader([]string{"File", "RA", "channels", "stats"})
+	table.SetAlignment(tablewriter.ALIGN_CENTER)
+	table.SetColumnAlignment([]int{tablewriter.ALIGN_LEFT, tablewriter.ALIGN_RIGHT, tablewriter.ALIGN_CENTER, tablewriter.ALIGN_CENTER})
+	table.SetBorder(false) // Set Border to false
+	table.AppendBulk(data) // Add Bulk Data
+	table.Render()
 
 }
 
@@ -238,22 +270,29 @@ func (ir *issuesReport) Summary() string {
 }
 
 type fileReport struct {
-	filepath string
-	issues   map[int]string
+	filepath       string
+	loudnormReport bool
+	issues         map[int]string
+	data           []string
 }
 
 func newFileReport(path string) *fileReport {
 	fr := fileReport{}
 	fr.filepath = path
+	lnPath := reportPathLN(fr.filepath)
+	if _, err := os.Stat(lnPath); err == nil {
+		fr.loudnormReport = true
+	}
 	fr.issues = make(map[int]string)
 	for _, checkType := range allChecks {
-		fr.issues[checkType] = "No data provided"
+		//fr.issues[checkType] = "No data provided"
 		if checkType == checkByLoudnorm {
-			lnPath := reportPathLN(fr.filepath)
+
 			if _, err := os.Stat(lnPath); err != nil {
 				continue
 			}
-			fr.issues[checkType] = info.LoudnormReportToString(lnPath)
+			//	fr.issues[checkType] = info.LoudnormReportToString(lnPath)
+			//	info.LoudnormData(lnPath)
 		}
 	}
 	return &fr

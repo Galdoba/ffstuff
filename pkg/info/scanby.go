@@ -90,6 +90,15 @@ func LoudnormReportToString(path string) string {
 	return repStr
 }
 
+func LoudnormData(path string) []string {
+	_, err := os.Stat(path)
+	if err != nil {
+		return []string{`no data`, `%data corrupted%`, `%data corrupted%`}
+	}
+	rep := reportOnScanningLoudnorm(path)
+	return rep
+}
+
 func addSummary(path string, rep []string) error {
 	f, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
 	if err != nil {
@@ -113,40 +122,55 @@ func loudnormReportPath(path string) string {
 
 func findRA(input string) string {
 	re := regexp.MustCompile(`RA: ([0-9]*\.[0-9]*)`)
-	return re.FindString(input)
+	str := re.FindString(input)
+	str = strings.TrimPrefix(str, "RA:")
+	str = strings.TrimSpace(str)
+	return str
 }
 
 func findChannels(input string) string {
 	//channels: -3 -4 0 -10 -10 -10
 	//re := regexp.MustCompile(`((channels: (-\d{1,}|0) (-\d{1,}|0) $)|(channels: (-\d{1,}|0) (-\d{1,}|0) (-\d{1,}|0) (-\d{1,}|0) (-\d{1,}|0) (-\d{1,}|0) $))`)
 	re := regexp.MustCompile(`channels: (-\d{1,}|0).*$`)
-	return re.FindString(input)
+	str := re.FindString(input)
+	str = strings.TrimPrefix(str, "channels: ")
+	str = strings.TrimSpace(str)
+	return str
 }
 
 func findStats(input string) string {
 	//channels: -3 -4 0 -10 -10 -10
 	re := regexp.MustCompile(`(\d*<\d*<\d*)`)
+	str := re.FindString(input)
+	str = strings.TrimSpace(str)
 	return re.FindString(input)
 }
 
 func reportOnScanningLoudnorm(path string) []string {
 	warns := []string{}
+	foundData := make(map[string]string)
 	lines := readReport(path)
+	foundData["RA"] = `%data corrupted%`
+	foundData["CHN"] = `%data corrupted%`
+	foundData["STATS"] = `%data corrupted%`
 	for _, l := range lines {
 		if strings.Contains(l, "RA: ") {
 			ra := findRA(l)
-			warns = append(warns, ra)
+			foundData["RA"] = ra
 		}
 		if strings.Contains(l, "channels:") {
 			chn := findChannels(l)
-			warns = append(warns, chn)
+			foundData["CHN"] = chn
+
 		}
 		if strings.Contains(l, "ST stats clean") {
 			chn := findStats(l)
-			warns = append(warns, "stats: "+chn)
+			foundData["STATS"] = chn
 		}
-
 	}
+	warns = append(warns, foundData["RA"])
+	warns = append(warns, foundData["CHN"])
+	warns = append(warns, foundData["STATS"])
 	return warns
 }
 

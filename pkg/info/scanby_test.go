@@ -1,7 +1,14 @@
 package info
 
-import "testing"
+import (
+	"fmt"
+	"testing"
+)
 
-func Loudnorm_Test(t *testing.T) {
-	//uwpReg := "[ABCDEFGHXY][0123456789ABCDEF][0123456789ABCDEF][0123456789A][0123456789ABCDEF][0123456789ABCDEF][0123456789ABCDEFGHJ]-[0123456789ABCDEFGHJKL]"
+func TestLoudnormData(t *testing.T) {
+	data := LoudnormData("d:\\IN\\IN_2022-02-17\\proxy\\The_Magicians_s03e04_AUDIORUS20_loudnorm_report.txt")
+	fmt.Println(data, "----")
+	for i, d := range data {
+		fmt.Println(i, d)
+	}
 }
