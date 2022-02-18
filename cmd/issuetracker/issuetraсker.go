@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os/exec"
+	"strconv"
 	"strings"
 
 	"os"
@@ -22,6 +23,9 @@ const (
 	checkByLoudnorm = iota
 	checkBySoundscanFAST
 	checkBySoundscanFULL
+	LoudnormScan  = "loudnormSCAN"
+	SounddcanFAST = "sounscanFAST"
+	SounddcanFULL = "sounscanFULL"
 )
 
 var configMap map[string]string
@@ -106,7 +110,7 @@ func main() {
 						for _, fl := range ir.files {
 							if fl.loudnormReport == false {
 								source := fl.filepath
-								repPath := reportPathLN(source)
+								repPath := reportPath(source, LoudnormScan)
 								fmt.Println(fl.filepath)
 								fmt.Println("Scanning...")
 								info.MakeLoudnormReport(source, repPath)
@@ -178,10 +182,10 @@ func (ir *issuesReport) allFilesReported() bool {
 	return true
 }
 
-func reportPathLN(source string) string {
+func reportPath(source, reportType string) string {
 	filename := strings.TrimSuffix(namedata.RetrieveShortName(source), ".m4a")
 	repDirectory := namedata.RetrieveDirectory(source)
-	return repDirectory + "proxy\\" + filename + "_loudnorm_report.txt"
+	return repDirectory + "reports\\" + filename + "." + reportType
 }
 
 func createIssueFile() {
@@ -221,32 +225,174 @@ func (ir *issuesReport) String() string {
 
 func (ir *issuesReport) Print() {
 	clearScreen()
-	data := [][]string{}
+	table := tablewriter.NewWriter(os.Stdout)
 	for _, fl := range ir.files {
 		flData := []string{namedata.RetrieveShortName(fl.filepath)}
 		switch fl.loudnormReport {
 		case true:
-			for _, d := range info.LoudnormData(reportPathLN(fl.filepath)) {
+			for _, d := range info.LoudnormData(reportPath(fl.filepath, LoudnormScan)) {
 				flData = append(flData, d)
 			}
 		case false:
 			flData = append(flData, "No Data")
 			flData = append(flData, "No Data")
 			flData = append(flData, "No Data")
+			flData = append(flData, "No Data")
 
 		}
-
-		data = append(data, flData)
+		colors := assignColors(flData)
+		table.Rich(flData, colors)
 	}
-	table := tablewriter.NewWriter(os.Stdout)
-	table.SetHeader([]string{"File", "RA", "channels", "stats"})
+	table.SetHeader([]string{"File", "IL", "RA", "channels", "stats"})
 	table.SetAlignment(tablewriter.ALIGN_CENTER)
-	table.SetColumnAlignment([]int{tablewriter.ALIGN_LEFT, tablewriter.ALIGN_RIGHT, tablewriter.ALIGN_CENTER, tablewriter.ALIGN_CENTER})
-	table.SetBorder(false) // Set Border to false
-	table.AppendBulk(data) // Add Bulk Data
+	table.SetColumnAlignment([]int{tablewriter.ALIGN_LEFT, tablewriter.ALIGN_RIGHT, tablewriter.ALIGN_RIGHT, tablewriter.ALIGN_CENTER, tablewriter.ALIGN_CENTER})
+	table.SetColumnSeparator("|")
 	table.Render()
 
 }
+
+func assignColors(dataRow []string) []tablewriter.Colors {
+	colors := []tablewriter.Colors{}
+	for i, dt := range dataRow {
+		chosenColor := tablewriter.Colors{}
+		switch {
+		default:
+			switch i {
+			case 2:
+				chosenColor = processRAdata(dt)
+			case 3:
+				chosenColor = processChannelsData(dt)
+			case 4:
+				chosenColor = processStatsData(dt)
+			}
+		case dt == "data corrupted":
+			chosenColor = tablewriter.Colors{tablewriter.FgRedColor}
+		case dt == "No Data":
+			chosenColor = tablewriter.Colors{tablewriter.FgYellowColor}
+		}
+		colors = append(colors, chosenColor)
+	}
+	return colors
+}
+
+func processRAdata(data string) tablewriter.Colors {
+	col := tablewriter.Colors{}
+	ra, err := strconv.ParseFloat(data, 64)
+	if err != nil {
+		return tablewriter.Colors{tablewriter.FgYellowColor}
+	}
+	if ra >= 19 {
+		col = tablewriter.Colors{tablewriter.FgYellowColor}
+	}
+	if ra >= 20 {
+		col = tablewriter.Colors{tablewriter.FgHiRedColor}
+	}
+	return col
+}
+
+func processChannelsData(data string) tablewriter.Colors {
+	col := tablewriter.Colors{}
+	channel := []int{}
+	chanStr := strings.Fields(data)
+	for _, v := range chanStr {
+		ch, err := strconv.Atoi(v)
+		if err != nil {
+			return tablewriter.Colors{tablewriter.FgRedColor}
+		}
+		channel = append(channel, ch)
+	}
+	switch len(channel) {
+	default:
+		return tablewriter.Colors{tablewriter.FgRedColor}
+	case 2:
+		if difference(channel[0], channel[1]) == 1 {
+			return tablewriter.Colors{tablewriter.FgYellowColor}
+		}
+		if difference(channel[0], channel[1]) > 1 {
+			return tablewriter.Colors{tablewriter.FgHiRedColor}
+		}
+	case 6:
+		if difference(channel[2], 0) > 0 {
+			col = tablewriter.Colors{tablewriter.FgYellowColor}
+		}
+		if difference(channel[2], 0) > 1 {
+			col = tablewriter.Colors{tablewriter.FgHiRedColor}
+		}
+		if difference(channel[0], channel[1]) > 1 {
+			return tablewriter.Colors{tablewriter.FgHiRedColor}
+		}
+		if difference(channel[4], channel[5]) > 1 {
+			return tablewriter.Colors{tablewriter.FgHiRedColor}
+		}
+	}
+
+	return col
+}
+
+func processStatsData(data string) tablewriter.Colors {
+	col := tablewriter.Colors{}
+	stat := []int{}
+	chanStr := strings.Split(data, "<")
+	for _, v := range chanStr {
+		ch, err := strconv.Atoi(v)
+		if err != nil {
+			return tablewriter.Colors{tablewriter.FgHiRedColor}
+		}
+		stat = append(stat, ch)
+	}
+	warn := 0
+	if stat[0] >= 75 {
+		warn++
+	}
+	if stat[0] >= 80 {
+		warn++
+	}
+	if stat[1] <= 25 {
+		warn++
+	}
+	if stat[1] <= 20 {
+		warn++
+	}
+	if stat[2] <= 5 {
+		warn++
+	}
+	if stat[2] <= 3 {
+		warn++
+	}
+	if warn > 0 {
+		col = tablewriter.Colors{tablewriter.FgYellowColor}
+	}
+	if warn > 2 {
+		col = tablewriter.Colors{tablewriter.FgHiRedColor}
+	}
+
+	return col
+}
+
+func difference(a, b int) int {
+	if a > b {
+		return a - b
+	}
+	return b - a
+}
+
+/*
+colorData1 := []string{"TestCOLOR1Merge", "HelloCol2 - COLOR1", "HelloCol3 - COLOR1", "HelloCol4 - COLOR1"}
+for i, row := range data {
+	if i == 4 {
+		table.Rich(colorData1,
+			[]tablewriter.Colors{
+				tablewriter.Colors{},
+				tablewriter.Colors{tablewriter.Normal, tablewriter.FgCyanColor},
+				tablewriter.Colors{tablewriter.Bold, tablewriter.FgWhiteColor},
+				tablewriter.Colors{},
+			})
+
+	}
+	table.Append(row)
+}
+
+*/
 
 func (ir *issuesReport) Summary() string {
 	noData := 0
@@ -279,7 +425,7 @@ type fileReport struct {
 func newFileReport(path string) *fileReport {
 	fr := fileReport{}
 	fr.filepath = path
-	lnPath := reportPathLN(fr.filepath)
+	lnPath := reportPath(fr.filepath, LoudnormScan)
 	if _, err := os.Stat(lnPath); err == nil {
 		fr.loudnormReport = true
 	}

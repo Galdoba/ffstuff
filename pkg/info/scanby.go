@@ -39,10 +39,6 @@ func MakeSoundscanReport(path, export string, checkDepth int) error {
 	if err = listenReport.Run(); err != nil {
 		return err
 	}
-	// rep := reportOnScanningSoundscan(export)
-	// if err = addSummary(export, rep); err != nil {
-	// 	return err
-	// }
 	return err
 }
 
@@ -61,63 +57,29 @@ func MakeLoudnormReport(path, export string) error {
 	if err = listenReport.Run(); err != nil {
 		return err
 	}
-	//rep := reportOnScanningLoudnorm(export)
-	// if err = addSummary(export, rep); err != nil {
-	// 	return err
-	// }
-	return err
-}
 
-type loudnormResult struct {
-	filePath   string
-	ra         float64
-	channels   []int
-	timeLevels []int
-}
-
-func LoudnormReportToString(path string) string {
-	_, err := os.Stat(path)
-	if err != nil {
-		return `%data corrupted%`
-	}
-	//lines := readReport(path)
-	rep := reportOnScanningLoudnorm(path)
-	repStr := strings.Join(rep, " ")
-	repStr = strings.TrimSpace(repStr)
-	if repStr == "" {
-		return "%%data corrupted%%"
-	}
-	return repStr
+	return nil
 }
 
 func LoudnormData(path string) []string {
 	_, err := os.Stat(path)
 	if err != nil {
-		return []string{`no data`, `%data corrupted%`, `%data corrupted%`}
+		return []string{"data corrupted", "data corrupted", "data corrupted", "data corrupted"}
 	}
 	rep := reportOnScanningLoudnorm(path)
 	return rep
 }
 
-func addSummary(path string, rep []string) error {
-	f, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	if _, err = f.WriteString("\nSUMMARY\n"); err != nil {
-		return err
-	}
-	for _, line := range rep {
-		if _, err = f.WriteString(line + "\n"); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func loudnormReportPath(path string) string {
 	return strings.TrimSuffix(path, ".m4a") + "_loudnorm_report.txt"
+}
+
+func findIL(input string) string {
+	re := regexp.MustCompile(`I: -([0-9]*\.[0-9]*)`)
+	str := re.FindString(input)
+	str = strings.TrimPrefix(str, "I:")
+	str = strings.TrimSpace(str)
+	return str
 }
 
 func findRA(input string) string {
@@ -129,8 +91,6 @@ func findRA(input string) string {
 }
 
 func findChannels(input string) string {
-	//channels: -3 -4 0 -10 -10 -10
-	//re := regexp.MustCompile(`((channels: (-\d{1,}|0) (-\d{1,}|0) $)|(channels: (-\d{1,}|0) (-\d{1,}|0) (-\d{1,}|0) (-\d{1,}|0) (-\d{1,}|0) (-\d{1,}|0) $))`)
 	re := regexp.MustCompile(`channels: (-\d{1,}|0).*$`)
 	str := re.FindString(input)
 	str = strings.TrimPrefix(str, "channels: ")
@@ -139,7 +99,6 @@ func findChannels(input string) string {
 }
 
 func findStats(input string) string {
-	//channels: -3 -4 0 -10 -10 -10
 	re := regexp.MustCompile(`(\d*<\d*<\d*)`)
 	str := re.FindString(input)
 	str = strings.TrimSpace(str)
@@ -148,84 +107,37 @@ func findStats(input string) string {
 
 func reportOnScanningLoudnorm(path string) []string {
 	warns := []string{}
+	searchData := []string{"IL", "RA", "CHN", "STATS"}
 	foundData := make(map[string]string)
 	lines := readReport(path)
-	foundData["RA"] = `%data corrupted%`
-	foundData["CHN"] = `%data corrupted%`
-	foundData["STATS"] = `%data corrupted%`
+	for _, d := range searchData {
+		foundData[d] = "data corrupted"
+	}
 	for _, l := range lines {
-		if strings.Contains(l, "RA: ") {
+		switch {
+		case strings.Contains(l, "RA: "):
+			il := findIL(l)
+			foundData["IL"] = il
 			ra := findRA(l)
 			foundData["RA"] = ra
-		}
-		if strings.Contains(l, "channels:") {
+		case strings.Contains(l, "channels:"):
 			chn := findChannels(l)
 			foundData["CHN"] = chn
-
-		}
-		if strings.Contains(l, "ST stats clean") {
+		case strings.Contains(l, "ST stats clean"):
 			chn := findStats(l)
 			foundData["STATS"] = chn
 		}
+
 	}
-	warns = append(warns, foundData["RA"])
-	warns = append(warns, foundData["CHN"])
-	warns = append(warns, foundData["STATS"])
+	for _, d := range searchData {
+		warns = append(warns, foundData[d])
+	}
 	return warns
 }
 
 func prependStr(sl []string, elem string) []string {
 	slNew := []string{elem}
 	return append(slNew, sl...)
-}
-
-func channelWarning(channels []int) string {
-	warn := "ok"
-	switch len(channels) {
-	default:
-		return fmt.Sprintf("unexpected number of channels (%v channels)", len(channels))
-	case 2:
-		left := channels[0]
-		right := channels[1]
-		if left-right > 2 {
-			return fmt.Sprintf("right channel loudness anomaly (%v Db)", left-right)
-		}
-		if right-left > 2 {
-			return fmt.Sprintf("left channel loudness anomaly (%v Db)", right-left)
-		}
-	case 6:
-		l := channels[0]
-		r := channels[1]
-		c := channels[2]
-		//lfe := channels[3]
-		ls := channels[4]
-		rs := channels[5]
-		for _, val := range channels {
-			if c-val < 0 {
-				return fmt.Sprintf("Center is not the loudest channel %v", channels)
-			}
-		}
-		if l-r > 2 {
-			return fmt.Sprintf("right channel loudness anomaly (%v Db)", l-r)
-		}
-		if r-l > 2 {
-			return fmt.Sprintf("right channel loudness anomaly (%v Db)", r-l)
-		}
-		if ls-rs > 2 {
-			return fmt.Sprintf("right channel loudness anomaly (%v Db)", ls-rs)
-		}
-		if rs-ls > 2 {
-			return fmt.Sprintf("right channel loudness anomaly (%v Db)", rs-ls)
-		}
-	}
-	return warn
-}
-
-func loudnesRangeWarning(lr float64) string {
-	if lr > 20 {
-		return fmt.Sprintf("Loudness Range invalid (%v)", lr)
-	}
-	return "ok"
 }
 
 func readReport(path string) []string {
@@ -236,6 +148,7 @@ func readReport(path string) []string {
 	}
 	defer file.Close()
 	scanner := bufio.NewScanner(file)
+
 	for scanner.Scan() {
 		lines = append(lines, scanner.Text())
 	}
