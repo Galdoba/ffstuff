@@ -69,7 +69,7 @@ func main() {
 	//logPath := configMap[constant.MuxPath] + "MUX_" + utils.DateStamp() + "\\logfile.txt"
 	//logger = glog.New(logPath, glog.LogLevelINFO)
 	logger = glog.New(glog.LogPathDEFAULT, glog.LogLevelINFO)
-	destination := configMap[constant.InPath] + "IN_" + utils.DateStamp() + "\\"
+	destination := configMap[constant.InPath] + "IN_work" + "\\"
 	app := cli.NewApp()
 	app.Version = "v 0.0.3"
 	app.Name = "grabber"

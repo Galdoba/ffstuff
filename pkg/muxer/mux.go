@@ -139,7 +139,7 @@ func checkFileExistiense(t *Task) []error {
 
 func checkOutputFileExistience(t *Task) error {
 	body := strings.TrimPrefix(baseOf(t), t.path)
-	f := fldr.OutPath() + body + "_" + t.instruction + ".mp4"
+	f := fldr.OutPath(false) + body + "_" + t.instruction + ".mp4"
 	fmt.Println(f)
 	_, err := os.Stat(f)
 	if err == nil {
@@ -174,7 +174,7 @@ func MuxV2(t *Task) error {
 		args2 = append(args2, "-map", "3:s", "-metadata:s:s:0", "language=rus")
 	}
 	//fldr.OutPath() + body + "_" + t.instruction + ".mp4"
-	args2 = append(args2, fldr.OutPath()+OutputFile(t))
+	args2 = append(args2, fldr.OutPath(false)+OutputFile(t))
 	_, _, err := cli.RunConsole(prog, args2...)
 	return err
 }

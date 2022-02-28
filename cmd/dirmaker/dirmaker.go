@@ -72,11 +72,13 @@ func main() {
 			Usage: "Create today's work directories and daily files",
 			Action: func(c *cli.Context) error {
 				paths := []string{
+					configMap[constant.InPath] + "IN_work" + "\\",
 					configMap[constant.InPath] + "IN_" + utils.DateStamp() + "\\",
 					configMap[constant.InPath] + "IN_" + utils.DateStamp() + "\\proxy\\",
 					configMap[constant.InPath] + "IN_" + utils.DateStamp() + "\\reports\\",
 					configMap[constant.MuxPath] + "MUX_" + utils.DateStamp() + "\\",
 					configMap[constant.OutPath] + "OUT_" + utils.DateStamp() + "\\",
+					configMap[constant.OutPath] + "OUT_unchecked" + "\\",
 				}
 				for _, path := range paths {
 					dir := fldr.New("", fldr.Set(fldr.AddressFormula, path))

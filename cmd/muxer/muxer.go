@@ -54,9 +54,6 @@ func main() {
 				}
 				path := fldr.MuxPath()
 				tasks, listError := muxer.MuxListV2(path)
-				fmt.Println("Mux List Constructed")
-				logger.TRACE("mux list Constructed")
-
 				switch {
 				default:
 					logger.TRACE("no errors detected")

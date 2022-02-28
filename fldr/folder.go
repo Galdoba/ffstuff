@@ -76,8 +76,11 @@ func MuxPath() string {
 }
 
 //OutPath - Возвращает сегодняшнюю папку для проверки/отправки
-func OutPath() string {
-	return outFolder + "OUT_" + utils.DateStamp() + "\\"
+func OutPath(dynamic bool) string {
+	if dynamic {
+		return outFolder + "OUT_" + utils.DateStamp() + "\\"
+	}
+	return outFolder + "OUT_unchecked" + "\\"
 }
 
 // func SelectEDL() string {
