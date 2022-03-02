@@ -82,8 +82,12 @@ func main() {
 						fmt.Println(err)
 						continue
 					}
+					for _, p := range task.InputFilePaths() {
+						fmt.Printf("HERE BE: move '%v' to done\n", p)
+					}
 
 					logger.TRACE("Task Complete: " + task.Line())
+
 				}
 				logger.INFO("Muxig Complete")
 				///
@@ -100,6 +104,7 @@ func main() {
 					configMap[constant.InPath] + "IN_" + utils.DateStamp() + "\\proxy\\",
 					configMap[constant.MuxPath] + "MUX_" + utils.DateStamp() + "\\",
 					configMap[constant.OutPath] + "OUT_" + utils.DateStamp() + "\\",
+					configMap[constant.OutPath] + "OUT_unchecked" + "\\",
 				}
 				for _, path := range paths {
 					dir := fldr.New("",

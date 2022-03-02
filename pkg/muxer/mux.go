@@ -254,6 +254,23 @@ func (t *Task) Line() string {
 	return t.input
 }
 
+func (t *Task) InputFilePaths() []string {
+	paths := []string{}
+	if t.video != "" {
+		paths = append(paths, t.video)
+	}
+	if t.audio1 != "" {
+		paths = append(paths, t.audio1)
+	}
+	if t.audio2 != "" {
+		paths = append(paths, t.audio2)
+	}
+	if t.subtitles != "" {
+		paths = append(paths, t.subtitles)
+	}
+	return paths
+}
+
 func (t *Task) Validate() {
 	//base := baseOf(t)
 	a1, a2, s := decodeInstruction(t)
