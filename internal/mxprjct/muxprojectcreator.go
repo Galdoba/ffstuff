@@ -2,6 +2,8 @@ package mxprjct
 
 import (
 	"fmt"
+	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -10,6 +12,7 @@ type muxProject struct {
 	inputA         []string
 	inputS         string
 	expectedResult string
+	projectCommand string
 }
 
 func Create(inputPaths []string) (*muxProject, error) {
@@ -18,14 +21,17 @@ func Create(inputPaths []string) (*muxProject, error) {
 		return &mp, err
 	}
 	mp.sortAudio()
-	fmt.Println(mp, "------")
 	mp.projectResult()
-	fmt.Println(mp.expectedResult, "------")
+	mp.projectCommand = "TODO by *.bat"
+
 	return &mp, nil
 }
 
 func (mp *muxProject) fillInput(inputPaths []string) error {
 	for _, path := range inputPaths {
+		if err := assertWorkname(path); err != nil {
+			return err
+		}
 		pathUP := strings.ToUpper(path)
 		decodedData := decodeWorkFileName(path)
 		if decodedData.err != nil {
@@ -50,7 +56,12 @@ func (mp *muxProject) sortAudio() {
 	newOrder = append(newOrder, pickTag(mp.inputA, "rus"))
 	newOrder = append(newOrder, pickTag(mp.inputA, "eng"))
 	newOrder = append(newOrder, pickTag(mp.inputA, "qqq"))
-	mp.inputA = newOrder
+	mp.inputA = nil
+	for _, ord := range newOrder {
+		if ord != "" {
+			mp.inputA = append(mp.inputA, ord)
+		}
+	}
 }
 
 func pickTag(allTags []string, tag string) string {
@@ -65,13 +76,10 @@ func pickTag(allTags []string, tag string) string {
 func (mp *muxProject) projectResult() error {
 	result := ""
 	dVid := decodeWorkFileName(mp.inputV)
-	fmt.Println(dVid)
 	result = dVid.base + "_a"
 	for _, aud := range mp.inputA {
 		dAud := decodeWorkFileName(aud)
-		if dVid.base != dAud.base {
-			return fmt.Errorf("not the same base")
-		}
+
 		for k, v := range dAud.tags {
 			if v {
 				result += shortenTag(k)
@@ -95,13 +103,13 @@ func shortenTag(t string) string {
 	case "_rus51":
 		return "r6"
 	case "_eng20":
-		return "r2"
+		return "e2"
 	case "_eng51":
-		return "r6"
+		return "e6"
 	case "_qqq20":
-		return "r2"
+		return "q2"
 	case "_qqq51":
-		return "r6"
+		return "q6"
 	}
 }
 
@@ -155,4 +163,29 @@ func soundTags() []string {
 		}
 	}
 	return tags
+}
+
+func assertWorkname(wn string) error {
+	if !strings.Contains(wn, "__") {
+		return fmt.Errorf("workname [%v] does not contain main splitter '__'", wn)
+	}
+	data := strings.Split(wn, "_")
+	for i, part := range data {
+		if i == 0 {
+			continue
+		}
+		if part != "" {
+			continue
+		}
+		re, errCompile := regexp.Compile(`[0-9][0-9][0-9][0-9]`)
+		if errCompile != nil {
+			return errCompile
+		}
+		str := re.FindString(data[i-1])
+		_, err := strconv.Atoi(str)
+		if err != nil {
+			return fmt.Errorf("workname's [%v] year is not a number [%v]", wn, str)
+		}
+	}
+	return nil
 }
