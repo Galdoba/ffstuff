@@ -8,11 +8,12 @@ import (
 )
 
 type muxProject struct {
-	inputV         string
-	inputA         []string
-	inputS         string
-	expectedResult string
-	projectCommand string
+	inputV          string
+	inputA          []string
+	inputS          string
+	expectedResult  string
+	muxInstructions []string
+	projectCommand  string
 }
 
 func Create(inputPaths []string) (*muxProject, error) {
@@ -22,6 +23,8 @@ func Create(inputPaths []string) (*muxProject, error) {
 	}
 	mp.sortAudio()
 	mp.projectResult()
+
+	fmt.Println(mp.muxInstructions)
 	mp.projectCommand = "TODO by *.bat"
 
 	return &mp, nil
@@ -76,7 +79,8 @@ func pickTag(allTags []string, tag string) string {
 func (mp *muxProject) projectResult() error {
 	result := ""
 	dVid := decodeWorkFileName(mp.inputV)
-	result = dVid.base + "_a"
+	mp.muxInstructions = append(mp.muxInstructions, dVid.base+".mp4")
+	result = "a"
 	for _, aud := range mp.inputA {
 		dAud := decodeWorkFileName(aud)
 
@@ -86,11 +90,13 @@ func (mp *muxProject) projectResult() error {
 			}
 		}
 	}
+	mp.muxInstructions = append(mp.muxInstructions, result)
 	if mp.inputS != "" {
 		result += "_sr"
+		mp.muxInstructions = append(mp.muxInstructions, "sub")
 	}
-	result += ".mp4"
-	mp.expectedResult = result
+
+	mp.expectedResult = dVid.base + "_" + result + ".mp4"
 	return nil
 }
 
