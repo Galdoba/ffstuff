@@ -57,7 +57,6 @@ func MakeLoudnormReport(path, export string) error {
 	if err = listenReport.Run(); err != nil {
 		return err
 	}
-
 	return nil
 }
 

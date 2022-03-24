@@ -353,10 +353,10 @@ func processStatsData(data string) tablewriter.Colors {
 	if stat[1] <= 20 {
 		warn++
 	}
-	if stat[2] <= 5 {
+	if stat[2] <= 3 {
 		warn++
 	}
-	if stat[2] <= 3 {
+	if stat[2] <= 1 {
 		warn++
 	}
 	if warn > 0 {
