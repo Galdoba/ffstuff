@@ -48,6 +48,7 @@ func reportOnScanningSoundscan(path string) []string {
 
 func MakeLoudnormReport(path, export string) error {
 	listenReport, err := command.New(
+		command.Set(command.BUFFER_ON),
 		command.CommandLineArguments(fmt.Sprintf("loudnorm %v -scan", path)),
 		command.WriteToFile(export),
 	)
@@ -57,6 +58,19 @@ func MakeLoudnormReport(path, export string) error {
 	if err = listenReport.Run(); err != nil {
 		return err
 	}
+	if err := exportTest("---OUT:\n"+listenReport.StdOut()+"---ERROR:\n"+listenReport.StdErr(), export+"2"); err != nil {
+		return err
+	}
+	return nil
+}
+
+func exportTest(buffer, path string) error {
+	file, fileErr := os.Create(path)
+	if fileErr != nil {
+		fmt.Println(fileErr)
+		return fmt.Errorf("exportTest: %v", fileErr.Error())
+	}
+	fmt.Fprintf(file, "%s\n", buffer)
 	return nil
 }
 

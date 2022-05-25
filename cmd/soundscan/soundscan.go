@@ -9,13 +9,12 @@ import (
 	"github.com/urfave/cli"
 
 	"github.com/Galdoba/ffstuff/pkg/config"
-	"github.com/Galdoba/ffstuff/pkg/glog"
 	"github.com/Galdoba/ffstuff/pkg/silence"
 )
 
 var configMap map[string]string
 
-var logger glog.Logger
+//var logger glog.Logger
 var logLocation string
 
 func init() {
@@ -40,7 +39,7 @@ func main() {
 	// 	logLocation = fldr.MuxPath() + "logfile.txt"
 	// }
 	//logger = glog.New(logLocation, glog.LogLevelINFO)
-	logger = glog.New(glog.LogPathDEFAULT, glog.LogLevelINFO)
+	//logger = glog.New(glog.LogPathDEFAULT, glog.LogLevelINFO)
 	app := cli.NewApp()
 	app.Version = "v 0.0.1"
 	app.Name = "soundscan"

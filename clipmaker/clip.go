@@ -179,3 +179,33 @@ func (cl *clip) formArgs() []string {
 	//fmt.Print(ssStamp, tStamp)
 	return argums
 }
+
+func CutClipD(cl clip, sourceDir, targetDir string) (string, []string) {
+	program := "ffmpeg"
+	argums := cl.formArgsD(sourceDir, targetDir)
+	fmt.Println(argums)
+	//cli.RunConsole(program, argums...)
+	//"ffmpeg", "-i", file, "-map", "0:0", "-vcodec", "copy", "-an", "-t", premToFF(timeLen), "-ss", premToFF(timeStart), outputFile
+	return program, argums
+}
+
+func (cl *clip) formArgsD(sourceDir, targetDir string) []string {
+	var argums []string
+
+	//sdfsdf
+	ssStamp := strconv.FormatFloat(cl.clipStart, 'f', 3, 64)
+	tStamp := strconv.FormatFloat(cl.clipDuration, 'f', 3, 64)
+	switch cl.sourceFileType {
+	case ".mp4":
+		cl.targetFileName = targetDir + shortName(cl.sourceFileName) + "_VCLIP_" + indexStr(cl.index) + extention(cl.sourceFileName)
+		argums = []string{"-i", sourceDir + cl.sourceFileName, "-an", "-map", "0:0", "-vcodec", "copy", "-ss", ssStamp, "-t", tStamp, cl.targetFileName}
+
+	case ".m4a":
+		cl.targetFileName = targetDir + shortName(cl.sourceFileName) + "_ACLIP_" + indexStr(cl.index) + extention(cl.sourceFileName)
+		argums = []string{"-i", sourceDir + cl.sourceFileName, "-vn", "-acodec", "copy", "-ss", ssStamp, "-t", tStamp, cl.targetFileName}
+	default:
+		fmt.Print("----------" + cl.sourceFileType + "------\n")
+	}
+	//fmt.Print(ssStamp, tStamp)
+	return argums
+}

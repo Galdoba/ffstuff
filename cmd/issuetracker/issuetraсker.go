@@ -50,11 +50,11 @@ func init() {
 		}
 	}
 	root = fldr.InPath()
-	issueFilePath = root + "issues.txt"
-	if _, err := os.Stat(issueFilePath); err != nil {
-		os.Create(issueFilePath)
-		fmt.Println("File created:", issueFilePath)
-	}
+	// issueFilePath = root + "issues.txt"
+	// if _, err := os.Stat(issueFilePath); err != nil {
+	// 	os.Create(issueFilePath)
+	// 	fmt.Println("File created:", issueFilePath)
+	// }
 	allChecks = []int{checkByLoudnorm} //, checkBySoundscanFAST, checkBySoundscanFULL}
 
 }
@@ -89,9 +89,20 @@ func main() {
 					Usage: "If used creates loop to run issuetraker every x seconds",
 					Value: "180",
 				},
+				&cli.StringFlag{
+					Name:   "dir",
+					Usage:  "sets directories to scan audio",
+					EnvVar: "",
+					Value:  root,
+				},
 			},
 			Action: func(c *cli.Context) error {
 				done := false
+				root := c.String("dir")
+				err := os.Mkdir(root+"\\reports", 0700)
+				if err != nil {
+					fmt.Printf("program error: %v", err.Error())
+				}
 				for !done {
 					ir := newIssueReport()
 					found, err := scanner.Scan(root, ".m4a")

@@ -196,19 +196,30 @@ func ReadProgramConfig(program string) (Config, error) {
 	conf := Config{}
 	conf.Program = program
 	conf.Field = make(map[string]string)
-	dir, file := configPathLocked(program)
-	conf.Path = dir + "\\" + file
+	dirW, dirL, file := configPathLocked(program)
+	conf.Path = dirW + "\\" + file
 	f, err := os.OpenFile(conf.Path, os.O_RDONLY, 0600)
+	errStr := ""
 	if err != nil {
-		fmt.Println(err.Error())
-		errStr := err.Error()
-		if strings.Contains(errStr, "cannot find the file") {
-			return conf, errors.New("Config file not found")
-		}
-		if strings.Contains(errStr, "cannot find the path") {
-			return conf, errors.New("Config file not found")
+		//fmt.Println("Try 1", err.Error())
+		errStr = err.Error()
+	}
+	if errStr != "" {
+		errStr = ""
+		conf.Path = dirL + "\\" + file
+		f, err = os.OpenFile(conf.Path, os.O_RDONLY, 0600)
+		if err != nil {
+			//	fmt.Println("Try 2", err.Error())
+			errStr = err.Error()
 		}
 	}
+	if strings.Contains(errStr, "cannot find the file") {
+		return conf, errors.New("Config file not found")
+	}
+	if strings.Contains(errStr, "cannot find the path") {
+		return conf, errors.New("Config file not found")
+	}
+
 	defer f.Close()
 	for _, ln := range utils.LinesFromTXT(f.Name()) {
 		k, v := parseKeyValYAML(ln)
@@ -218,20 +229,22 @@ func ReadProgramConfig(program string) (Config, error) {
 	return conf, nil
 }
 
-func configPathLocked(programName string) (string, string) {
+func configPathLocked(programName string) (string, string, string) {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	configDir := ""
+	configDirWN := ""
+	configDirLN := ""
 	switch runtime.GOOS {
 	case "windows":
 
-		configDir = home + "\\config\\" + programName // + exe + ".config"
+		configDirWN = home + "\\config\\" + programName  // + exe + ".config"
+		configDirLN = home + "\\.config\\" + programName // + exe + ".config"
 
 	}
-	return configDir, programName + ".config"
+	return configDirWN, configDirLN, programName + ".config"
 }
 
 /*
