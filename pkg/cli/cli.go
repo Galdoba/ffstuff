@@ -10,7 +10,7 @@ import (
 	"github.com/Galdoba/utils"
 )
 
-//TODO: перестроить так чтобы запускальщик работал по типу фабрики
+// TODO: перестроить так чтобы запускальщик работал по типу фабрики
 /*
 Пример:
 cli.Run(                                                           //-имя явно поменять что-то типа RunProgram или Setup
@@ -22,12 +22,12 @@ cli.Run(                                                           //-имя я�
 
 */
 
-//RunConsole - запускает в дефолтовом терминале cli программу
+// RunConsole - запускает в дефолтовом терминале cli программу
 func RunConsole(program string, args ...string) (string, io.Writer, error) {
 	var line []string
 	line = append(line, program)
 	line = append(line, args...)
-	//fmt.Println("Run:", line)
+	// fmt.Println("Run:", line)
 
 	time.Sleep(time.Millisecond * 2)
 	cmd := exec.Command(program, args...)
@@ -40,19 +40,19 @@ func RunConsole(program string, args ...string) (string, io.Writer, error) {
 	return sOUT, cmd.Stderr, err
 }
 
-//RunConsole - запускает в дефолтовом терминале cli программу
+// RunConsole - запускает в дефолтовом терминале cli программу
 func RunToFile(file, program string, args ...string) (io.Writer, error) {
 	var line []string
 	line = append(line, program)
 	line = append(line, args...)
-	//fmt.Println("Run:", line)
+	// fmt.Println("Run:", line)
 	var o bytes.Buffer
 	var e bytes.Buffer
 	time.Sleep(time.Millisecond * 2)
 	cmd := exec.Command(program, args...)
 	cmd.Stdout = &o //os.Stdout
-	//output, _ := cmd.CombinedOutput()
-	//sOUT := string(output)
+	// output, _ := cmd.CombinedOutput()
+	// sOUT := string(output)
 	cmd.Stderr = &e //os.Stderr
 	err := cmd.Run()
 	sOUT := string(o.Bytes()) + "\n" + string(e.Bytes())
@@ -60,7 +60,7 @@ func RunToFile(file, program string, args ...string) (io.Writer, error) {
 	return cmd.Stderr, err
 }
 
-//RunToBuffer - запускает в дефолтовом терминале cli программу но результат пишет в переменные
+// RunToBuffer - запускает в дефолтовом терминале cli программу но результат пишет в переменные
 func RunToBuffer(program string, args ...string) (string, string, error) {
 	var line []string
 	line = append(line, program)
@@ -76,7 +76,7 @@ func RunToBuffer(program string, args ...string) (string, string, error) {
 	return o.String(), e.String(), err
 }
 
-//RunToAll - запускает в дефолтовом терминале cli программу и копирует stdout/stderr в переменные
+// RunToAll - запускает в дефолтовом терминале cli программу и копирует stdout/stderr в переменные
 func RunToAll(program string, args ...string) (string, string, error) {
 	var line []string
 	line = append(line, program)
@@ -96,12 +96,12 @@ type Task struct {
 	agruments []string
 }
 
-//NewTask - создает объект содержащий инструкции для отправки в командную строку
+// NewTask - создает объект содержащий инструкции для отправки в командную строку
 func NewTask(program string, arguments []string) Task {
 	return Task{program, arguments}
 }
 
-//String - возвращает строку для консоли
+// String - возвращает строку для консоли
 func (t Task) String() string {
 	s := t.program
 	for _, arg := range t.agruments {
@@ -110,13 +110,13 @@ func (t Task) String() string {
 	return s
 }
 
-//Run - выполняет инструкции
+// Run - выполняет инструкции
 func (t *Task) Run() error {
 	_, _, err := RunConsole(t.program, t.agruments...)
 	return err
 }
 
-//Run - выполняет инструкции
+// Run - выполняет инструкции
 func (t *Task) LastArg() string {
 	l := len(t.agruments)
 	return t.agruments[l-1]
