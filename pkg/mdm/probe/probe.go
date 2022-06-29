@@ -28,7 +28,7 @@ func NewMedia(path string) (*Media, error) {
 	mr.data = f.String()
 	com, err := command.New(command.CommandLineArguments(fmt.Sprintf("ffprobe -i %v", path)),
 		command.Set(command.BUFFER_ON),
-		command.Set(command.TERMINAL_ON),
+		command.Set(command.TERMINAL_OFF),
 	)
 	if err != nil {
 		return &mr, err
@@ -46,9 +46,20 @@ type mediaFileReport struct {
 	aData    []audioData
 }
 
+type issue struct {
+	level string
+	text  string
+}
+
 type videoData struct {
 	fps        string
 	dimentions dimentions
+	issues     []string
+}
+
+type dimentions struct {
+	width  int
+	height int
 }
 
 type audioData struct {
@@ -56,11 +67,6 @@ type audioData struct {
 	chanNum    int
 	sampleRate int
 	language   string
-}
-
-type dimentions struct {
-	width  int
-	height int
 }
 
 func (d *dimentions) String() string {
