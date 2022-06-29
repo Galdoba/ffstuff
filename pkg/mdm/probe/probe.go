@@ -8,10 +8,20 @@ import (
 	"gopkg.in/AlecAivazis/survey.v1"
 )
 
+const (
+	mediaTypeTrailer4K = "Trailer 4K"
+	mediaTypeTrailerHD = "Trailer HD"
+	mediaTypeTrailerSD = "Trailer SD"
+	mediaTypeFilm4K    = "Film 4K"
+	mediaTypeFilmHD    = "Film HD"
+	mediaTypeFilmSD    = "Film SD"
+	mediaPureSound     = "Sound"
+)
+
 type Media struct {
-	data            string
-	f               *ffinfo.File
-	mediaReportType string
+	data      string
+	f         *ffinfo.File
+	mediaType string
 }
 
 type Report interface {
@@ -21,10 +31,12 @@ type Report interface {
 func NewMedia(path string) (*Media, error) {
 	f, e := ffinfo.Probe(path)
 	mr := Media{}
+
 	if e != nil {
 		return nil, e
 	}
 	mr.f = f
+	mr.mediaType = mediaTypeTrailerHD
 	mr.data = f.String()
 	com, err := command.New(command.CommandLineArguments(fmt.Sprintf("ffprobe -i %v", path)),
 		command.Set(command.BUFFER_ON),
@@ -105,7 +117,7 @@ func (mr Media) MediaFileReport() *mediaFileReport {
 				vid.fps = "25 fps"
 			}
 			vid.dimentions = dimentions{stream.Width, stream.Height}
-
+			//vid.issues = dimentionIssue(vid.dimentions, targetDimentions(mr.mediaType))
 			inRep.vData = append(inRep.vData, vid)
 		case "audio":
 			aud := audioData{}
@@ -117,12 +129,24 @@ func (mr Media) MediaFileReport() *mediaFileReport {
 		}
 
 	}
-	fmt.Println(mr.f.String())
+	//fmt.Println(mr.f.String())
 	fmt.Println(mr.f.Format.Filename)
 	fmt.Println("------------")
 	fmt.Println(inRep)
 
 	return &inRep
+}
+
+func targetDimentions(mType string) dimentions {
+	switch mType {
+	default:
+		return dimentions{1, 1}
+	case mediaTypeFilmHD, mediaTypeTrailerHD:
+		return dimentions{1920, 1080}
+	case mediaTypeFilm4K, mediaTypeTrailer4K:
+		return dimentions{1920, 1080}
+
+	}
 }
 
 func (inR mediaFileReport) String() string {
@@ -140,6 +164,20 @@ func (inR mediaFileReport) String() string {
 		}
 		str += fmt.Sprintf(" Stream %v: %v", i, inR.aData[i].String())
 
+	}
+	issues := []string{}
+	for _, vid := range inR.vData {
+		for _, is := range vid.issues {
+			if is != "" {
+				issues = append(issues, is)
+			}
+		}
+	}
+	if len(issues) > 0 {
+		str += fmt.Sprintln("ISSUES:")
+		for _, iss := range issues {
+			str += fmt.Sprintf("%v\n", iss)
+		}
 	}
 	return str
 }
@@ -164,4 +202,23 @@ func SelectAudio(mr *mediaFileReport) []string {
 
 func (ad *audioData) String() string {
 	return fmt.Sprintf("audio: %v, %v channels (%v)", ad.chanLayout, ad.chanNum, ad.language)
+}
+
+func dimentionIssue(actual, target dimentions) string {
+	if actual.width == target.width && actual.height == target.height {
+		return ""
+	}
+	if actual.width < target.width && actual.height < target.height {
+		return "Dimention to small for target"
+	}
+	if actual.width >= target.width && actual.height <= target.height {
+		return "Need Downscale"
+	}
+	if actual.width <= target.width && actual.height >= target.height {
+		return "Need Downscale"
+	}
+	if actual.width > target.width && actual.height > target.height {
+		return "Need Downscale"
+	}
+	return "Issue unknown"
 }

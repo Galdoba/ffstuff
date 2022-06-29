@@ -8,7 +8,7 @@ import (
 	"github.com/Galdoba/ffstuff/fldr"
 	"github.com/Galdoba/ffstuff/pkg/config"
 	"github.com/Galdoba/ffstuff/pkg/glog"
-	"github.com/Galdoba/ffstuff/pkg/muxer"
+	"github.com/Galdoba/ffstuff/pkg/mdm/muxer"
 	"github.com/Galdoba/utils"
 	"github.com/urfave/cli"
 )

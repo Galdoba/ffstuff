@@ -66,7 +66,7 @@ func main() {
 	// 	logLocation = fldr.MuxPath() + "logfile.txt"
 	// }
 	//logger = glog.New(logLocation, glog.LogLevelINFO)
-	logger = glog.New(glog.LogPathDEFAULT, glog.LogLevelINFO)
+	//logger = glog.New(glog.LogPathDEFAULT, glog.LogLevelINFO)
 
 	app := cli.NewApp()
 	app.Version = "v 0.0.1"
@@ -90,10 +90,11 @@ func main() {
 					Value: "180",
 				},
 				&cli.StringFlag{
-					Name:   "dir",
-					Usage:  "sets directories to scan audio",
-					EnvVar: "",
-					Value:  root,
+					Name:     "dir",
+					Usage:    "sets directories to scan audio",
+					EnvVar:   "",
+					Required: true,
+					//Value:  root,
 				},
 			},
 			Action: func(c *cli.Context) error {

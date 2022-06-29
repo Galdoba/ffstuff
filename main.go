@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/Galdoba/ffstuff/pkg/probe"
+	"github.com/Galdoba/ffstuff/pkg/mdm/probe"
 	"gopkg.in/AlecAivazis/survey.v1"
 )
 

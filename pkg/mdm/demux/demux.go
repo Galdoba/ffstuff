@@ -37,6 +37,19 @@ clear
 && touch /home/aakkulov/IN/TASK_COMPLETE_Сквозь_огонь_Through_the_fire.mkv.txt
 */
 
+type demuxValuesPreset struct {
+	manual            bool
+	yadif             bool
+	downscale         bool
+	crf               int
+	atempo            int
+	asetrate          int
+	acodec            string
+	compression_level string
+	map_metadata      string
+	map_chapters      string
+}
+
 //   decode.Video(path string) (string, error)
 
 /*
