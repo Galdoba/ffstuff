@@ -1,7 +1,6 @@
 package main
 
 import (
-	"github.com/Galdoba/ffstuff/pkg/mdm/probe"
 	"gopkg.in/AlecAivazis/survey.v1"
 )
 
@@ -30,7 +29,7 @@ var qs = []*survey.Question{
 func main() {
 	// the answers will be written to this struct
 
-	media, _ := probe.NewMedia(`d:\IN\IN_testInput\trailers\CRUELLA_iEST_TLRE_HD_2398_51_20_16x9_185_RUS_D1415623.mov`)
-	mr := media.MediaFileReport()
-	probe.SelectAudio(mr)
+	// media, _ := probe.NewMedia(`d:\IN\IN_testInput\trailers\CRUELLA_iEST_TLRE_HD_2398_51_20_16x9_185_RUS_D1415623.mov`)
+	// mr := media.MediaFileReport()
+	// probe.SelectAudio(mr)
 }

@@ -41,18 +41,16 @@ func TestProbe(t *testing.T) {
 	}
 	for _, path := range paths {
 		fmt.Println("  ")
-		mo, err := NewMedia(path)
+		mo, err := MediaFileReport(path, mediaTypeTrailerHD)
 		if err != nil {
 			fmt.Println(err.Error())
 			t.Errorf("Media(path) returned error: %v", err.Error())
-
 		}
 		if mo == nil {
 			t.Errorf("Media(path) returned no object")
 			continue
 		}
-		rep := mo.MediaFileReport()
-		for _, vs := range rep.vData {
+		for _, vs := range mo.vData {
 			if strings.Contains(vs.fps, "unknown") {
 				t.Errorf("Video stream fps contains 'unknown': %v", vs)
 			}
@@ -60,10 +58,10 @@ func TestProbe(t *testing.T) {
 				t.Errorf("Video stream dimentions contains error: %v", vs.dimentions)
 			}
 		}
-		for _, as := range rep.aData {
+		for _, as := range mo.aData {
 			if strings.Contains(as.chanLayout, "unknown") {
 
-				t.Errorf("Audio stream chanLayout contains 'unknown': %v/%v", as.chanLayout, rep.filename)
+				t.Errorf("Audio stream chanLayout contains 'unknown': %v/%v", as.chanLayout, mo.filename)
 			}
 			if as.chanNum <= 0 {
 				t.Errorf("Audio stream chanelNum expected to be atleast 1 (hase %v)", as.chanNum)

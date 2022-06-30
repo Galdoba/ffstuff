@@ -18,44 +18,14 @@ const (
 	mediaPureSound     = "Sound"
 )
 
-type Media struct {
-	data      string
-	f         *ffinfo.File
-	mediaType string
-}
-
-type Report interface {
-	Report() string
-}
-
-func NewMedia(path string) (*Media, error) {
-	f, e := ffinfo.Probe(path)
-	mr := Media{}
-
-	if e != nil {
-		return nil, e
-	}
-	mr.f = f
-	mr.mediaType = mediaTypeTrailerHD
-	mr.data = f.String()
-	com, err := command.New(command.CommandLineArguments(fmt.Sprintf("ffprobe -i %v", path)),
-		command.Set(command.BUFFER_ON),
-		command.Set(command.TERMINAL_OFF),
-	)
-	if err != nil {
-		return &mr, err
-	}
-	com.Run()
-	mr.data += "\n" + com.StdOut() + "\n" + com.StdErr()
-
-	return &mr, e
-}
-
 type mediaFileReport struct {
-	filename string
-	name     string
-	vData    []videoData
-	aData    []audioData
+	filename  string
+	name      string
+	f         *ffinfo.File
+	data      string
+	mediaType string
+	vData     []videoData
+	aData     []audioData
 }
 
 type issue struct {
@@ -95,15 +65,32 @@ func (d *dimentions) String() string {
 
 */
 
-func (mr Media) MediaFileReport() *mediaFileReport {
-	allStreams := mr.f.Format.NbStreams
-	inRep := mediaFileReport{}
-	inRep.filename = mr.f.Format.Filename
+func MediaFileReport(path, mediaType string) (*mediaFileReport, error) {
+	report := mediaFileReport{}
+	f, e := ffinfo.Probe(path)
+	if e != nil {
+		return &report, e
+	}
+
+	report.filename = f.Format.Filename
+	report.mediaType = mediaType
+	report.data = f.String()
+	com, err := command.New(command.CommandLineArguments(fmt.Sprintf("ffprobe -i %v", path)),
+		command.Set(command.BUFFER_ON),
+		command.Set(command.TERMINAL_ON),
+	)
+	if err != nil {
+		return &report, err
+	}
+	com.Run()
+	report.data += "\n" + com.StdOut() + "\n" + com.StdErr()
+	allStreams := f.Format.NbStreams
+
 	for st := 0; st < allStreams; st++ {
-		stream := mr.f.Streams[st]
+		stream := f.Streams[st]
 		switch stream.CodecType {
 		default:
-			fmt.Println("DEBUG: unimplemented or inknown stream type: stream", st)
+			fmt.Println("DEBUG: unimplemented or unknown stream type: stream", st)
 		case "video":
 			vid := videoData{}
 			switch stream.RFrameRate {
@@ -118,23 +105,23 @@ func (mr Media) MediaFileReport() *mediaFileReport {
 			}
 			vid.dimentions = dimentions{stream.Width, stream.Height}
 			//vid.issues = dimentionIssue(vid.dimentions, targetDimentions(mr.mediaType))
-			inRep.vData = append(inRep.vData, vid)
+			report.vData = append(report.vData, vid)
 		case "audio":
 			aud := audioData{}
 			aud.chanNum = stream.Channels
 			aud.sampleRate = stream.Channels
 			aud.chanLayout = stream.ChannelLayout
 			aud.language = stream.Tags.Language
-			inRep.aData = append(inRep.aData, aud)
+			report.aData = append(report.aData, aud)
 		}
 
 	}
 	//fmt.Println(mr.f.String())
-	fmt.Println(mr.f.Format.Filename)
+	fmt.Println(f.Format.Filename)
 	fmt.Println("------------")
-	fmt.Println(inRep)
+	fmt.Println(report)
 
-	return &inRep
+	return &report, nil
 }
 
 func targetDimentions(mType string) dimentions {
