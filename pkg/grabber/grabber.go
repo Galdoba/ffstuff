@@ -44,7 +44,8 @@ func CopyFile(source string, destination string, flags ...bool) error {
 	srcBase := namedata.RetrieveShortName(source)
 	_, err := os.Stat(destination + srcBase)
 	if err == nil {
-		return errors.New("Copy exists: " + destination + srcBase)
+		fmt.Printf("Copy exists: %v%v\n", destination, srcBase)
+		return errors.New("Copy exists at destination")
 	}
 	//copy
 	in, err := os.Open(source)
@@ -91,8 +92,10 @@ func CopyFile(source string, destination string, flags ...bool) error {
 		}
 		time.Sleep(time.Millisecond * 1000)
 		if copySize >= sourceSize {
+			if vocal {
+				fmt.Println("")
+			}
 			doneCopying = true
-			fmt.Println("")
 		}
 	}
 

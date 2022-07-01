@@ -186,3 +186,24 @@ func sortByKeys(sl []string, keys ...string) []string {
 	}
 	return resSl
 }
+
+func ListAssosiated(readyPath string) ([]string, error) {
+	list := []string{}
+	marker := strings.TrimSuffix(readyPath, ".ready")
+	if marker == readyPath {
+		return list, fmt.Errorf("not fileReady")
+	}
+	root := namedata.RetrieveDirectory(marker)
+	marker = namedata.RetrieveShortName(marker)
+	list, err := Scan(root, marker)
+	if err != nil {
+		return list, err
+	}
+	result := []string{}
+	for _, f := range list {
+		if !strings.Contains(f, ".ready") {
+			result = append(result, f)
+		}
+	}
+	return result, nil
+}

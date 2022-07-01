@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/Galdoba/ffstuff/constant"
-	"github.com/Galdoba/ffstuff/fldr"
 	"github.com/Galdoba/ffstuff/pkg/config"
 	"github.com/Galdoba/ffstuff/pkg/glog"
 	"github.com/Galdoba/ffstuff/pkg/grabber"
@@ -69,7 +68,7 @@ func main() {
 	//logPath := configMap[constant.MuxPath] + "MUX_" + utils.DateStamp() + "\\logfile.txt"
 	//logger = glog.New(logPath, glog.LogLevelINFO)
 	logger = glog.New(glog.LogPathDEFAULT, glog.LogLevelINFO)
-	destination := configMap[constant.InPath] + "IN_work" + "\\"
+	destination := configMap[constant.InPath]
 	app := cli.NewApp()
 	app.Version = "v 0.0.3"
 	app.Name = "grabber"
@@ -78,6 +77,10 @@ func main() {
 		&cli.BoolFlag{
 			Name:  "vocal",
 			Usage: "If flag is active grabber set logLevel to TRACE (level INFO is set by default)",
+		},
+		&cli.StringFlag{
+			Name:  "destination, dest",
+			Usage: "Путь для закачки более приоритетный чем тот, что указан в конфиге",
 		},
 	}
 
@@ -88,20 +91,31 @@ func main() {
 			Usage: "Download only those files, that was received as arguments",
 			Action: func(c *cli.Context) error {
 				//paths := c.Args().Slice() //	path := c.String("path") //*cli.Context.String(key) - вызывает флаг с именем key и возвращает значение Value
-				paths := c.Args().Tail()
-				dest := destination
+				paths := c.Args()
+				if len(paths) == 0 {
+					fmt.Println("No arguments provided")
+					return nil
+				}
+				dest := ""
+				switch c.GlobalString("destination") {
+				default:
+					dest = c.GlobalString("destination")
+					fmt.Println("destination set as: " + c.GlobalString("destination"))
+				case "":
+					dest = destination
+				}
+
 				for _, path := range paths {
-					fmt.Println("GRABBER DOWNLOADING FILE:", path)
-					if strings.Contains(path, "_Proxy_") {
-						dest = dest + "proxy\\"
-					}
-					if strings.Contains(path, ".srt") {
-						dest = fldr.MuxPath()
-					}
-					err := grabber.CopyFile(path, dest)
+					fmt.Printf("GRABBER COPYING FILE: %v\n", path)
+					err := grabber.CopyFile(path, dest, true)
 					if err != nil {
-						fmt.Println(err.Error())
+						switch err.Error() {
+						case "Copy exists at destination":
+							continue
+						}
+						return err
 					}
+					fmt.Println("Complete...", path)
 				}
 				return nil
 			},
@@ -156,7 +170,7 @@ func main() {
 		},
 		////////////////////////////////////
 		{
-			Name:        "takeready",
+			Name:        "take",
 			ShortName:   "",
 			Aliases:     []string{},
 			Usage:       "Call Scanner to get list of new and ready files",
@@ -164,24 +178,54 @@ func main() {
 			Description: "TODO:Descr",
 			ArgsUsage:   "TODO:ArgsUsage",
 			Category:    "TODO:Category",
-			Flags: []cli.Flag{
-				&cli.StringFlag{
-					Name:     "connectedwith",
-					Usage:    "Setups exact .ready file to grab associated files with",
-					Required: true,
-				},
-			},
+
 			Action: func(c *cli.Context) error {
-				readyfile := c.String("connectedwith")
-				//	fmt.Println(readyfile)
-				if err := checkMediaFile(readyfile, ".ready"); err != nil {
-					logger.ERROR(err.Error())
-					return err
+				paths := c.Args()
+				if len(paths) == 0 {
+					fmt.Println("No arguments provided")
+					return nil
 				}
-				allFiles := scanner.ListReady([]string{readyfile})
-				allFiles = ensureValidOrder(allFiles)
-				if err := downloadAssociatedWith(logger, allFiles, destination); err != nil {
-					logger.ERROR(err.Error())
+				dest := ""
+
+				switch c.GlobalString("destination") {
+				default:
+					dest = c.GlobalString("destination")
+					fmt.Println("destination set as: " + c.GlobalString("destination"))
+					//TODO: отучить от необходимости ставить слэшь для аргумента
+				case "":
+					dest = destination
+				}
+				list := []string{}
+				for _, path := range paths {
+
+					if isReadyfile(path) {
+						assosiated, err := scanner.ListAssosiated(path)
+						if err != nil {
+							return fmt.Errorf("scanner.ListAssosiated(%v): %v", path, err.Error())
+						}
+						list = append(list, assosiated...)
+					}
+					list = append(list, path)
+				}
+
+				for _, path := range list {
+					if isReadyfile(path) {
+						fmt.Printf("delete: %v\n", path)
+						os.Remove(path)
+						continue
+					}
+
+					fmt.Printf("GRABBER COPYING FILE: %v\n", path)
+					err := grabber.CopyFile(path, dest, true)
+					if err != nil {
+						switch err.Error() {
+						case "Copy exists at destination":
+							continue
+						}
+						return err
+					}
+					fmt.Println("Complete...")
+
 				}
 				return nil
 			},
@@ -231,6 +275,14 @@ func downloadAssociatedWith(l glog.Logger, paths []string, destination string) e
 	}
 
 	return nil
+}
+
+func isReadyfile(path string) bool {
+	data := strings.Split(path, ".")
+	if data[len(data)-1] == "ready" {
+		return true
+	}
+	return false
 }
 
 func ensureValidOrder(sl []string) []string {
