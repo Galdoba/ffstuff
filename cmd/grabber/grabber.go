@@ -173,7 +173,7 @@ func main() {
 			Name:        "take",
 			ShortName:   "",
 			Aliases:     []string{},
-			Usage:       "Call Scanner to get list of new and ready files",
+			Usage:       "Grabs files to destination folder",
 			UsageText:   "TODO:Usage",
 			Description: "TODO:Descr",
 			ArgsUsage:   "TODO:ArgsUsage",
