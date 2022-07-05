@@ -108,7 +108,12 @@ func main() {
 					ir := newIssueReport()
 					found, err := scanner.Scan(root, ".m4a")
 					fmt.Println(err)
+
 					for _, f := range found {
+						dir := namedata.RetrieveDirectory(f)
+						if dir != root {
+							continue
+						}
 						_, err := os.Stat(f)
 						if err != nil {
 							fmt.Println(err.Error())
