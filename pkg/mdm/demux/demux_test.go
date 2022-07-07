@@ -5,13 +5,13 @@ import (
 	"testing"
 )
 
-func Test_AllAsIs(t *testing.T) {
-	paths := []string{
+func input() []string {
+	return []string{
 		`d:\IN\IN_testInput\trailers\AllAboutSex_Trailer_Rus_v2_PSH_1_PSH_2_H264.mp4`,
-		`d:\IN\IN_testInput\trailers\Belosnezhka_skazka_dlya_vzroslyh_TRL.mp4`,
-		`d:\IN\IN_testInput\trailers\ChungkingExpress_stereo_Trailer.mp4`,
-		`d:\IN\IN_testInput\trailers\CIApe_TRL_HD24_RU51.mov`,
-		`d:\IN\IN_testInput\trailers\CRUELLA_iEST_TLRE_HD_2398_51_20_16x9_185_RUS_D1415623.mov`,
+		// `d:\IN\IN_testInput\trailers\Belosnezhka_skazka_dlya_vzroslyh_TRL.mp4`,
+		// `d:\IN\IN_testInput\trailers\ChungkingExpress_stereo_Trailer.mp4`,
+		// `d:\IN\IN_testInput\trailers\CIApe_TRL_HD24_RU51.mov`,
+		// `d:\IN\IN_testInput\trailers\CRUELLA_iEST_TLRE_HD_2398_51_20_16x9_185_RUS_D1415623.mov`,
 		// `d:\IN\IN_testInput\trailers\Dixieland_1080p_185_16x9LB_2398_rus_preview_V1_PRO.mov`,
 		// `d:\IN\IN_testInput\trailers\EIFFEL_TRL_2.0.mp4`,
 		// `d:\IN\IN_testInput\trailers\eng20.png`,
@@ -38,7 +38,12 @@ func Test_AllAsIs(t *testing.T) {
 		// `d:\IN\IN_testInput\trailers\waveformTest.bat	`,
 		// `\\192.168.31.4\edit\_exchange\#PETR\s05e01_Rostelecom_FLASH_YR05_18_19_NORA_16x9_STEREO_5_1_2_0_LTRT_EPISODE_E2291774_RUSSIAN_ENGLISH_10750107.mpg`,
 	}
+}
+
+func Test_AllAsIs(t *testing.T) {
+	paths := input()
 	for _, path := range paths {
+		break
 		com, err := AllAsIs(path)
 		if err != nil {
 			t.Errorf("AllAsIs(%v)\n\treturned error: %v", path, err.Error())
@@ -52,3 +57,10 @@ func Test_AllAsIs(t *testing.T) {
 }
 
 //ffmpeg -i d:\IN\IN_testInput\trailers\CRUELLA_iEST_TLRE_HD_2398_51_20_16x9_185_RUS_D1415623.mov -map 0:0:0 -c:v copy d:\IN\IN_testInput\trailers\CRUELLA_iEST_TLRE_HD_2398_51_20_16x9_185_RUS_D1415623_RAW_0.mp4  -map 0:0:0 -c:a copy d:\IN\IN_testInput\trailers\CRUELLA_iEST_TLRE_HD_2398_51_20_16x9_185_RUS_D1415623_RAW_0.wav  -map 0:1:0 -c:a copy d:\IN\IN_testInput\trailers\CRUELLA_iEST_TLRE_HD_2398_51_20_16x9_185_RUS_D1415623_RAW_1.wav  -map 0:2:0 -c:a copy d:\IN\IN_testInput\trailers\CRUELLA_iEST_TLRE_HD_2398_51_20_16x9_185_RUS_D1415623_RAW_2.wav  -map 0:3:0 -c:a copy d:\IN\IN_testInput\trailers\CRUELLA_iEST_TLRE_HD_2398_51_20_16x9_185_RUS_D1415623_RAW_3.wav  -map 0:4:0 -c:a copy d:\IN\IN_testInput\trailers\CRUELLA_iEST_TLRE_HD_2398_51_20_16x9_185_RUS_D1415623_RAW_4.wav  -map 0:5:0 -c:a copy d:\IN\IN_testInput\trailers\CRUELLA_iEST_TLRE_HD_2398_51_20_16x9_185_RUS_D1415623_RAW_5.wav  -map 0:6:0 -c:a copy d:\IN\IN_testInput\trailers\CRUELLA_iEST_TLRE_HD_2398_51_20_16x9_185_RUS_D1415623_RAW_6.wav  -map 0:7:0 -c:a copy d:\IN\IN_testInput\trailers\CRUELLA_iEST_TLRE_HD_2398_51_20_16x9_185_RUS_D1415623_RAW_7.wav
+
+func TestVideoFCParameters(t *testing.T) {
+	paths := input()
+	for _, path := range paths {
+		fmt.Println(VideoFCLine(path))
+	}
+}

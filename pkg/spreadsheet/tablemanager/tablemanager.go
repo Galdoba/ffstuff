@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	"github.com/macroblock/imed/pkg/translit"
 )
 
 const (
@@ -40,7 +42,7 @@ type TableData interface {
 
 //tasks := spreadsheet.Parse(info)
 type TaskList struct {
-	task        []row
+	tasks       []row
 	parseErrors []error
 }
 
@@ -52,17 +54,14 @@ func TaskListFrom(sp TableData) *TaskList {
 			tl.parseErrors = append(tl.parseErrors, err)
 			continue
 		}
-		// if r.rowType != "INFO" {
-		// 	continue
-		// }
-		tl.task = append(tl.task, r)
+		tl.tasks = append(tl.tasks, r)
 	}
 	return &tl
 }
 
 func (tl *TaskList) Downloading() []row {
 	list := []row{}
-	for _, task := range tl.task {
+	for _, task := range tl.tasks {
 		if task.filmStatus != filmDownloading {
 			continue
 		}
@@ -76,7 +75,7 @@ func (tl *TaskList) Downloading() []row {
 
 func (tl *TaskList) ReadyForDemux() []row {
 	list := []row{}
-	for _, task := range tl.task {
+	for _, task := range tl.tasks {
 		if task.filmStatus != filmInBuffer {
 			continue
 		}
@@ -90,7 +89,10 @@ func (tl *TaskList) ReadyForDemux() []row {
 
 func (tl *TaskList) ReadyForEdit() []row {
 	list := []row{}
-	for _, task := range tl.task {
+	for _, task := range tl.tasks {
+		if task.rowType != rowTypeInfo {
+			continue
+		}
 		if task.filmStatus != filmInBuffer {
 			continue
 		}
@@ -119,11 +121,14 @@ clear  && mkdir -p /mnt/aakkulov/ROOT/IN/_MEGO_DISTRIBUTION/_DONE/Skvoz_ogon  &&
 && touch /home/aakkulov/IN/TASK_COMPLETE_Сквозь_огонь_Through_the_fire.mkv.txt
 */
 
-func ProposeTargetDirectory(tl *TaskList, task row) string {
-	path := `\\nas\root\EDIT\`
+func ProposeTargetDirectorySubFolder(tl *TaskList, task row) string {
+	path := ``
+	if task.rowType != rowTypeInfo {
+		return path
+	}
 	separator := row{}
 	folder1 := ""
-	for _, r := range tl.task {
+	for _, r := range tl.tasks {
 		if r.taskName == task.taskName {
 			break
 		}
@@ -132,12 +137,43 @@ func ProposeTargetDirectory(tl *TaskList, task row) string {
 			date, err := newDate(separator.taskName)
 			folder1 = date.pathFolder() + `\`
 			if err != nil {
-				folder1 = task.contragent + `\`
+				agent, err := translit.Do(task.contragent)
+				if err != nil {
+					agent = ""
+				}
+				folder1 = "_" + agent + `\`
 			}
 		}
 	}
-	path = path + folder1
+	path = path + folder1 + addSeasonSubFolder(task.taskName)
 	return path
+}
+
+func addSeasonSubFolder(name string) string {
+	name = strings.ToLower(name)
+	if !strings.Contains(name, " сезон") {
+		return ""
+	}
+	data := strings.Split(name, " сезон")
+	cleanData := ""
+	dataStr := strings.Split(data[0], "")
+	for _, v := range dataStr {
+		switch v {
+		default:
+			cleanData += " "
+		case "0", "1", "2", "3", "4", "5", "6", "7", "8", "9":
+			cleanData += v
+		}
+	}
+	digitSl := strings.Fields(cleanData)
+	lastDigit := digitSl[len(digitSl)-1]
+	nameData := strings.Split(name, lastDigit)
+	translitedName, err := translit.Do(nameData[0])
+	if err != nil {
+		return ""
+	}
+	translitedName = strings.Title(translitedName)
+	return translitedName + "_s" + lastDigit + `\`
 }
 
 func (d *date) pathFolder() string {

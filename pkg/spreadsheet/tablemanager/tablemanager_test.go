@@ -50,18 +50,32 @@ func TestListing(t *testing.T) {
 	fmt.Println("Downloading")
 	for _, task := range TaskList.Downloading() {
 		fmt.Println(task.String())
-		fmt.Println(ProposeTargetDirectory(TaskList, task))
 	}
 
 	fmt.Println("ReadyForDemux")
 	for _, task := range TaskList.ReadyForDemux() {
 		fmt.Println(task.String())
-		fmt.Println(ProposeTargetDirectory(TaskList, task))
 	}
 
 	fmt.Println("ReadyForEdit")
 	for _, task := range TaskList.ReadyForEdit() {
 		fmt.Println(task.String())
-		fmt.Println(ProposeTargetDirectory(TaskList, task))
+	}
+}
+
+func TestTargetDirectoryPath(t *testing.T) {
+	sheet, _ := spreadsheet.New()
+	//sheet.Update()
+	taskList := TaskListFrom(sheet)
+	for _, task := range taskList.tasks {
+		if task.rowType != rowTypeInfo {
+			continue
+		}
+		if task.path != "" {
+			continue
+		}
+		//propose := ProposeTargetDirectorySubFolder(taskList, task)
+		//fmt.Printf("%v (%v)\n", task.taskName, task.contragent)
+		//fmt.Printf("propose: %v\n", propose)
 	}
 }

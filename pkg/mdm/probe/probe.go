@@ -36,7 +36,28 @@ type issue struct {
 type videoData struct {
 	fps        string
 	dimentions dimentions
+	sar        string
+	dar        string
 	issues     []string
+}
+
+func (vd *videoData) String() string {
+	str := vd.dimentions.String()
+	if vd.dar+vd.sar != "" {
+		str += " ["
+		if vd.sar != "" {
+			str += "SAR " + vd.sar
+		}
+		if vd.dar != "" && vd.sar != "" {
+			str += " "
+		}
+		if vd.dar != "" {
+			str += "DAR " + vd.dar
+		}
+		str += "]"
+	}
+	str += " " + vd.fps
+	return str
 }
 
 type dimentions struct {
@@ -77,7 +98,7 @@ func MediaFileReport(path, mediaType string) (*mediaFileReport, error) {
 	report.data = f.String()
 	com, err := command.New(command.CommandLineArguments(fmt.Sprintf("ffprobe -i %v", path)),
 		command.Set(command.BUFFER_ON),
-		command.Set(command.TERMINAL_ON),
+		command.Set(command.TERMINAL_OFF),
 	)
 	if err != nil {
 		return &report, err
@@ -105,6 +126,8 @@ func MediaFileReport(path, mediaType string) (*mediaFileReport, error) {
 			}
 			vid.dimentions = dimentions{stream.Width, stream.Height}
 			//vid.issues = dimentionIssue(vid.dimentions, targetDimentions(mr.mediaType))
+			vid.sar = stream.SampleAspectRatio
+			vid.dar = stream.DisplayAspectRatio
 			report.vData = append(report.vData, vid)
 		case "audio":
 			aud := audioData{}
@@ -116,8 +139,8 @@ func MediaFileReport(path, mediaType string) (*mediaFileReport, error) {
 		}
 
 	}
-	//fmt.Println(mr.f.String())
-	fmt.Println(f.Format.Filename)
+	//fmt.Println(f.String())
+	//fmt.Println(f.Format.Filename)
 	fmt.Println("------------")
 	fmt.Println(report)
 
@@ -142,7 +165,7 @@ func (inR mediaFileReport) String() string {
 		if i == 0 {
 			str += fmt.Sprintf("Video:\n")
 		}
-		str += fmt.Sprintf(" Stream %v: %v, %v", i, inR.vData[i].dimentions.String(), inR.vData[i].fps)
+		str += fmt.Sprintf(" Stream %v: %v", i, inR.vData[i].String())
 		str += fmt.Sprintf("\n")
 	}
 	for i := 0; i < len(inR.aData); i++ {
@@ -150,6 +173,7 @@ func (inR mediaFileReport) String() string {
 			str += fmt.Sprintf("Audio:\n")
 		}
 		str += fmt.Sprintf(" Stream %v: %v", i, inR.aData[i].String())
+		str += fmt.Sprintf("\n")
 
 	}
 	issues := []string{}
@@ -188,7 +212,11 @@ func SelectAudio(mr *mediaFileReport) []string {
 }
 
 func (ad *audioData) String() string {
-	return fmt.Sprintf("audio: %v, %v channels (%v)", ad.chanLayout, ad.chanNum, ad.language)
+	str := fmt.Sprintf("audio: %v, %v channels", ad.chanLayout, ad.chanNum)
+	if ad.language != "" {
+		str += " (" + ad.language + ")"
+	}
+	return str
 }
 
 func dimentionIssue(actual, target dimentions) string {

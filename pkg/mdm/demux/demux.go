@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/Galdoba/devtools/cli/command"
 	"github.com/malashin/ffinfo"
 )
 
@@ -55,7 +56,7 @@ type demuxValuesPreset struct {
 /*
 АЛГОРИТМ
 Узнать базу имени для выходных файлов
-Узнать путь куда отправить выходные файлы
+Узнать путь куда отправить выходные файлы - ok
 Выбрать видеопоток который будет использоваться
     определить Видео Фильтр
         определить нужно ли резать видео
@@ -90,4 +91,19 @@ func AllAsIs(path string) (string, error) {
 		}
 	}
 	return output, nil
+}
+
+//VideoFCLine - должен дать параметры которые вставляются в filter_complex для видео
+func VideoFCLine(path string) (string, error) {
+	f, e := ffinfo.Probe(path)
+	if e != nil {
+		return "", e
+	}
+	com, _ := command.New(
+		command.CommandLineArguments(fmt.Sprintf("ffmpeg -i %v", path)),
+		command.Set(command.TERMINAL_ON),
+	)
+	com.Run()
+	fmt.Println(f)
+	return "FCLine", nil
 }
