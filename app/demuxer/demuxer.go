@@ -3,28 +3,54 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/urfave/cli"
 )
 
 func main() {
 	app := cli.NewApp()
-	app.Version = "v 0.0.0"
-	app.Name = "director"
-	app.Usage = "Scans media streams to tell the story..."
+	app.Version = "v 0.0.1"
+	app.Name = "demuxer"
+	app.Usage = "Анализирует файлы чтобы составить команду ffmpeg для демукса"
+	app.Description = "combine: inProgress\n	demux: TODO"
 	app.Flags = []cli.Flag{}
-	app.Commands = []cli.Command{}
-	args := []string{""}
-	if len(args) == 0 {
-		fmt.Println("No arguments provided")
-		os.Exit(0)
+	app.Commands = []cli.Command{
+		{
+			Name:        "combine",
+			ShortName:   "",
+			Usage:       "собирает звук 5.1 из 6 файлов wav",
+			UsageText:   "TODO: подробная справка",
+			Description: "TODO: подробное описание команды",
+			ArgsUsage:   "TODO: подробное описание как пользовать аргументы",
+
+			Action: func(c *cli.Context) error {
+				//ОСНОВНОЕ ТЕЛО
+				args := c.Args()
+
+				wavArgsFound := 0
+				for _, arg := range args {
+					trimmed := strings.TrimSuffix(arg, ".wav")
+					if trimmed != arg {
+						wavArgsFound++
+					}
+				}
+				//SUPERSTAR_TRL_5.1_MIX_86.0dB(Int).C.wav SUPERSTAR_TRL_5.1_MIX_86.0dB(Int).L.wav SUPERSTAR_TRL_5.1_MIX_86.0dB(Int).LFE.wav SUPERSTAR_TRL_5.1_MIX_86.0dB(Int).Ls.wav SUPERSTAR_TRL_5.1_MIX_86.0dB(Int).R.wav SUPERSTAR_TRL_5.1_MIX_86.0dB(Int).Rs.wav
+				if wavArgsFound != 6 {
+					return fmt.Errorf("ожидаю 6 wav файлов (получил %v)", wavArgsFound)
+				}
+				fmt.Println("Combine activated")
+				return nil
+			},
+		},
 	}
+	args := os.Args
+
 	if err := app.Run(args); err != nil {
 		fmt.Println("Here is my error:")
 		fmt.Println(err.Error())
 		os.Exit(1)
 	}
-	fmt.Println("Here is my story: ...")
 
 }
 

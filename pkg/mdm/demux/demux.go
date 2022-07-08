@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/Galdoba/devtools/cli/command"
+	"github.com/Galdoba/ffstuff/pkg/mdm/probe"
 	"github.com/malashin/ffinfo"
 )
 
@@ -38,6 +39,36 @@ clear
 && touch /home/aakkulov/IN/TASK_COMPLETE_Сквозь_огонь_Through_the_fire.mkv.txt
 */
 
+type demuxCommand struct {
+	inputPaths []string
+	fcValues   map[string]string
+	mapValues  map[string]string
+	outFiles   []string
+}
+
+func (dc *demuxCommand) Compose() (string, error) {
+	com := "ffmpeg -r 25 "
+	usedInputs := 0
+	for inputNum, inputFile := range dc.inputPaths {
+		com += fmt.Sprintf("-i %v ", inputFile)
+		usedInputs = inputNum + 1
+	}
+	if usedInputs == 0 {
+		return "", fmt.Errorf("no input specified")
+	}
+
+	return com, nil
+}
+
+func fcMapSortKeys(fcMap map[string]string) []string {
+	for fileNum := 0; fileNum < 30; fileNum++ { //video keys
+		for streamNum := 0; streamNum < 30; streamNum++ {
+
+		}
+	}
+	return nil
+}
+
 type demuxValuesPreset struct {
 	manual            bool
 	yadif             bool
@@ -55,8 +86,7 @@ type demuxValuesPreset struct {
 
 /*
 АЛГОРИТМ
-Узнать базу имени для выходных файлов
-Узнать путь куда отправить выходные файлы - ok
+соотнести файл(ы) с задачей в таблице
 Выбрать видеопоток который будет использоваться
     определить Видео Фильтр
         определить нужно ли резать видео
@@ -95,15 +125,15 @@ func AllAsIs(path string) (string, error) {
 
 //VideoFCLine - должен дать параметры которые вставляются в filter_complex для видео
 func VideoFCLine(path string) (string, error) {
-	f, e := ffinfo.Probe(path)
-	if e != nil {
-		return "", e
+	media, err := probe.MediaFileReport(path, probe.MediaTypeFilmHD)
+	if err != nil {
+		return "", err
 	}
 	com, _ := command.New(
-		command.CommandLineArguments(fmt.Sprintf("ffmpeg -i %v", path)),
+		command.CommandLineArguments(fmt.Sprintf("ffprobe -i %v", path)),
 		command.Set(command.TERMINAL_ON),
 	)
 	com.Run()
-	fmt.Println(f)
+	fmt.Println(media.String())
 	return "FCLine", nil
 }

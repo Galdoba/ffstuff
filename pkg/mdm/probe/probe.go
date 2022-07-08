@@ -9,13 +9,13 @@ import (
 )
 
 const (
-	mediaTypeTrailer4K = "Trailer 4K"
-	mediaTypeTrailerHD = "Trailer HD"
-	mediaTypeTrailerSD = "Trailer SD"
-	mediaTypeFilm4K    = "Film 4K"
-	mediaTypeFilmHD    = "Film HD"
-	mediaTypeFilmSD    = "Film SD"
-	mediaPureSound     = "Sound"
+	MediaTypeTrailer4K = "Trailer 4K"
+	MediaTypeTrailerHD = "Trailer HD"
+	MediaTypeTrailerSD = "Trailer SD"
+	MediaTypeFilm4K    = "Film 4K"
+	MediaTypeFilmHD    = "Film HD"
+	MediaTypeFilmSD    = "Film SD"
+	MediaPureSound     = "Sound"
 )
 
 type mediaFileReport struct {
@@ -70,6 +70,7 @@ type audioData struct {
 	chanNum    int
 	sampleRate int
 	language   string
+	fcMapValue string
 }
 
 func (d *dimentions) String() string {
@@ -114,15 +115,12 @@ func MediaFileReport(path, mediaType string) (*mediaFileReport, error) {
 			fmt.Println("DEBUG: unimplemented or unknown stream type: stream", st)
 		case "video":
 			vid := videoData{}
+
 			switch stream.RFrameRate {
 			default:
 				vid.fps = stream.RFrameRate + " (unknown)"
-			case "2997/125", "24000/1001":
-				vid.fps = "23.98 fps"
-			case "24/1":
-				vid.fps = "24 fps"
-			case "25/1":
-				vid.fps = "25 fps"
+			case "2997/125", "24000/1001", "24/1", "25/1":
+				vid.fps = stream.RFrameRate
 			}
 			vid.dimentions = dimentions{stream.Width, stream.Height}
 			//vid.issues = dimentionIssue(vid.dimentions, targetDimentions(mr.mediaType))
@@ -151,9 +149,9 @@ func targetDimentions(mType string) dimentions {
 	switch mType {
 	default:
 		return dimentions{1, 1}
-	case mediaTypeFilmHD, mediaTypeTrailerHD:
+	case MediaTypeFilmHD, MediaTypeTrailerHD:
 		return dimentions{1920, 1080}
-	case mediaTypeFilm4K, mediaTypeTrailer4K:
+	case MediaTypeFilm4K, MediaTypeTrailer4K:
 		return dimentions{1920, 1080}
 
 	}
@@ -219,21 +217,45 @@ func (ad *audioData) String() string {
 	return str
 }
 
-func dimentionIssue(actual, target dimentions) string {
+func (mr *mediaFileReport) Issues() []string {
+	targetDimentions := dimentions{}
+	str := []string{}
+	switch mr.mediaType {
+	case MediaTypeFilmHD:
+		targetDimentions.width, targetDimentions.height = 1920, 1080
+		for i, video := range mr.vData {
+			if err := dimentionIssue(video.dimentions, targetDimentions); err != nil {
+				str = append(str, fmt.Sprintf("Video %v: %v", i, err.Error()))
+			}
+
+		}
+
+	}
+	return str
+}
+
+func dimentionIssue(actual, target dimentions) error {
 	if actual.width == target.width && actual.height == target.height {
-		return ""
+		return nil
 	}
 	if actual.width < target.width && actual.height < target.height {
-		return "Dimention to small for target"
+		return fmt.Errorf("Dimention to small for target")
 	}
 	if actual.width >= target.width && actual.height <= target.height {
-		return "Need Downscale"
+		return fmt.Errorf("Need Downscale")
 	}
 	if actual.width <= target.width && actual.height >= target.height {
-		return "Need Downscale"
+		return fmt.Errorf("Need Downscale")
 	}
 	if actual.width > target.width && actual.height > target.height {
-		return "Need Downscale"
+		return fmt.Errorf("Need Downscale")
 	}
-	return "Issue unknown"
+	return fmt.Errorf("Issue unknown")
+}
+
+func fpsIssue(actual string) error {
+	if actual != "25 fps" {
+		return fmt.Errorf("%v", actual)
+	}
+	return nil
 }
