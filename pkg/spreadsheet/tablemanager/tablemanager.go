@@ -42,7 +42,7 @@ type TableData interface {
 
 //tasks := spreadsheet.Parse(info)
 type TaskList struct {
-	tasks       []row
+	tasks       []Row
 	parseErrors []error
 }
 
@@ -59,8 +59,8 @@ func TaskListFrom(sp TableData) *TaskList {
 	return &tl
 }
 
-func (tl *TaskList) Downloading() []row {
-	list := []row{}
+func (tl *TaskList) Downloading() []Row {
+	list := []Row{}
 	for _, task := range tl.tasks {
 		if task.filmStatus != filmDownloading {
 			continue
@@ -73,8 +73,8 @@ func (tl *TaskList) Downloading() []row {
 	return list
 }
 
-func (tl *TaskList) ReadyForDemux() []row {
-	list := []row{}
+func (tl *TaskList) ReadyForDemux() []Row {
+	list := []Row{}
 	for _, task := range tl.tasks {
 		if task.filmStatus != filmInBuffer {
 			continue
@@ -87,8 +87,8 @@ func (tl *TaskList) ReadyForDemux() []row {
 	return list
 }
 
-func (tl *TaskList) ReadyForEdit() []row {
-	list := []row{}
+func (tl *TaskList) ReadyForEdit() []Row {
+	list := []Row{}
 	for _, task := range tl.tasks {
 		if task.rowType != rowTypeInfo {
 			continue
@@ -121,12 +121,21 @@ clear  && mkdir -p /mnt/aakkulov/ROOT/IN/_MEGO_DISTRIBUTION/_DONE/Skvoz_ogon  &&
 && touch /home/aakkulov/IN/TASK_COMPLETE_Сквозь_огонь_Through_the_fire.mkv.txt
 */
 
-func ProposeTargetDirectorySubFolder(tl *TaskList, task row) string {
+func (tl *TaskList) ByName(name string) Row {
+	for _, v := range tl.tasks {
+		if v.Name() == name {
+			return v
+		}
+	}
+	return Row{}
+}
+
+func ProposeTargetDirectory(tl *TaskList, task Row) string {
 	path := ``
 	if task.rowType != rowTypeInfo {
 		return path
 	}
-	separator := row{}
+	separator := Row{}
 	folder1 := ""
 	for _, r := range tl.tasks {
 		if r.taskName == task.taskName {
@@ -189,7 +198,7 @@ func (d *date) pathFolder() string {
 	return fmt.Sprintf("%v_%v_%v", yr, mn, dy)
 }
 
-type row struct {
+type Row struct {
 	comment            string
 	path               string //1
 	readyTrailerStatus int
@@ -208,8 +217,8 @@ type row struct {
 	rowType            int
 }
 
-func parseRow(data []string) (row, error) {
-	r := row{}
+func parseRow(data []string) (Row, error) {
+	r := Row{}
 	if strings.Join(data, `","`) == `Комментарий","Путь","ГТ","Т","Трейлер","П","Постеры","М","Наименование","С","З","О","!","Контрагент","Дата публикации` {
 		r.rowType = rowTypeHeader
 		return r, nil
@@ -333,7 +342,11 @@ func parseRow(data []string) (row, error) {
 	return r, nil
 }
 
-func (r *row) String() string {
+func (r *Row) Name() string {
+	return r.taskName
+}
+
+func (r *Row) String() string {
 	str := fmt.Sprintf("%v [%v]", r.taskName, r.contragent)
 	if r.comment != "" {
 		str += " (" + r.comment + ")"

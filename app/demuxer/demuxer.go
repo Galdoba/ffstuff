@@ -3,52 +3,102 @@ package main
 import (
 	"fmt"
 	"os"
-	"strings"
 
+	"github.com/Galdoba/devtools/cli/command"
+	"github.com/Galdoba/ffstuff/app/demuxer/actions/combine"
+	actiondemux "github.com/Galdoba/ffstuff/app/demuxer/actions/demux"
+	"github.com/Galdoba/ffstuff/pkg/spreadsheet"
 	"github.com/urfave/cli"
 )
 
 func main() {
+	console, err := command.New(
+		command.CommandLineArguments("ffmpeg"),
+		command.Set(command.TERMINAL_ON),
+		command.Set(command.BUFFER_ON),
+	)
+	if err != nil {
+		fmt.Printf("console error: %v", err.Error())
+		os.Exit(1)
+	}
 	app := cli.NewApp()
-	app.Version = "v 0.0.1"
+	app.Version = "v 0.1.0"
 	app.Name = "demuxer"
 	app.Usage = "Анализирует файлы чтобы составить команду ffmpeg для демукса"
-	app.Description = "combine: inProgress\n	demux: TODO"
-	app.Flags = []cli.Flag{}
+	app.Description = "combine: prototype\n	 demux: TODO\n  fullhelp: PLACEHOLDER"
+	app.Flags = []cli.Flag{
+		cli.BoolFlag{
+			Name:  "update",
+			Usage: "если активен, то до начала выполнения любой команды - обновится csv с рабочей таблицей",
+		},
+		cli.StringFlag{
+			Name:  "tofile",
+			Usage: "указывает адрес файла в который будет добавляться вывод терминала",
+			Value: "",
+		},
+	}
+	app.Before = func(c *cli.Context) error {
+		if c.GlobalString("tofile") != "" {
+			console.AddInstruction(command.WriteToFile(c.GlobalString("tofile")))
+		}
+		if c.GlobalBool("update") {
+			sheet, err := spreadsheet.New()
+			if err != nil {
+				return err
+			}
+			if err := sheet.Update(); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	}
 	app.Commands = []cli.Command{
 		{
 			Name:        "combine",
 			ShortName:   "",
 			Usage:       "собирает звук 5.1 из 6 файлов wav",
-			UsageText:   "TODO: подробная справка",
+			UsageText:   "Требует 6 .wav файлов в аргументов, для того чтобы сшить из них 5.1.\n   Файлы должны содержать маркеры каналов: .L./.R./.C./.LFE./.Ls./.Rs. в своём имени",
 			Description: "TODO: подробное описание команды",
 			ArgsUsage:   "TODO: подробное описание как пользовать аргументы",
 
 			Action: func(c *cli.Context) error {
-				//ОСНОВНОЕ ТЕЛО
-				args := c.Args()
+				comLine, err := combine.Combine(c)
+				if err != nil {
+					return err
+				}
+				console.AddInstruction(command.CommandLineArguments("ffmpeg", comLine))
+				console.AddInstruction(command.Set(command.TERMINAL_ON))
+				return console.Run()
+			},
+		},
+		{
+			Name:        "demux",
+			ShortName:   "",
+			Usage:       "составляет ffmpeg строку для разложения файла на дорожки в стандартной кодеровке",
+			UsageText:   "исходный файл должен быть аргументом",
+			Description: "TODO: подробное описание команды",
+			ArgsUsage:   "TODO: подробное описание как пользовать аргументы",
 
-				wavArgsFound := 0
-				for _, arg := range args {
-					trimmed := strings.TrimSuffix(arg, ".wav")
-					if trimmed != arg {
-						wavArgsFound++
-					}
-				}
-				//SUPERSTAR_TRL_5.1_MIX_86.0dB(Int).C.wav SUPERSTAR_TRL_5.1_MIX_86.0dB(Int).L.wav SUPERSTAR_TRL_5.1_MIX_86.0dB(Int).LFE.wav SUPERSTAR_TRL_5.1_MIX_86.0dB(Int).Ls.wav SUPERSTAR_TRL_5.1_MIX_86.0dB(Int).R.wav SUPERSTAR_TRL_5.1_MIX_86.0dB(Int).Rs.wav
-				if wavArgsFound != 6 {
-					return fmt.Errorf("ожидаю 6 wav файлов (получил %v)", wavArgsFound)
-				}
-				fmt.Println("Combine activated")
+			Action: func(c *cli.Context) error {
+				return actiondemux.Run(c)
+			},
+		},
+		{
+			Name:      "fullhelp",
+			ShortName: "",
+			Usage:     "Предоставляет полное описание всего что умеет программа",
+			Action: func(c *cli.Context) error {
+				fmt.Println("Run fullhelp")
+				fmt.Println("End fullhelp")
 				return nil
 			},
 		},
 	}
-	args := os.Args
 
+	args := os.Args
 	if err := app.Run(args); err != nil {
-		fmt.Println("Here is my error:")
-		fmt.Println(err.Error())
+		fmt.Printf("application returned error: %v", err.Error())
 		os.Exit(1)
 	}
 
