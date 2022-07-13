@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/Galdoba/utils"
+	"github.com/macroblock/imed/pkg/translit"
 )
 
 const (
@@ -401,4 +402,36 @@ func intToIndex(i, f int) string {
 	}
 	return index
 
+}
+
+func TransliterateForEdit(name string) string {
+	clName := strings.Split(name, " (")[0]
+	trName, _ := translit.Do(clName)
+	nTag := ""
+	sTag := ""
+	for s := 0; s < 100; s++ {
+		val := "_" + zeroIf(s) + fmt.Sprintf("%v", s) + "_sezon"
+		if strings.Contains(trName, val) {
+			nTag = strings.Split(trName, val)[0]
+			sTag = fmt.Sprintf("_s%v%v", zeroIf(s), s)
+			break
+		}
+	}
+	eTag := ""
+	for e := 0; e < 100; e++ {
+		val := "_" + zeroIf(e) + fmt.Sprintf("%v", e) + "_seriya"
+		if strings.Contains(trName, val) {
+			eTag = fmt.Sprintf("_%v%v", zeroIf(e), e)
+			break
+		}
+	}
+	res := nTag + sTag + eTag
+	return strings.Title(res)
+}
+
+func zeroIf(i int) string {
+	if i < 10 {
+		return "0"
+	}
+	return ""
 }

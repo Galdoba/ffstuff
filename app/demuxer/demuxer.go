@@ -5,9 +5,10 @@ import (
 	"os"
 
 	"github.com/Galdoba/devtools/cli/command"
-	"github.com/Galdoba/ffstuff/app/demuxer/actions/combine"
+	actioncombine "github.com/Galdoba/ffstuff/app/demuxer/actions/combine"
 	actiondemux "github.com/Galdoba/ffstuff/app/demuxer/actions/demux"
 	"github.com/Galdoba/ffstuff/pkg/spreadsheet"
+	"github.com/fatih/color"
 	"github.com/urfave/cli"
 )
 
@@ -22,10 +23,10 @@ func main() {
 		os.Exit(1)
 	}
 	app := cli.NewApp()
-	app.Version = "v 0.1.0"
+	app.Version = "v 0.1.1"
 	app.Name = "demuxer"
 	app.Usage = "Анализирует файлы чтобы составить команду ffmpeg для демукса"
-	app.Description = "combine: prototype\n	 demux: TODO\n  fullhelp: PLACEHOLDER"
+	app.Description = "combine: Ready\n	 demux: TODO\n  fullhelp: PLACEHOLDER\n   trailer: InWork"
 	app.Flags = []cli.Flag{
 		cli.BoolFlag{
 			Name:  "update",
@@ -37,6 +38,7 @@ func main() {
 			Value: "",
 		},
 	}
+	//ДО НАЧАЛА ДЕЙСТВИЯ
 	app.Before = func(c *cli.Context) error {
 		if c.GlobalString("tofile") != "" {
 			console.AddInstruction(command.WriteToFile(c.GlobalString("tofile")))
@@ -50,7 +52,10 @@ func main() {
 				return err
 			}
 		}
-
+		return nil
+	}
+	//ПО ОКОНЧАНИЮ ДЕЙСТВИЯ
+	app.After = func(c *cli.Context) error {
 		return nil
 	}
 	app.Commands = []cli.Command{
@@ -61,15 +66,28 @@ func main() {
 			UsageText:   "Требует 6 .wav файлов в аргументов, для того чтобы сшить из них 5.1.\n   Файлы должны содержать маркеры каналов: .L./.R./.C./.LFE./.Ls./.Rs. в своём имени",
 			Description: "TODO: подробное описание команды",
 			ArgsUsage:   "TODO: подробное описание как пользовать аргументы",
-
+			Flags: []cli.Flag{
+				&cli.BoolFlag{
+					Name:  "process, p",
+					Usage: "Если активен, программа запустит ffmpeg с полученной командой",
+				},
+			},
 			Action: func(c *cli.Context) error {
-				comLine, err := combine.Combine(c)
+				comLine, err := actioncombine.Run(c) //Собираем команду
 				if err != nil {
+					color.Red("Error:") //
 					return err
 				}
-				console.AddInstruction(command.CommandLineArguments("ffmpeg", comLine))
-				console.AddInstruction(command.Set(command.TERMINAL_ON))
-				return console.Run()
+				fmt.Printf("\nProcessing command:\nffmpeg %v   \n  \n", comLine) //
+				if c.Bool("process") {                                           //Если флаг активен то сразу запускаем полученную команду
+					console.AddInstruction(command.CommandLineArguments("ffmpeg", comLine))
+					console.AddInstruction(command.Set(command.TERMINAL_ON))
+					if err := console.Run(); err != nil {
+
+						return err
+					}
+				}
+				return nil
 			},
 		},
 		{
@@ -92,6 +110,18 @@ func main() {
 				fmt.Println("Run fullhelp")
 				fmt.Println("End fullhelp")
 				return nil
+			},
+		},
+		{
+			Name:        "trailer",
+			ShortName:   "",
+			Usage:       "составляет ffmpeg строку для разложения файла на дорожки в стандартной кодеровке для Трейлера",
+			UsageText:   "исходный файл должен быть аргументом",
+			Description: "TODO: подробное описание команды",
+			ArgsUsage:   "TODO: подробное описание как пользовать аргументы",
+
+			Action: func(c *cli.Context) error {
+				return actiondemux.Run(c)
 			},
 		},
 	}
