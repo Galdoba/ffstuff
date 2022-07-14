@@ -107,6 +107,23 @@ func (tl *TaskList) ReadyForEdit() []Row {
 	return list
 }
 
+func (tl *TaskList) ReadyTrailers() []Row {
+	list := []Row{}
+	for _, task := range tl.tasks {
+		if task.rowType != rowTypeInfo {
+			continue
+		}
+		if task.readyTrailerStatus != readyTrailerExpected {
+			continue
+		}
+		if task.trailerMaker != "" {
+			continue
+		}
+		list = append(list, task)
+	}
+	return list
+}
+
 /*
 clear  && mkdir -p /mnt/aakkulov/ROOT/IN/_MEGO_DISTRIBUTION/_DONE/Skvoz_ogon  && mkdir -p /mnt/aakkulov/ROOT/EDIT/_mego_distribushn/
 && mv /home/aakkulov/IN/Сквозь_огонь_Through_the_fire.mkv /home/aakkulov/IN/_IN_PROGRESS/
@@ -312,7 +329,7 @@ func parseRow(data []string) (Row, error) {
 				r.muxingStatus = muxingInwork
 			case "y", "н":
 				r.muxingStatus = muxingReady
-			case "g", "п":
+			case "g", "п", "G", "П":
 				r.muxingStatus = muxingUploaded
 			}
 		case 11:

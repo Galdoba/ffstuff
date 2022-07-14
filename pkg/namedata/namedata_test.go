@@ -104,6 +104,7 @@ func testNames() []string {
 		`The Staircase. 01 сезон. 01 серия`,
 		`The Staircase. 01 сезон. 02 серия`,
 		`The Staircase. 01 сезон. `,
+		`Род мужской (Men) 4K`,
 	}
 }
 

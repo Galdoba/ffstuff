@@ -426,6 +426,9 @@ func TransliterateForEdit(name string) string {
 		}
 	}
 	res := nTag + sTag + eTag
+	if res == "" {
+		res = trName
+	}
 	return strings.Title(res)
 }
 
@@ -434,4 +437,17 @@ func zeroIf(i int) string {
 		return "0"
 	}
 	return ""
+}
+
+func ValidateName(name string) string {
+	letters := strings.Split(name, "")
+	newName := ""
+	for _, l := range letters {
+		switch l {
+		case "_", "(", ")", "-":
+			l = " "
+		}
+		newName += l
+	}
+	return strings.Join(strings.Fields(newName), "_")
 }

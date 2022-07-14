@@ -61,6 +61,11 @@ func TestListing(t *testing.T) {
 	for _, task := range TaskList.ReadyForEdit() {
 		fmt.Println(task.String())
 	}
+
+	fmt.Println("ReadyTrailer")
+	for _, task := range TaskList.ReadyTrailers() {
+		fmt.Println(task.String())
+	}
 }
 
 func TestTargetDirectoryPath(t *testing.T) {

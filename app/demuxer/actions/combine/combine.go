@@ -39,7 +39,10 @@ func Run(c *cli.Context) (string, error) {
 
 	task := taskList.ByName(name)
 	propose := tablemanager.ProposeTargetDirectory(taskList, task)
-	destination, err := askSelection(validator, "Где должен быть файл конечный файл?: ", []string{`\\nas\ROOT\EDIT\` + propose})
+	destination, err := askSelection(validator, "Где должен быть файл конечный файл?: ", []string{`\\nas\ROOT\EDIT\` + propose, `\\nas\root\EDIT\@trailers_temp\`, "[LOCAL]"})
+	if destination == "[LOCAL]" {
+		destination = ""
+	}
 	if err != nil {
 		return "", err
 	}

@@ -7,9 +7,11 @@ import (
 	"github.com/Galdoba/devtools/cli/command"
 	actioncombine "github.com/Galdoba/ffstuff/app/demuxer/actions/combine"
 	actiondemux "github.com/Galdoba/ffstuff/app/demuxer/actions/demux"
+	actiontrailer "github.com/Galdoba/ffstuff/app/demuxer/actions/trailer"
 	"github.com/Galdoba/ffstuff/pkg/spreadsheet"
 	"github.com/fatih/color"
 	"github.com/urfave/cli"
+	"gopkg.in/AlecAivazis/survey.v1"
 )
 
 func main() {
@@ -20,8 +22,8 @@ func main() {
 	)
 	if err != nil {
 		fmt.Printf("console error: %v", err.Error())
-		os.Exit(1)
 	}
+	resultLine := ""
 	app := cli.NewApp()
 	app.Version = "v 0.1.1"
 	app.Name = "demuxer"
@@ -36,6 +38,10 @@ func main() {
 			Name:  "tofile",
 			Usage: "указывает адрес файла в который будет добавляться вывод терминала",
 			Value: "",
+		},
+		cli.BoolFlag{
+			Name:  "process, p",
+			Usage: "Если активен, программа запустит ffmpeg с полученной командной строкой",
 		},
 	}
 	//ДО НАЧАЛА ДЕЙСТВИЯ
@@ -56,6 +62,14 @@ func main() {
 	}
 	//ПО ОКОНЧАНИЮ ДЕЙСТВИЯ
 	app.After = func(c *cli.Context) error {
+		if c.GlobalBool("process") {
+			console.AddInstruction(command.CommandLineArguments("ffmpeg", resultLine))
+			console.AddInstruction(command.Set(command.TERMINAL_ON))
+			if err := console.Run(); err != nil {
+				return err
+			}
+		}
+
 		return nil
 	}
 	app.Commands = []cli.Command{
@@ -66,34 +80,22 @@ func main() {
 			UsageText:   "Требует 6 .wav файлов в аргументов, для того чтобы сшить из них 5.1.\n   Файлы должны содержать маркеры каналов: .L./.R./.C./.LFE./.Ls./.Rs. в своём имени",
 			Description: "TODO: подробное описание команды",
 			ArgsUsage:   "TODO: подробное описание как пользовать аргументы",
-			Flags: []cli.Flag{
-				&cli.BoolFlag{
-					Name:  "process, p",
-					Usage: "Если активен, программа запустит ffmpeg с полученной командой",
-				},
-			},
 			Action: func(c *cli.Context) error {
 				comLine, err := actioncombine.Run(c) //Собираем команду
 				if err != nil {
 					color.Red("Error:") //
 					return err
 				}
-				fmt.Printf("\nProcessing command:\nffmpeg %v   \n  \n", comLine) //
-				if c.Bool("process") {                                           //Если флаг активен то сразу запускаем полученную команду
-					console.AddInstruction(command.CommandLineArguments("ffmpeg", comLine))
-					console.AddInstruction(command.Set(command.TERMINAL_ON))
-					if err := console.Run(); err != nil {
-
-						return err
-					}
-				}
+				fmt.Println("\nProcessing command:")
+				color.HiCyan(fmt.Sprintf("ffmpeg %v   \n  \n", comLine))
+				resultLine = comLine
 				return nil
 			},
 		},
 		{
 			Name:        "demux",
 			ShortName:   "",
-			Usage:       "составляет ffmpeg строку для разложения файла на дорожки в стандартной кодеровке",
+			Usage:       "составляет ffmpeg строку для разложения файла на дорожки в стандартной кодировке",
 			UsageText:   "исходный файл должен быть аргументом",
 			Description: "TODO: подробное описание команды",
 			ArgsUsage:   "TODO: подробное описание как пользовать аргументы",
@@ -115,13 +117,15 @@ func main() {
 		{
 			Name:        "trailer",
 			ShortName:   "",
-			Usage:       "составляет ffmpeg строку для разложения файла на дорожки в стандартной кодеровке для Трейлера",
-			UsageText:   "исходный файл должен быть аргументом",
+			Usage:       "составляет ffmpeg строку для разложения файла на дорожки в стандартной кодировке для Трейлера",
+			UsageText:   "demuxer -update -process trailer [FILE.mp4] (-destination FOLDER) (-archive FOLDER)",
 			Description: "TODO: подробное описание команды",
 			ArgsUsage:   "TODO: подробное описание как пользовать аргументы",
 
 			Action: func(c *cli.Context) error {
-				return actiondemux.Run(c)
+				line, err := actiontrailer.Run(c)
+				fmt.Println(line, err)
+				return err
 			},
 		},
 	}
@@ -129,8 +133,13 @@ func main() {
 	args := os.Args
 	if err := app.Run(args); err != nil {
 		fmt.Printf("application returned error: %v", err.Error())
-		os.Exit(1)
 	}
+	exit := ""
+	val := survey.ComposeValidators()
+	promptInput := &survey.Input{
+		Message: "Enter для завершения",
+	}
+	survey.AskOne(promptInput, &exit, val)
 
 }
 

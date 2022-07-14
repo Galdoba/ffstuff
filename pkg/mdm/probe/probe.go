@@ -259,3 +259,8 @@ func fpsIssue(actual string) error {
 	}
 	return nil
 }
+
+//GETTERS
+func (mr *mediaFileReport) FPS() string {
+	return mr.vData[0].fps
+}
