@@ -3,12 +3,15 @@ package actiontrailer
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 
+	"github.com/Galdoba/devtools/cli/command"
+	"github.com/Galdoba/ffstuff/app/demuxer/handle"
+	"github.com/Galdoba/ffstuff/pkg/config"
+	"github.com/Galdoba/ffstuff/pkg/mdm/probe"
+	"github.com/Galdoba/ffstuff/pkg/namedata"
 	"github.com/Galdoba/ffstuff/pkg/spreadsheet"
 	"github.com/Galdoba/ffstuff/pkg/spreadsheet/tablemanager"
 	"github.com/urfave/cli"
-	"gopkg.in/AlecAivazis/survey.v1"
 )
 
 /*
@@ -87,10 +90,8 @@ MOVE [FILE] [TRAILER_DONE_DIR][NAME]
 */
 
 func Run(c *cli.Context) (string, error) {
-	// conf, err := config.Read()
-	// if err != nil {
-	// 	return "", err
-	// }
+	conf, err := config.Read()
+	handle.Error(err)
 	args := c.Args()
 	if len(args) < 1 {
 		return "", fmt.Errorf("no arguments provided")
@@ -99,55 +100,67 @@ func Run(c *cli.Context) (string, error) {
 		return "", fmt.Errorf("to many arguments provided")
 	}
 	//Declarations:
-	//cur_dir := currentDir()
-	//file := args[0]
-	//work_dir := conf["InProgressDir"]
+	cur_dir := currentDir()
+	file := args[0]
+	com, _ := command.New(
+		command.CommandLineArguments("ffmpeg", "-i ", file),
+		command.Set(command.TERMINAL_ON),
+	)
+	com.Run()
+	work_dir := conf["InProgressDir"]
 	//videoMapping := ""
 	//atempo := ""
 	//destination := ""
 	//name := ""
 	//vtag := ""
 	//atag := ""
-	//trl_done_dir := conf["TrlDoneDir"]
+	trl_done_dir := conf["TrlDoneDir"]
 
 	//comLine := ""
-	//mediaReport, err := probe.MediaFileReport(file, probe.MediaTypeTrailerHD)
+	// mediaReport, err := probe.MediaFileReport(file, probe.MediaTypeTrailerHD)
+	// handle.Error(err)
 	//atempo = mediaReport.FPS()
 
-	trailerTask, err := selectTask()
-	fmt.Println(trailerTask, err)
+	task, err := selectTask()
+	handle.Error(err)
 
-	// path := args[0]
-	// mediaInfo, err := probe.MediaFileReport(path, probe.MediaTypeTrailerHD)
-	// atempo := mediaInfo.FPS()
+	mediaInfo, err := probe.MediaFileReport(file, probe.MediaTypeTrailerHD)
 
-	return "", nil
+	//MOVE [CURRENT_DIR][FILE] [WORKFOLDER]
+	res := fmt.Sprintf("%v\\%v %v ", cur_dir, file, work_dir)
+	//ffmpeg -y -r 25 -i [WORKFOLDER][FILE]
+	res += fmt.Sprintf("&& ffmpeg -y -r 25 -i %v\\%v ", work_dir, file)
+	//-filter complex [0:v:0][VIDEOMAPPING][video];[0:a:0]aresample=48000,atempo=[ATEMPO][audio]
+	videomapping, atempo := VideoMapping(file)
+	res += fmt.Sprintf("-filter_complex [0:v:0]%v[video];[0:a:0]aresample=48000,atempo=%v[audio]", videomapping, atempo)
+	//-map [video] -an -vcodec libx264 -preset medium -crf 10 -pix_fmt yuv420p -g 0 -map_metadata -1 -map_chapters -1 [DESTINATION][NAME][VTAG]
+	name := namedata.TransliterateForEdit(task.Name())
+	vtag := "_TRL"
+	res += fmt.Sprintf("-map [video] -an -vcodec libx264 -preset medium -crf 10 -pix_fmt yuv420p -g 0 -map_metadata -1 -map_chapters -1 %v%v%v.mp4 ", trl_done_dir, name, vtag)
+	//-map [audio] -vn -acodec alac -compression_level 0 -map_metadata -1 -map_chapters -1 [DESTINATION][NAME][ATAG]
+	aStream := mediaInfo.Audio()[0]
+	atag := analyzeAudio(aStream)
+	res += fmt.Sprintf("-map [audio] -vn -acodec alac -compression_level 0 -map_metadata -1 -map_chapters -1 %v%v%v ", trl_done_dir, name, atag)
+	return res, nil
 }
 
 func currentDir() string {
-	ex, err := os.Executable()
-	if err != nil {
-		panic(err)
-	}
-	return filepath.Dir(ex)
-
+	dir, err := os.Getwd()
+	handle.Error(err)
+	return dir
 }
 
 func selectTask() (tablemanager.Row, error) {
 	sheet, err := spreadsheet.New()
-	if err != nil {
-		return tablemanager.Row{}, err
-	}
+	handle.Error(err)
 	taskList := tablemanager.TaskListFrom(sheet)
 	activeTasks := []tablemanager.Row{}
-	valid := survey.ComposeValidators()
 	options := []string{}
-	selected := ""
 	for _, task := range taskList.ReadyTrailers() {
 		options = append(options, task.String())
 		activeTasks = append(activeTasks, task)
 	}
-	selected, err = askSelection(valid, "Выберите Трейлер:", options)
+	selected := handle.SelectionSingle("Выберите Трейлер:", options...)
 	for _, task := range activeTasks {
 		if task.String() == selected {
 			return task, nil
@@ -156,29 +169,28 @@ func selectTask() (tablemanager.Row, error) {
 	return tablemanager.Row{}, fmt.Errorf("Задача не найдена")
 }
 
-func askSelection(validator survey.Validator, message string, options []string) (string, error) {
-	choose := ""
-	promptSelect := &survey.Select{
-		Message: message,
-		Options: append(options, "Отмена"),
-	}
-	if err := survey.AskOne(promptSelect, &choose, validator); err != nil {
-		return choose, err
-	}
-	if choose == "Отмена" {
-		return "", fmt.Errorf("была выбрана `Отмена`")
-	}
+func VideoMapping(path string) (string, string) {
+	mr, err := probe.MediaFileReport(path, probe.MediaTypeTrailerHD)
+	handle.Error(err)
 
-	return choose, nil
+	for _, issue := range mr.Issues() {
+		switch issue {
+		default:
+			fmt.Println("Issue:", issue)
+		}
+	}
+	return "setsar=1/1", mr.FPS()
 }
 
-func askInput(val survey.Validator, message string) (string, error) {
-	result := ""
-	promptInput := &survey.Input{
-		Message: message,
+func analyzeAudio(streamData probe.AudioData) string {
+	atag := "_AUDIORUS"
+	switch streamData.ChanLayout() {
+	default:
+		atag += "unknown"
+	case "stereo":
+		atag += "20"
+	case "5.1":
+		atag += "51"
 	}
-	if err := survey.AskOne(promptInput, &result, val); err != nil {
-		return result, err
-	}
-	return result, nil
+	return atag
 }

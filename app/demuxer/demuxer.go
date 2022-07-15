@@ -68,6 +68,7 @@ func main() {
 			if err := console.Run(); err != nil {
 				return err
 			}
+			fmt.Println(" \nОбработка завершена успешно\n")
 		}
 
 		return nil
@@ -118,7 +119,7 @@ func main() {
 			Name:        "trailer",
 			ShortName:   "",
 			Usage:       "составляет ffmpeg строку для разложения файла на дорожки в стандартной кодировке для Трейлера",
-			UsageText:   "demuxer -update -process trailer [FILE.mp4] (-destination FOLDER) (-archive FOLDER)",
+			UsageText:   "demuxer -update -process trailer -destination FOLDER -archive FOLDER [FILE.mp4]",
 			Description: "TODO: подробное описание команды",
 			ArgsUsage:   "TODO: подробное описание как пользовать аргументы",
 

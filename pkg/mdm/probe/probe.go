@@ -25,7 +25,7 @@ type mediaFileReport struct {
 	data      string
 	mediaType string
 	vData     []videoData
-	aData     []audioData
+	aData     []AudioData
 }
 
 type issue struct {
@@ -65,12 +65,16 @@ type dimentions struct {
 	height int
 }
 
-type audioData struct {
+type AudioData struct {
 	chanLayout string
 	chanNum    int
 	sampleRate int
 	language   string
 	fcMapValue string
+}
+
+func (ad *AudioData) ChanLayout() string {
+	return ad.chanLayout
 }
 
 func (d *dimentions) String() string {
@@ -128,7 +132,7 @@ func MediaFileReport(path, mediaType string) (*mediaFileReport, error) {
 			vid.dar = stream.DisplayAspectRatio
 			report.vData = append(report.vData, vid)
 		case "audio":
-			aud := audioData{}
+			aud := AudioData{}
 			aud.chanNum = stream.Channels
 			aud.sampleRate = stream.Channels
 			aud.chanLayout = stream.ChannelLayout
@@ -209,7 +213,7 @@ func SelectAudio(mr *mediaFileReport) []string {
 	return ans
 }
 
-func (ad *audioData) String() string {
+func (ad *AudioData) String() string {
 	str := fmt.Sprintf("audio: %v, %v channels", ad.chanLayout, ad.chanNum)
 	if ad.language != "" {
 		str += " (" + ad.language + ")"
@@ -263,4 +267,8 @@ func fpsIssue(actual string) error {
 //GETTERS
 func (mr *mediaFileReport) FPS() string {
 	return mr.vData[0].fps
+}
+
+func (mr *mediaFileReport) Audio() []AudioData {
+	return mr.aData
 }
