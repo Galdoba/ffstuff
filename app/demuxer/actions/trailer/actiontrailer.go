@@ -131,14 +131,14 @@ func Run(c *cli.Context) (string, error) {
 	//ffmpeg -y -r 25 -i [WORKFOLDER][FILE]
 	res += fmt.Sprintf("&& ffmpeg -y -r 25 -i %v\\%v ", work_dir, file)
 	//-filter complex [0:v:0][VIDEOMAPPING][video];[0:a:0]aresample=48000,atempo=[ATEMPO][audio]
-	videomapping, atempo := VideoMapping(file)
+	videomapping, atempo := VideoMapping(file) //TODO: нужна адекватная общая функция дающая строку для -filter_complex от всего файла.
 	res += fmt.Sprintf("-filter_complex [0:v:0]%v[video];[0:a:0]aresample=48000,atempo=%v[audio]", videomapping, atempo)
 	//-map [video] -an -vcodec libx264 -preset medium -crf 10 -pix_fmt yuv420p -g 0 -map_metadata -1 -map_chapters -1 [DESTINATION][NAME][VTAG]
 	name := namedata.TransliterateForEdit(task.Name())
-	vtag := "_TRL"
+	vtag := "_HD_TRL"
 	res += fmt.Sprintf("-map [video] -an -vcodec libx264 -preset medium -crf 10 -pix_fmt yuv420p -g 0 -map_metadata -1 -map_chapters -1 %v%v%v.mp4 ", trl_done_dir, name, vtag)
 	//-map [audio] -vn -acodec alac -compression_level 0 -map_metadata -1 -map_chapters -1 [DESTINATION][NAME][ATAG]
-	aStream := mediaInfo.Audio()[0]
+	aStream := mediaInfo.Audio()
 	atag := analyzeAudio(aStream)
 	res += fmt.Sprintf("-map [audio] -vn -acodec alac -compression_level 0 -map_metadata -1 -map_chapters -1 %v%v%v ", trl_done_dir, name, atag)
 	return res, nil
@@ -182,15 +182,30 @@ func VideoMapping(path string) (string, string) {
 	return "setsar=1/1", mr.FPS()
 }
 
-func analyzeAudio(streamData probe.AudioData) string {
-	atag := "_AUDIORUS"
-	switch streamData.ChanLayout() {
-	default:
-		atag += "unknown"
-	case "stereo":
-		atag += "20"
-	case "5.1":
-		atag += "51"
+func analyzeAudio(streamData []probe.AudioData) string {
+	if len(streamData) == 1 {
+		return "_TRL_AUDIORUS" + atag(streamData[0].ChanLayout())
 	}
-	return atag
+	if len(streamData) < 1 {
+		return "no audio"
+	}
+	combine := ""
+
+	for _, st := range probe.SelectAudio(streamData) {
+		combine += atag(st.ChanLayout()) + "|"
+	}
+
+	return combine
+
+}
+
+func atag(layout string) string {
+	switch layout {
+	default:
+		return "unknown"
+	case "stereo":
+		return "20"
+	case "5.1":
+		return "51"
+	}
 }

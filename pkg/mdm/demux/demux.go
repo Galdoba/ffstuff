@@ -137,3 +137,45 @@ func VideoFCLine(path string) (string, error) {
 	fmt.Println(media.String())
 	return "FCLine", nil
 }
+
+func Mapping(path, productType string) (string, error) {
+	str, err := "", fmt.Errorf("not implemented")
+	mr, err := probe.MediaFileReport(path, "s")
+	videsStreams := mr.Video()
+	audioStreams := mr.Audio()
+	//totalStrNum := len(videsStreams) + len(audioStreams)
+	switch productType {
+	default:
+		return "", fmt.Errorf("not implemented (yet)")
+	case probe.MediaTypeFilmHD, probe.MediaTypeTrailerHD:
+		str, err = mapAsHD(videsStreams, audioStreams)
+	}
+
+	return str, err
+}
+
+func mapAsHD(videos []probe.VideoData, audios []probe.AudioData) (string, error) {
+	mapping := ""
+	for i, vid := range videos {
+		mapping += fmt.Sprintf("[0:v:%v]", i)
+		w, h := vid.Dimentions()
+		switch {
+		default:
+			return "", fmt.Errorf("undecided size %vx%v", w, h)
+		case w == 1920 && h == 1080:
+			//ничего не делаем
+		case w >= 1920 && h == 1080:
+			mapping += "scale=1920:-2,setsar=1/1,unsharp=3:3:0.3:3:3:0,pad=1920:1080:-1:-1,"
+		case w >= 1920 && h <= 1080:
+			mapping += "scale=1920:-2,setsar=1/1,unsharp=3:3:0.3:3:3:0,pad=1920:1080:-1:-1,"
+		}
+		if vid.SAR() != "1/1" || !strings.Contains(mapping, "setsar=1/1") {
+			mapping += "setsar=1/1,"
+		}
+		mapping = strings.TrimSuffix(mapping, ",")
+		mapping += fmt.Sprintf("[video%v];", i)
+	}
+	mapping = strings.TrimSuffix(mapping, ";")
+	return mapping, nil
+
+}

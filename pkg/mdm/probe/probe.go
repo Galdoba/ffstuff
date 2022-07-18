@@ -2,6 +2,7 @@ package probe
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/Galdoba/devtools/cli/command"
 	"github.com/malashin/ffinfo"
@@ -24,7 +25,7 @@ type mediaFileReport struct {
 	f         *ffinfo.File
 	data      string
 	mediaType string
-	vData     []videoData
+	vData     []VideoData
 	aData     []AudioData
 }
 
@@ -33,7 +34,7 @@ type issue struct {
 	text  string
 }
 
-type videoData struct {
+type VideoData struct {
 	fps        string
 	dimentions dimentions
 	sar        string
@@ -41,7 +42,7 @@ type videoData struct {
 	issues     []string
 }
 
-func (vd *videoData) String() string {
+func (vd *VideoData) String() string {
 	str := vd.dimentions.String()
 	if vd.dar+vd.sar != "" {
 		str += " ["
@@ -118,7 +119,7 @@ func MediaFileReport(path, mediaType string) (*mediaFileReport, error) {
 		default:
 			fmt.Println("DEBUG: unimplemented or unknown stream type: stream", st)
 		case "video":
-			vid := videoData{}
+			vid := VideoData{}
 
 			switch stream.RFrameRate {
 			default:
@@ -195,7 +196,7 @@ func (inR mediaFileReport) String() string {
 	return str
 }
 
-func SelectAudio(mr *mediaFileReport) []string {
+func SelectAudio0(mr *mediaFileReport) []string {
 	ans := []string{}
 	opt := []string{}
 	for i, as := range mr.aData {
@@ -211,6 +212,31 @@ func SelectAudio(mr *mediaFileReport) []string {
 
 	fmt.Println(ans)
 	return ans
+}
+
+func SelectAudio(allStreams []AudioData) []AudioData {
+	ans := []string{}
+	opt := []string{}
+	for i, as := range allStreams {
+		opt = append(opt, fmt.Sprintf("%v - %v", i, as.String()))
+	}
+	msq := survey.MultiSelect{
+		Message: "Select tracks",
+		Options: opt,
+	}
+
+	valid := survey.ComposeValidators()
+	survey.AskOne(&msq, &ans, valid)
+	picked := []AudioData{}
+	for _, st := range allStreams {
+		for _, an := range ans {
+			if strings.Contains(an, st.String()) {
+				picked = append(picked, st)
+			}
+		}
+	}
+	fmt.Println(ans)
+	return picked
 }
 
 func (ad *AudioData) String() string {
@@ -271,4 +297,38 @@ func (mr *mediaFileReport) FPS() string {
 
 func (mr *mediaFileReport) Audio() []AudioData {
 	return mr.aData
+}
+
+func (mr *mediaFileReport) Video() []VideoData {
+	return mr.vData
+}
+
+func (vid *VideoData) SAR() string {
+	return vid.sar
+}
+func (vid *VideoData) Dimentions() (int, int) {
+	return vid.dimentions.width, vid.dimentions.height
+}
+
+func InterlaceByIdet(path string) (bool, error) {
+	com, err := command.New(
+		command.CommandLineArguments("ffmpeg", "-filter:v idet -frames:v 37500 -an -f rawvideo -y NUL -i "+path),
+		command.Set(command.BUFFER_ON),
+		//command.Set(command.TERMINAL_ON),
+	)
+	fmt.Printf("\nSearching interlace: %v\n", path)
+	if err != nil {
+		return false, err
+	}
+	if err := com.Run(); err != nil {
+		return false, err
+	}
+	buf := com.StdOut() + "\n" + com.StdErr()
+	for _, line := range strings.Split(buf, "\n") {
+		if strings.Contains(line, "[Parsed_idet_0") {
+			fmt.Println(line)
+		}
+	}
+
+	return false, nil
 }
