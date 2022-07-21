@@ -2,9 +2,11 @@ package probe
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/Galdoba/devtools/cli/command"
+	"github.com/Galdoba/ffstuff/pkg/info"
 	"github.com/malashin/ffinfo"
 	"gopkg.in/AlecAivazis/survey.v1"
 )
@@ -17,9 +19,12 @@ const (
 	MediaTypeFilmHD    = "Film HD"
 	MediaTypeFilmSD    = "Film SD"
 	MediaPureSound     = "Sound"
+	DimentionSD        = 10
+	DimentionHD        = 11
+	Dimention4K        = 12
 )
 
-type mediaFileReport struct {
+type FileReport struct {
 	filename  string
 	name      string
 	f         *ffinfo.File
@@ -27,6 +32,7 @@ type mediaFileReport struct {
 	mediaType string
 	vData     []VideoData
 	aData     []AudioData
+	issues    []issue
 }
 
 type issue struct {
@@ -40,6 +46,29 @@ type VideoData struct {
 	sar        string
 	dar        string
 	issues     []string
+}
+
+var dimentionsSD dimentions
+var dimentionsHD dimentions
+var dimentions4K dimentions
+
+func init() {
+	dimentionsSD = dimentions{720, 576}
+	dimentionsHD = dimentions{1920, 1080}
+	dimentions4K = dimentions{3840, 2160}
+}
+
+func Dimention(d int) dimentions {
+	switch d {
+	default:
+		return dimentions{}
+	case DimentionSD:
+		return dimentionsSD
+	case DimentionHD:
+		return dimentionsHD
+	case Dimention4K:
+		return dimentions4K
+	}
 }
 
 func (vd *VideoData) String() string {
@@ -92,25 +121,24 @@ func (d *dimentions) String() string {
 
 */
 
-func MediaFileReport(path, mediaType string) (*mediaFileReport, error) {
-	report := mediaFileReport{}
+func NewReport(path string) (*FileReport, error) {
+	report := FileReport{}
 	f, e := ffinfo.Probe(path)
 	if e != nil {
 		return &report, e
 	}
 
 	report.filename = f.Format.Filename
-	report.mediaType = mediaType
 	report.data = f.String()
-	com, err := command.New(command.CommandLineArguments(fmt.Sprintf("ffprobe -i %v", path)),
-		command.Set(command.BUFFER_ON),
-		command.Set(command.TERMINAL_OFF),
-	)
-	if err != nil {
-		return &report, err
-	}
-	com.Run()
-	report.data += "\n" + com.StdOut() + "\n" + com.StdErr()
+	// com, err := command.New(command.CommandLineArguments(fmt.Sprintf("ffprobe -i %v", path)),
+	// 	command.Set(command.BUFFER_ON),
+	// 	command.Set(command.TERMINAL_OFF),
+	// )
+	// if err != nil {
+	// 	return &report, err
+	// }
+	// com.Run()
+	// report.data += "\n" + com.StdOut() + "\n" + com.StdErr()
 	allStreams := f.Format.NbStreams
 
 	for st := 0; st < allStreams; st++ {
@@ -142,10 +170,10 @@ func MediaFileReport(path, mediaType string) (*mediaFileReport, error) {
 		}
 
 	}
-	//fmt.Println(f.String())
+	fmt.Println(f.String())
 	//fmt.Println(f.Format.Filename)
-	fmt.Println("------------")
-	fmt.Println(report)
+	//fmt.Println("------------")
+	//fmt.Println(report)
 
 	return &report, nil
 }
@@ -162,7 +190,7 @@ func targetDimentions(mType string) dimentions {
 	}
 }
 
-func (inR mediaFileReport) String() string {
+func (inR FileReport) String() string {
 	str := fmt.Sprintf("File: %v\n", inR.filename)
 	for i := 0; i < len(inR.vData); i++ {
 		if i == 0 {
@@ -196,7 +224,7 @@ func (inR mediaFileReport) String() string {
 	return str
 }
 
-func SelectAudio0(mr *mediaFileReport) []string {
+func SelectAudio0(mr *FileReport) []string {
 	ans := []string{}
 	opt := []string{}
 	for i, as := range mr.aData {
@@ -247,7 +275,7 @@ func (ad *AudioData) String() string {
 	return str
 }
 
-func (mr *mediaFileReport) Issues() []string {
+func (mr *FileReport) Issues() []string {
 	targetDimentions := dimentions{}
 	str := []string{}
 	switch mr.mediaType {
@@ -291,15 +319,15 @@ func fpsIssue(actual string) error {
 }
 
 //GETTERS
-func (mr *mediaFileReport) FPS() string {
+func (mr *FileReport) FPS() string {
 	return mr.vData[0].fps
 }
 
-func (mr *mediaFileReport) Audio() []AudioData {
+func (mr *FileReport) Audio() []AudioData {
 	return mr.aData
 }
 
-func (mr *mediaFileReport) Video() []VideoData {
+func (mr *FileReport) Video() []VideoData {
 	return mr.vData
 }
 
@@ -311,8 +339,16 @@ func (vid *VideoData) Dimentions() (int, int) {
 }
 
 func InterlaceByIdet(path string) (bool, error) {
+	length, err := info.Duration(path)
+	if err != nil {
+		return false, err
+	}
+	leng := (length / 2)
+	if leng > 180 {
+		leng = 180
+	}
 	com, err := command.New(
-		command.CommandLineArguments("ffmpeg", "-filter:v idet -frames:v 37500 -an -f rawvideo -y NUL -i "+path),
+		command.CommandLineArguments("ffmpeg", "-filter:v idet -frames:v 999 -an -f rawvideo -y NUL -i "+path), //-ss "+fmt.Sprintf("%v", leng)+"
 		command.Set(command.BUFFER_ON),
 		//command.Set(command.TERMINAL_ON),
 	)
@@ -323,11 +359,31 @@ func InterlaceByIdet(path string) (bool, error) {
 	if err := com.Run(); err != nil {
 		return false, err
 	}
+	dataRAW := ""
 	buf := com.StdOut() + "\n" + com.StdErr()
 	for _, line := range strings.Split(buf, "\n") {
 		if strings.Contains(line, "[Parsed_idet_0") {
 			fmt.Println(line)
+			if strings.Contains(line, "Multi frame detection") {
+
+			}
+			dataRAW = line
 		}
+	}
+	data := strings.Fields(dataRAW)
+	frames := make(map[string]int)
+	for o, d := range data {
+		switch o {
+		case 7, 9, 11, 13:
+			n, err := strconv.Atoi(d)
+			if err != nil {
+				return false, err
+			}
+			frames[data[o-1]] = n
+		}
+	}
+	if frames["TFF:"]+frames["BFF:"] >= 40 {
+		return true, nil
 	}
 
 	return false, nil

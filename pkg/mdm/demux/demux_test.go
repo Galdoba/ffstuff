@@ -9,6 +9,8 @@ import (
 
 func input() []string {
 	return []string{
+		`d:\IN\IN_testInput\trailers\TOBOT_S3_RUS_EP02.mxf`,
+		`d:\IN\IN_testInput\trailers\Odin_idealnyy_kadr_s01e06_SER_12167.mp4`,
 		`d:\IN\IN_testInput\trailers\AllAboutSex_Trailer_Rus_v2_PSH_1_PSH_2_H264.mp4`,
 		`d:\IN\IN_testInput\trailers\Belosnezhka_skazka_dlya_vzroslyh_TRL.mp4`,
 		`d:\IN\IN_testInput\trailers\ChungkingExpress_stereo_Trailer.mp4`,
@@ -61,14 +63,6 @@ func Test_AllAsIs(t *testing.T) {
 
 //ffmpeg -i d:\IN\IN_testInput\trailers\CRUELLA_iEST_TLRE_HD_2398_51_20_16x9_185_RUS_D1415623.mov -map 0:0:0 -c:v copy d:\IN\IN_testInput\trailers\CRUELLA_iEST_TLRE_HD_2398_51_20_16x9_185_RUS_D1415623_RAW_0.mp4  -map 0:0:0 -c:a copy d:\IN\IN_testInput\trailers\CRUELLA_iEST_TLRE_HD_2398_51_20_16x9_185_RUS_D1415623_RAW_0.wav  -map 0:1:0 -c:a copy d:\IN\IN_testInput\trailers\CRUELLA_iEST_TLRE_HD_2398_51_20_16x9_185_RUS_D1415623_RAW_1.wav  -map 0:2:0 -c:a copy d:\IN\IN_testInput\trailers\CRUELLA_iEST_TLRE_HD_2398_51_20_16x9_185_RUS_D1415623_RAW_2.wav  -map 0:3:0 -c:a copy d:\IN\IN_testInput\trailers\CRUELLA_iEST_TLRE_HD_2398_51_20_16x9_185_RUS_D1415623_RAW_3.wav  -map 0:4:0 -c:a copy d:\IN\IN_testInput\trailers\CRUELLA_iEST_TLRE_HD_2398_51_20_16x9_185_RUS_D1415623_RAW_4.wav  -map 0:5:0 -c:a copy d:\IN\IN_testInput\trailers\CRUELLA_iEST_TLRE_HD_2398_51_20_16x9_185_RUS_D1415623_RAW_5.wav  -map 0:6:0 -c:a copy d:\IN\IN_testInput\trailers\CRUELLA_iEST_TLRE_HD_2398_51_20_16x9_185_RUS_D1415623_RAW_6.wav  -map 0:7:0 -c:a copy d:\IN\IN_testInput\trailers\CRUELLA_iEST_TLRE_HD_2398_51_20_16x9_185_RUS_D1415623_RAW_7.wav
 
-func TestVideoFCParameters(t *testing.T) {
-	return
-	paths := input()
-	for _, path := range paths {
-		fmt.Println(VideoFCLine(path))
-	}
-}
-
 func TestMapping(t *testing.T) {
 	for n, path := range input() {
 		fmt.Printf("test %v: %v\n", n, path)
@@ -76,7 +70,10 @@ func TestMapping(t *testing.T) {
 		if err != nil {
 			fmt.Printf("func returned error: %v\n", err.Error())
 		}
-		fmt.Printf("func returned string: '%v'\n", str)
+		fmt.Printf("func returned []string: \n")
+		for _, sl := range str {
+			fmt.Println(sl)
+		}
 
 	}
 }

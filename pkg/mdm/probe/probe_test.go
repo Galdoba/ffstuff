@@ -8,6 +8,7 @@ import (
 
 func input() []string {
 	return []string{
+		`d:\IN\IN_testInput\trailers\TOBOT_S3_RUS_EP02.mxf`,
 		`d:\IN\IN_testInput\trailers\Odin_idealnyy_kadr_s01e06_SER_12167.mp4`,
 		`d:\IN\IN_testInput\trailers\AllAboutSex_Trailer_Rus_v2_PSH_1_PSH_2_H264.mp4`,
 		`d:\IN\IN_testInput\trailers\Belosnezhka_skazka_dlya_vzroslyh_TRL.mp4`,
@@ -39,15 +40,14 @@ func input() []string {
 		`d:\IN\IN_testInput\trailers\wave3.png`,
 		`d:\IN\IN_testInput\trailers\waveformTest.bat	`,
 		`\\192.168.31.4\edit\_exchange\#PETR\s05e01_Rostelecom_FLASH_YR05_18_19_NORA_16x9_STEREO_5_1_2_0_LTRT_EPISODE_E2291774_RUSSIAN_ENGLISH_10750107.mpg`,
-		`d:\IN\IN_testInput\trailers\TOBOT_S3_RUS_EP02.mxf`,
 	}
 }
 
 func TestProbe(t *testing.T) {
-	return
 	for _, path := range input() {
 		fmt.Println("  ")
-		mo, err := MediaFileReport(path, MediaTypeTrailerHD)
+		fmt.Println(path)
+		mo, err := NewReport(path)
 		if err != nil {
 			fmt.Println(err.Error())
 			t.Errorf("Media(path) returned error: %v", err.Error())
@@ -76,21 +76,22 @@ func TestProbe(t *testing.T) {
 				t.Errorf("Audio stream sampleRate expected to be atleast 1 (hase %v)", as.sampleRate)
 			}
 		}
+		fmt.Println("End")
 	}
 }
 
 func TestIssues(t *testing.T) {
 	return
 	dim := []dimentions{
-		// {1920, 1080},
-		// {1940, 1080},
-		// {1900, 1080},
-		// {1920, 1060},
-		// {1940, 1060},
-		// {1900, 1060},
-		// {1920, 1090},
-		// {1940, 1090},
-		// {1900, 1090},
+		{1920, 1080},
+		{1940, 1080},
+		{1900, 1080},
+		{1920, 1060},
+		{1940, 1060},
+		{1900, 1060},
+		{1920, 1090},
+		{1940, 1090},
+		{1900, 1090},
 	}
 	target := dimentions{1920, 1080}
 	for _, d := range dim {
@@ -106,6 +107,7 @@ func TestIssues(t *testing.T) {
 }
 
 func TestInterlaceDetect(t *testing.T) {
+	return
 	for i, path := range input() {
 		fmt.Printf("   \n")
 		fmt.Printf("test %v: %v", i, path)

@@ -124,7 +124,7 @@ func Run(c *cli.Context) (string, error) {
 	task, err := selectTask()
 	handle.Error(err)
 
-	mediaInfo, err := probe.MediaFileReport(file, probe.MediaTypeTrailerHD)
+	mediaInfo, err := probe.NewReport(file)
 
 	//MOVE [CURRENT_DIR][FILE] [WORKFOLDER]
 	res := fmt.Sprintf("%v\\%v %v ", cur_dir, file, work_dir)
@@ -170,7 +170,7 @@ func selectTask() (tablemanager.Row, error) {
 }
 
 func VideoMapping(path string) (string, string) {
-	mr, err := probe.MediaFileReport(path, probe.MediaTypeTrailerHD)
+	mr, err := probe.NewReport(path)
 	handle.Error(err)
 
 	for _, issue := range mr.Issues() {

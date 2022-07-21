@@ -4,14 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/Galdoba/devtools/cli/command"
 	"github.com/Galdoba/ffstuff/pkg/mdm/probe"
 	"github.com/malashin/ffinfo"
 )
-
-type Demuxer interface {
-	Demux() error //Демуксит файл исходя из заданных параметров
-}
 
 /*
 fmpeg -i Сквозь_огонь_Through_the_fire.mkv
@@ -37,50 +32,12 @@ clear
 && at now + 10 hours <<< "mv /home/aakkulov/IN/_DONE/Сквозь_огонь_Through_the_fire.mkv /mnt/aakkulov/ROOT/IN/_MEGO_DISTRIBUTION/_DONE/Skvoz_ogon"
 && clear
 && touch /home/aakkulov/IN/TASK_COMPLETE_Сквозь_огонь_Through_the_fire.mkv.txt
+
+
+
+
+
 */
-
-type demuxCommand struct {
-	inputPaths []string
-	fcValues   map[string]string
-	mapValues  map[string]string
-	outFiles   []string
-}
-
-func (dc *demuxCommand) Compose() (string, error) {
-	com := "ffmpeg -r 25 "
-	usedInputs := 0
-	for inputNum, inputFile := range dc.inputPaths {
-		com += fmt.Sprintf("-i %v ", inputFile)
-		usedInputs = inputNum + 1
-	}
-	if usedInputs == 0 {
-		return "", fmt.Errorf("no input specified")
-	}
-
-	return com, nil
-}
-
-func fcMapSortKeys(fcMap map[string]string) []string {
-	for fileNum := 0; fileNum < 30; fileNum++ { //video keys
-		for streamNum := 0; streamNum < 30; streamNum++ {
-
-		}
-	}
-	return nil
-}
-
-type demuxValuesPreset struct {
-	manual            bool
-	yadif             bool
-	downscale         bool
-	crf               int
-	atempo            int
-	asetrate          int
-	acodec            string
-	compression_level string
-	map_metadata      string
-	map_chapters      string
-}
 
 //   decode.Video(path string) (string, error)
 
@@ -123,45 +80,43 @@ func AllAsIs(path string) (string, error) {
 	return output, nil
 }
 
-//VideoFCLine - должен дать параметры которые вставляются в filter_complex для видео
-func VideoFCLine(path string) (string, error) {
-	media, err := probe.MediaFileReport(path, probe.MediaTypeFilmHD)
-	if err != nil {
-		return "", err
-	}
-	com, _ := command.New(
-		command.CommandLineArguments(fmt.Sprintf("ffprobe -i %v", path)),
-		command.Set(command.TERMINAL_ON),
-	)
-	com.Run()
-	fmt.Println(media.String())
-	return "FCLine", nil
-}
+func Mapping(path, productType string) ([]string, error) {
+	str, err := []string{}, fmt.Errorf("not implemented")
 
-func Mapping(path, productType string) (string, error) {
-	str, err := "", fmt.Errorf("not implemented")
-	mr, err := probe.MediaFileReport(path, "s")
-	videsStreams := mr.Video()
-	audioStreams := mr.Audio()
 	//totalStrNum := len(videsStreams) + len(audioStreams)
 	switch productType {
 	default:
-		return "", fmt.Errorf("not implemented (yet)")
+		return str, fmt.Errorf("not implemented (yet)")
 	case probe.MediaTypeFilmHD, probe.MediaTypeTrailerHD:
-		str, err = mapAsHD(videsStreams, audioStreams)
+		str, err = mapAsHD(path)
 	}
 
 	return str, err
 }
 
-func mapAsHD(videos []probe.VideoData, audios []probe.AudioData) (string, error) {
-	mapping := ""
+func mapAsHD(path string) ([]string, error) {
+	mappingSl := []string{}
+	mr, err := probe.NewReport(path)
+	if err != nil {
+		return mappingSl, err
+	}
+	videos := mr.Video()
+	audioStreams := mr.Audio()
+
 	for i, vid := range videos {
+		mapping := ""
 		mapping += fmt.Sprintf("[0:v:%v]", i)
+		interlaceConfirmed, err := probe.InterlaceByIdet(path)
+		if err != nil {
+			return mappingSl, err
+		}
+		if interlaceConfirmed {
+			mapping += "yadif,"
+		}
 		w, h := vid.Dimentions()
 		switch {
 		default:
-			return "", fmt.Errorf("undecided size %vx%v", w, h)
+			return mappingSl, fmt.Errorf("undecided size %vx%v", w, h)
 		case w == 1920 && h == 1080:
 			//ничего не делаем
 		case w >= 1920 && h == 1080:
@@ -173,9 +128,30 @@ func mapAsHD(videos []probe.VideoData, audios []probe.AudioData) (string, error)
 			mapping += "setsar=1/1,"
 		}
 		mapping = strings.TrimSuffix(mapping, ",")
-		mapping += fmt.Sprintf("[video%v];", i)
+		mapping += fmt.Sprintf("[video%v]", i)
+		mappingSl = append(mappingSl, mapping)
 	}
-	mapping = strings.TrimSuffix(mapping, ";")
-	return mapping, nil
+	atempo := mr.FPS()
+	fmt.Println("atempo= ", atempo)
+	for i, aud := range audioStreams {
+		audMap := ""
+		switch aud.ChanLayout() {
+		case "5.1", "5.1(side)", "stereo":
+			audMap += fmt.Sprintf("[0:a:%v]aresample=48000,atempo=25/(%v)[aud%v]", i, atempo, i)
+		}
+		mappingSl = append(mappingSl, audMap)
+	}
 
+	return mappingSl, nil
+
+}
+
+//demux.Media(path string, target Format) (string, error)
+
+type Demuxer interface {
+	Demux() (string, error)
+}
+
+type demuxer struct {
+	path string
 }
