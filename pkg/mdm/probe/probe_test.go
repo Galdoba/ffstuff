@@ -61,7 +61,7 @@ func TestProbe(t *testing.T) {
 				t.Errorf("Video stream fps contains 'unknown': %v", vs)
 			}
 			if vs.dimentions.height == 0 || vs.dimentions.width == 0 {
-				t.Errorf("Video stream dimentions contains error: %v", vs.dimentions)
+				t.Errorf("Video stream Dimentions contains error: %vx%v", vs.dimentions.width, vs.dimentions.height)
 			}
 		}
 		for _, as := range mo.aData {
@@ -82,7 +82,7 @@ func TestProbe(t *testing.T) {
 
 func TestIssues(t *testing.T) {
 	return
-	dim := []dimentions{
+	dim := []Dimentions{
 		{1920, 1080},
 		{1940, 1080},
 		{1900, 1080},
@@ -93,7 +93,7 @@ func TestIssues(t *testing.T) {
 		{1940, 1090},
 		{1900, 1090},
 	}
-	target := dimentions{1920, 1080}
+	target := Dimentions{1920, 1080}
 	for _, d := range dim {
 		issue := dimentionIssue(d, target)
 		switch {

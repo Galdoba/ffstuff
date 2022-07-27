@@ -42,26 +42,26 @@ type issue struct {
 
 type VideoData struct {
 	fps        string
-	dimentions dimentions
+	dimentions Dimentions
 	sar        string
 	dar        string
 	issues     []string
 }
 
-var dimentionsSD dimentions
-var dimentionsHD dimentions
-var dimentions4K dimentions
+var dimentionsSD Dimentions
+var dimentionsHD Dimentions
+var dimentions4K Dimentions
 
 func init() {
-	dimentionsSD = dimentions{720, 576}
-	dimentionsHD = dimentions{1920, 1080}
-	dimentions4K = dimentions{3840, 2160}
+	dimentionsSD = Dimentions{720, 576}
+	dimentionsHD = Dimentions{1920, 1080}
+	dimentions4K = Dimentions{3840, 2160}
 }
 
-func Dimention(d int) dimentions {
+func Dimention(d int) Dimentions {
 	switch d {
 	default:
-		return dimentions{}
+		return Dimentions{}
 	case DimentionSD:
 		return dimentionsSD
 	case DimentionHD:
@@ -90,7 +90,7 @@ func (vd *VideoData) String() string {
 	return str
 }
 
-type dimentions struct {
+type Dimentions struct {
 	width  int
 	height int
 }
@@ -107,7 +107,7 @@ func (ad *AudioData) ChanLayout() string {
 	return ad.chanLayout
 }
 
-func (d *dimentions) String() string {
+func (d *Dimentions) String() string {
 	return fmt.Sprintf("%vx%v", d.width, d.height)
 }
 
@@ -155,8 +155,8 @@ func NewReport(path string) (*FileReport, error) {
 			case "2997/125", "24000/1001", "24/1", "25/1":
 				vid.fps = stream.RFrameRate
 			}
-			vid.dimentions = dimentions{stream.Width, stream.Height}
-			//vid.issues = dimentionIssue(vid.dimentions, targetDimentions(mr.mediaType))
+			vid.dimentions = Dimentions{stream.Width, stream.Height}
+			//vid.issues = dimentionIssue(vid.Dimentions, targetDimentions(mr.mediaType))
 			vid.sar = stream.SampleAspectRatio
 			vid.dar = stream.DisplayAspectRatio
 			report.vData = append(report.vData, vid)
@@ -170,7 +170,7 @@ func NewReport(path string) (*FileReport, error) {
 		}
 
 	}
-	fmt.Println(f.String())
+	//fmt.Println(f.String())
 	//fmt.Println(f.Format.Filename)
 	//fmt.Println("------------")
 	//fmt.Println(report)
@@ -178,14 +178,14 @@ func NewReport(path string) (*FileReport, error) {
 	return &report, nil
 }
 
-func targetDimentions(mType string) dimentions {
+func targetDimentions(mType string) Dimentions {
 	switch mType {
 	default:
-		return dimentions{1, 1}
+		return Dimentions{1, 1}
 	case MediaTypeFilmHD, MediaTypeTrailerHD:
-		return dimentions{1920, 1080}
+		return Dimentions{1920, 1080}
 	case MediaTypeFilm4K, MediaTypeTrailer4K:
-		return dimentions{1920, 1080}
+		return Dimentions{3840, 2160}
 
 	}
 }
@@ -276,7 +276,7 @@ func (ad *AudioData) String() string {
 }
 
 func (mr *FileReport) Issues() []string {
-	targetDimentions := dimentions{}
+	targetDimentions := Dimentions{}
 	str := []string{}
 	switch mr.mediaType {
 	case MediaTypeFilmHD:
@@ -292,7 +292,7 @@ func (mr *FileReport) Issues() []string {
 	return str
 }
 
-func dimentionIssue(actual, target dimentions) error {
+func dimentionIssue(actual, target Dimentions) error {
 	if actual.width == target.width && actual.height == target.height {
 		return nil
 	}

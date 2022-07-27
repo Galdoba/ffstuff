@@ -11,7 +11,7 @@ func TestParsing(t *testing.T) {
 	sp, _ := spreadsheet.New()
 	for _, data := range sp.Data() {
 		//data := strings.Split(line, `","`)
-		row, err := parseRow(data)
+		row, err := ParseRow(data)
 		if err != nil {
 			t.Errorf("%v\nparseRow(line) returned error: %v", data, err.Error())
 			fmt.Println(row)

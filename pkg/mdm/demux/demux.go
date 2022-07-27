@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/Galdoba/ffstuff/pkg/mdm/format"
 	"github.com/Galdoba/ffstuff/pkg/mdm/probe"
+	"github.com/Galdoba/ffstuff/pkg/spreadsheet/tablemanager"
 	"github.com/malashin/ffinfo"
 )
 
@@ -114,6 +116,7 @@ func mapAsHD(path string) ([]string, error) {
 			mapping += "yadif,"
 		}
 		w, h := vid.Dimentions()
+
 		switch {
 		default:
 			return mappingSl, fmt.Errorf("undecided size %vx%v", w, h)
@@ -132,7 +135,7 @@ func mapAsHD(path string) ([]string, error) {
 		mappingSl = append(mappingSl, mapping)
 	}
 	atempo := mr.FPS()
-	fmt.Println("atempo= ", atempo)
+
 	for i, aud := range audioStreams {
 		audMap := ""
 		switch aud.ChanLayout() {
@@ -149,9 +152,78 @@ func mapAsHD(path string) ([]string, error) {
 //demux.Media(path string, target Format) (string, error)
 
 type Demuxer interface {
-	Demux() (string, error)
+	MapArguments() map[string]string
 }
 
+//объект должен иметь:
+//материал Source
+//цель Target Format
+//рабочую задачу (данные из таблицы)
 type demuxer struct {
-	path string
+	sourcePaths  []string
+	sourceInfo   map[int]*ffinfo.File
+	targetFormat *format.TargetFormat
+	tableData    tablemanager.TaskData
+}
+
+func New(targetFormat, taskName, agent, publicationDate string, sourcePaths ...string) (*demuxer, error) {
+	d := demuxer{}
+	//`Комментарий","Путь","ГТ","Т","Трейлер","П","Постеры","М","Наименование","С","З","О","!","Контрагент","Дата публикации`
+	row, err := tablemanager.ParseRow([]string{"", "", "", "", "", "", "", "", taskName, "", "", "", "", agent, publicationDate})
+	if err != nil {
+		return &d, fmt.Errorf("tablemanager returned error: %v", err.Error())
+	}
+	d.targetFormat, err = format.SetAs(targetFormat)
+	if err != nil {
+		return &d, fmt.Errorf("format returned error: %v", err.Error())
+	}
+	d.sourceInfo = make(map[int]*ffinfo.File)
+	for i, path := range sourcePaths {
+		d.sourcePaths = append(d.sourcePaths, path)
+		info, err := ffinfo.Probe(path)
+		if err != nil {
+			return &d, fmt.Errorf("ffinfo returned error: %v", err.Error())
+		}
+		d.sourceInfo[i] = info
+	}
+
+	d.tableData = row
+	return &d, nil
+}
+
+//GETTERS
+
+func (d *demuxer) TaskDataName() string {
+	return d.tableData.Name()
+}
+
+func (d *demuxer) TaskDataAgent() string {
+	return d.tableData.Agent()
+}
+
+func (d *demuxer) TaskDataPublicationDate() string { // а нужна ли мне дата публикации?
+	return d.tableData.PublicationDate()
+}
+
+func (d *demuxer) MapArguments() map[string]string {
+	mp := make(map[string]string)
+	for source, _ := range d.sourcePaths {
+		vidStrm := 0
+		audStrm := 0
+		for n, stream := range d.sourceInfo[source].Streams {
+			switch stream.CodecType {
+			default:
+				mp[fmt.Sprintf("[%v:?:%v]", source, n)] = ""
+			case "video":
+				mp[fmt.Sprintf("[%v:v:%v]", source, vidStrm)] = ""
+				vidStrm++
+			case "audio":
+				mp[fmt.Sprintf("[%v:a:%v]", source, audStrm)] = ""
+				audStrm++
+			}
+
+		}
+	}
+
+	return mp
 }

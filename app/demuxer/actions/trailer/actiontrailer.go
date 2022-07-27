@@ -150,11 +150,11 @@ func currentDir() string {
 	return dir
 }
 
-func selectTask() (tablemanager.Row, error) {
+func selectTask() (tablemanager.TaskData, error) {
 	sheet, err := spreadsheet.New()
 	handle.Error(err)
 	taskList := tablemanager.TaskListFrom(sheet)
-	activeTasks := []tablemanager.Row{}
+	activeTasks := []tablemanager.TaskData{}
 	options := []string{}
 	for _, task := range taskList.ReadyTrailers() {
 		options = append(options, task.String())
@@ -166,7 +166,7 @@ func selectTask() (tablemanager.Row, error) {
 			return task, nil
 		}
 	}
-	return tablemanager.Row{}, fmt.Errorf("Задача не найдена")
+	return tablemanager.TaskData{}, fmt.Errorf("Задача не найдена")
 }
 
 func VideoMapping(path string) (string, string) {

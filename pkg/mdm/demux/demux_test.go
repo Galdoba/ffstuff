@@ -2,10 +2,34 @@ package demux
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
+	"github.com/Galdoba/ffstuff/pkg/mdm/format"
 	"github.com/Galdoba/ffstuff/pkg/mdm/probe"
 )
+
+type demInp struct {
+	taskFormat string
+	tableData  []string
+	paths      []string
+}
+
+func demuxerInput() []demInp {
+	input := []demInp{
+		{format.FilmHD, []string{"", "", "", "", "", "", "", "O", "Film Name", "y", "", "", "", "CONTRAGENT", "22.22.22"}, []string{`d:\IN\IN_testInput\trailers\AllAboutSex_Trailer_Rus_v2_PSH_1_PSH_2_H264.mp4`}},
+		{format.FilmSD, []string{"", "", "", "", "", "", "", "O", "Film Name", "y", "", "", "", "CONTRAGENT", "22.22.22"}, []string{`d:\IN\IN_testInput\trailers\AllAboutSex_Trailer_Rus_v2_PSH_1_PSH_2_H264.mp4`}},
+		{format.Film4K, []string{"", "", "", "", "", "", "", "O", "Film Name", "y", "", "", "", "CONTRAGENT", "22.22.22"}, []string{`d:\IN\IN_testInput\trailers\AllAboutSex_Trailer_Rus_v2_PSH_1_PSH_2_H264.mp4`}},
+		{format.FilmHD, []string{"", "", "", "", "", "", "", "O", "Film Name SD", "y", "", "", "", "CONTRAGENT", "22.22.22"}, []string{`d:\IN\IN_testInput\trailers\AllAboutSex_Trailer_Rus_v2_PSH_1_PSH_2_H264.mp4`}},
+		{format.FilmSD, []string{"", "", "", "", "", "", "", "O", "Film Name SD", "y", "", "", "", "CONTRAGENT", "22.22.22"}, []string{`d:\IN\IN_testInput\trailers\AllAboutSex_Trailer_Rus_v2_PSH_1_PSH_2_H264.mp4`}},
+		{format.Film4K, []string{"", "", "", "", "", "", "", "O", "Film Name SD", "y", "", "", "", "CONTRAGENT", "22.22.22"}, []string{`d:\IN\IN_testInput\trailers\AllAboutSex_Trailer_Rus_v2_PSH_1_PSH_2_H264.mp4`}},
+		{format.FilmHD, []string{"", "", "", "", "", "", "", "O", "Film Name 4K", "y", "", "", "", "CONTRAGENT", "22.22.22"}, []string{`d:\IN\IN_testInput\trailers\AllAboutSex_Trailer_Rus_v2_PSH_1_PSH_2_H264.mp4`}},
+		{format.FilmSD, []string{"", "", "", "", "", "", "", "O", "Film Name 4K", "y", "", "", "", "CONTRAGENT", "22.22.22"}, []string{`d:\IN\IN_testInput\trailers\AllAboutSex_Trailer_Rus_v2_PSH_1_PSH_2_H264.mp4`}},
+		{format.Film4K, []string{"", "", "", "", "", "", "", "O", "Film Name 4K", "y", "", "", "", "CONTRAGENT", "22.22.22"}, []string{`d:\IN\IN_testInput\trailers\AllAboutSex_Trailer_Rus_v2_PSH_1_PSH_2_H264.mp4`}},
+		{format.Film4K, []string{"", "", "", "", "", "", "", "O", "Film Name", "y", "", "", "", "CONTRAGENT", "22.22.22"}, []string{`d:\IN\IN_testInput\trailers\AllAboutSex_Trailer_Rus_v2_PSH_1_PSH_2_H264.mp4`, `d:\IN\IN_testInput\trailers\SUPERSTAR_TRL_5.1_MIX_86.0dB(Int).C.wav`, `d:\IN\IN_testInput\trailers\SUPERSTAR_TRL_5.1_MIX_86.0dB(Int).L.wav`, `d:\IN\IN_testInput\trailers\SUPERSTAR_TRL_5.1_MIX_86.0dB(Int).LFE.wav`, `d:\IN\IN_testInput\trailers\SUPERSTAR_TRL_5.1_MIX_86.0dB(Int).Ls.wav`, `d:\IN\IN_testInput\trailers\SUPERSTAR_TRL_5.1_MIX_86.0dB(Int).R.wav`, `d:\IN\IN_testInput\trailers\SUPERSTAR_TRL_5.1_MIX_86.0dB(Int).Rs.wav`}},
+	}
+	return input
+}
 
 func input() []string {
 	return []string{
@@ -64,6 +88,7 @@ func Test_AllAsIs(t *testing.T) {
 //ffmpeg -i d:\IN\IN_testInput\trailers\CRUELLA_iEST_TLRE_HD_2398_51_20_16x9_185_RUS_D1415623.mov -map 0:0:0 -c:v copy d:\IN\IN_testInput\trailers\CRUELLA_iEST_TLRE_HD_2398_51_20_16x9_185_RUS_D1415623_RAW_0.mp4  -map 0:0:0 -c:a copy d:\IN\IN_testInput\trailers\CRUELLA_iEST_TLRE_HD_2398_51_20_16x9_185_RUS_D1415623_RAW_0.wav  -map 0:1:0 -c:a copy d:\IN\IN_testInput\trailers\CRUELLA_iEST_TLRE_HD_2398_51_20_16x9_185_RUS_D1415623_RAW_1.wav  -map 0:2:0 -c:a copy d:\IN\IN_testInput\trailers\CRUELLA_iEST_TLRE_HD_2398_51_20_16x9_185_RUS_D1415623_RAW_2.wav  -map 0:3:0 -c:a copy d:\IN\IN_testInput\trailers\CRUELLA_iEST_TLRE_HD_2398_51_20_16x9_185_RUS_D1415623_RAW_3.wav  -map 0:4:0 -c:a copy d:\IN\IN_testInput\trailers\CRUELLA_iEST_TLRE_HD_2398_51_20_16x9_185_RUS_D1415623_RAW_4.wav  -map 0:5:0 -c:a copy d:\IN\IN_testInput\trailers\CRUELLA_iEST_TLRE_HD_2398_51_20_16x9_185_RUS_D1415623_RAW_5.wav  -map 0:6:0 -c:a copy d:\IN\IN_testInput\trailers\CRUELLA_iEST_TLRE_HD_2398_51_20_16x9_185_RUS_D1415623_RAW_6.wav  -map 0:7:0 -c:a copy d:\IN\IN_testInput\trailers\CRUELLA_iEST_TLRE_HD_2398_51_20_16x9_185_RUS_D1415623_RAW_7.wav
 
 func TestMapping(t *testing.T) {
+	return
 	for n, path := range input() {
 		fmt.Printf("test %v: %v\n", n, path)
 		str, err := Mapping(path, probe.MediaTypeFilmHD)
@@ -75,5 +100,57 @@ func TestMapping(t *testing.T) {
 			fmt.Println(sl)
 		}
 
+	}
+}
+
+func TestDemuxer(t *testing.T) {
+	for i, demIn := range demuxerInput() {
+		//fmt.Printf("Test %v:\n%v\n%v\n%v\n  \n", i+1, demIn.taskFormat, demIn.paths, demIn.taskData)
+		fmt.Printf("\n \n Test %v: %v\n", i+1, demIn)
+		name := demIn.tableData[8]
+		agent := demIn.tableData[13]
+		pubDate := demIn.tableData[14]
+		d, err := New(demIn.taskFormat, name, agent, pubDate, demIn.paths...)
+		if d == nil {
+			t.Errorf("Func return no object")
+		}
+		if err != nil {
+			t.Errorf("Func return error: %v", err.Error())
+		}
+		if len(d.sourcePaths) < 1 {
+			t.Errorf("source paths not set (expect: %v)", demIn.paths)
+		}
+		if d.targetFormat == nil {
+			t.Errorf("Target Format not declares (expect: %v)", demIn.taskFormat)
+		}
+		if d.tableData.Name() == "" {
+			t.Errorf("Task data name not set (expect '%v')", name)
+		}
+		if d.tableData.Agent() == "" {
+			t.Errorf("Task data agent not set (expect '%v')", agent)
+		}
+		if d.tableData.PublicationDate() == "          " {
+			t.Errorf("Task data Publication Date not set (expect '%v')", pubDate)
+		}
+
+		if strings.Contains(d.TaskDataName(), " SD") {
+			sdPreset, _ := format.SetAs(format.FilmSD)
+			if d.targetFormat.Dimention.MaxSize() != sdPreset.Dimention.MaxSize() {
+				t.Errorf("Task data declares `FILM SD` as target format, have '%v' != '%v'", d.targetFormat, sdPreset.Dimention.MaxSize())
+			}
+		}
+		if strings.Contains(d.TaskDataName(), " 4K") {
+			preset4K, _ := format.SetAs(format.Film4K)
+			if d.targetFormat != preset4K {
+				t.Errorf("Task data declares `FILM 4K` as target format, but have '%v'", demIn.taskFormat)
+			}
+		}
+
+		argMap := d.MapArguments()
+		for _, v := range argMap {
+			if v == "" {
+				//t.Errorf("map argument '%v' is unset", k)
+			}
+		}
 	}
 }
