@@ -102,7 +102,11 @@ func main() {
 			ArgsUsage:   "TODO: подробное описание как пользовать аргументы",
 
 			Action: func(c *cli.Context) error {
-				return actiondemux.Run(c)
+				fmt.Println("Start Action Demux")
+				demuxerr := actiondemux.Run(c)
+				fmt.Println("demuxerr =", demuxerr)
+				fmt.Println("End Action Demux")
+				return demuxerr
 			},
 		},
 		{
