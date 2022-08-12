@@ -4,6 +4,10 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/Galdoba/ffstuff/pkg/spreadsheet"
+
+	"github.com/Galdoba/ffstuff/pkg/spreadsheet/tablemanager"
+
 	"gopkg.in/AlecAivazis/survey.v1"
 )
 
@@ -51,4 +55,21 @@ func Error(err error, notFatal ...error) {
 		fmt.Printf("Fatal Error: %v", err)
 		os.Exit(1)
 	}
+}
+
+func SelectFromTable(listType string) []tablemanager.TaskData {
+	sp, _ := spreadsheet.New()
+	tlist := tablemanager.TaskListFrom(sp)
+	switch listType {
+	case "Фильм":
+		return tlist.ReadyForDemux()
+
+	}
+	return nil
+
+}
+
+func TaskListFull() *tablemanager.TaskList {
+	sp, _ := spreadsheet.New()
+	return tablemanager.TaskListFrom(sp)
 }

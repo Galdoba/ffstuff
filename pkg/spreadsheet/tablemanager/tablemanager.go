@@ -2,6 +2,7 @@ package tablemanager
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -171,35 +172,37 @@ func ProposeTargetDirectory(tl *TaskList, task TaskData) string {
 			}
 		}
 	}
-	path = path + folder1 + addSeasonSubFolder(task.taskName)
+	path = path + folder1 + addSeasonSubFolder(task)
 	return path
 }
 
-func addSeasonSubFolder(name string) string {
-	name = strings.ToLower(name)
-	if !strings.Contains(name, " сезон") {
-		return ""
+func ProposeArchiveDirectory(task TaskData) string {
+	agentFolderName, _ := translit.Do(task.contragent)
+	nameFolderName := task.outputName.outBase
+	if task.outputName.season != "" {
+		nameFolderName += "_s" + task.outputName.season
 	}
-	data := strings.Split(name, " сезон")
-	cleanData := ""
-	dataStr := strings.Split(data[0], "")
-	for _, v := range dataStr {
-		switch v {
-		default:
-			cleanData += " "
-		case "0", "1", "2", "3", "4", "5", "6", "7", "8", "9":
-			cleanData += v
-		}
+	//отделить сериалы от фильмов
+	path := `\\nas\ROOT\IN\_` + strings.ToUpper(agentFolderName) + `\_DONE\` + nameFolderName + `\`
+	return path
+}
+
+func (t *TaskData) OutputBaseName() string {
+	name := t.outputName.outBase
+	if t.outputName.season != "" {
+		name += "_s" + t.outputName.season
 	}
-	digitSl := strings.Fields(cleanData)
-	lastDigit := digitSl[len(digitSl)-1]
-	nameData := strings.Split(name, lastDigit)
-	translitedName, err := translit.Do(nameData[0])
-	if err != nil {
-		return ""
+	if t.outputName.episode != "" {
+		name += "_" + t.outputName.episode
 	}
-	translitedName = strings.Title(translitedName)
-	return translitedName + "_s" + lastDigit + `\`
+	return name
+}
+
+func addSeasonSubFolder(t TaskData) string {
+	if t.outputName.season != "" {
+		return t.outputName.outBase + "_s" + t.outputName.season + `\`
+	}
+	return ""
 }
 
 func (d *date) pathFolder() string {
@@ -232,6 +235,14 @@ type TaskData struct {
 	contragent         string //может быть int
 	publicationDate    date
 	rowType            int
+	outputName         outName
+}
+
+type outName struct {
+	outBase  string
+	season   string
+	episode  string
+	comments []string
 }
 
 func ParseRow(data []string) (TaskData, error) {
@@ -356,7 +367,45 @@ func ParseRow(data []string) (TaskData, error) {
 			r.publicationDate = d
 		}
 	}
+	on, err := defineOutputName(r.taskName)
+	if err != nil {
+		return r, err
+	}
+	r.outputName = on
 	return r, nil
+}
+
+func defineOutputName(name string) (outName, error) {
+	on := outName{}
+	cmnts := strings.Split(name, "(")
+	trName, err := translit.Do(cmnts[0])
+	on.outBase = trName
+	if err != nil {
+		return on, err
+	}
+	for i, com := range cmnts {
+		if i == 0 {
+			continue
+		}
+		on.comments = append(on.comments, com)
+	}
+	if len(on.comments) > 1 {
+		last := strings.Split(name, ")")[0]
+		on.comments[len(on.comments)-1] = last
+	}
+	re, e := regexp.Compile(`.*_\d{2}_sezon_\d{2,3}_seri.*`)
+	if e != nil {
+		return on, e
+	}
+	if re.Match([]byte(trName)) {
+		parts := strings.Split(trName, "_sezon_")
+		rejoined := strings.Join(parts[0:len(parts)-1], "_sezon_")
+		name := strings.Split(rejoined, "_")
+		on.outBase = strings.Join(name[0:len(name)-1], "_")
+		on.season = name[len(name)-1]
+		on.episode = strings.Split(parts[len(parts)-1], "_")[0]
+	}
+	return on, nil
 }
 
 func (r *TaskData) Name() string {
@@ -377,6 +426,13 @@ func (r *TaskData) String() string {
 		str += " (" + r.comment + ")"
 	}
 	return str
+}
+
+func (r *TaskData) Match(str string) bool {
+	if r.String() == str {
+		return true
+	}
+	return false
 }
 
 type date struct {
