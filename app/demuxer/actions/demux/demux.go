@@ -4,6 +4,10 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/fatih/color"
+
+	"github.com/Galdoba/ffstuff/pkg/mdm/probe"
+
 	"github.com/Galdoba/ffstuff/pkg/mdm/format"
 
 	"github.com/Galdoba/ffstuff/pkg/spreadsheet/tablemanager"
@@ -44,37 +48,121 @@ func Run(c *cli.Context) error {
 		return err
 	}
 	fmt.Println("Precheck complete")
-	taskType := handle.SelectionSingle("Что в исходнике?", []string{"Фильм", "Трейлер", "Сериал"}...)
-	task := tablemanager.TaskData{}
-	fmt.Println("в исходнике: ", taskType)
-	switch taskType {
-	case "Фильм":
-		filmtask, err := DefineFilmTask()
-		if err != nil {
+	args := c.Args()
+	for _, arg := range args {
+		taskType := handle.SelectionSingle("Что в исходнике?", []string{"Фильм"}...)
+		task := tablemanager.TaskData{}
+		fmt.Println("в исходнике: ", taskType)
+		switch taskType {
+		case "Фильм":
+			filmtask, err := DefineFilmTask()
+			if err != nil {
+				return err
+			}
+			task = filmtask
+		}
+		////////
+		//fmt.Println(task)
+		//nameBase := task.OutputBaseName()
+		//setpts=N/(25*TB)
+		targetDir := `\\nas\ROOT\EDIT\` + tablemanager.ProposeTargetDirectory(handle.TaskListFull(), task)
+		outBaseName := task.OutputBaseName()
+		fmt.Printf(`DEMUX TO: %v%v`+"\n", targetDir, outBaseName)
+		archive := tablemanager.ProposeArchiveDirectory(task)
+		fmt.Printf("ARCHIVE TO: %v\n", archive)
+		tFormat := &format.TargetFormat{}
+		switch {
+		default:
+			tFormat, _ = format.SetAs(format.FilmHD)
+		case strings.Contains(task.Name(), " SD"):
+			tFormat, _ = format.SetAs(format.FilmSD)
+		case strings.Contains(task.Name(), " 4K"):
+			tFormat, _ = format.SetAs(format.Film4K)
+		}
+		fmt.Println(" ")
+		fmt.Println("Check Input:")
+		for _, issue := range Issues(tFormat, task) {
+			fmt.Println("WARNING: " + issue)
+		}
+		rep, _ := probe.NewReport(arg)
+		audioStreams := rep.Audio()
+		needSelect := false
+		if len(audioStreams) > 2 {
+			needSelect = true
+		}
+		for _, as := range audioStreams {
+			switch as.ChanLayout() {
+			case "stereo", "5.1", "5.1(side)":
+			default:
+				needSelect = true
+			}
+		}
+		selectedAudio := audioStreams
+		if needSelect {
+			selectedAudio = probe.SelectAudio(rep.Audio())
+		}
+		langData := []string{}
+		langAdded := make(map[string]int)
+
+		for a, str := range selectedAudio {
+			fmt.Println(" ")
+			lang := str.FCmapKey() + "__AUDIO"
+			lang += handle.SelectionSingle(fmt.Sprintf("Язык стрима [0:%v]: %v", a, str.String()), []string{"RUS", "ENG", "QQQ"}...)
+			switch str.ChanLayout() {
+			case "stereo":
+				lang += "20"
+			case "5.1", "5.1(side)":
+				lang += "51"
+			}
+			if langAdded[lang] > 0 {
+				lang += fmt.Sprintf("_%v", langAdded[lang])
+			}
+			langAdded[lang]++
+			langData = append(langData, lang)
+		}
+
+		fmt.Println("||||||||||||||||")
+		ffmpegCMD, errff := formAmediaFFmpegComLine(arg, langData, task)
+		if errff != nil {
+			fmt.Println(errff)
+		}
+		//fmt.Println(errff)
+		//fmt.Println("fflite", ffmpegCMD)
+		//распределяем звуковые тэги по потокам ...ок
+		//составляем фильтр комплекс ..............ок
+		//формируем команду .......................ок
+		//дополняем транспортные команды
+		/*
+			clear && \
+			mv  ~/IN/FILE ~/IN/_IN_PROGRESS/ && \
+			fflite -r 25 -i ~/IN/_IN_PROGRESS/FILE \
+			-filter_complex "[0:a:0]aresample=48000,atempo=25/24[audio]" \
+			-map [audio]    @alac0 NAME_AUDIORUS20.m4a \
+			-map 0:v:0      @crf16 NAME_HD.mp4 \
+			&& touch NAME.ready \
+			&& at now + 10 hours <<< "mv ~/IN/_IN_PROGRESS/FILE OUTPATH"
+		*/
+
+		fullCommand := formFullCommandFilm(arg, ffmpegCMD, targetDir, outBaseName)
+		processOS := handle.SelectionSingle("На какой операционной системе будет просчет?", "Linux", "Windows")
+		switch processOS {
+		default:
+			return fmt.Errorf("выбрана неизвестная ОС")
+		case "Windows":
+		case "Linux":
+			fullCommand = handle.ConvertToLinux(fullCommand)
+		}
+
+		fmt.Println(" ")
+		fmt.Printf("Скопируйте строку в терминал машины, что будет заниматься просчетом:\n")
+		fmt.Println(color.HiGreenString(fmt.Sprintf("\n%v\n", fullCommand)))
+		fmt.Println(" ")
+		//echo %DATE% %TIME% >\\nas\buffer\IN\%v.ready
+		//&& mv /home/pemaltynov/IN/_IN_PROGRESS/Потеря_надежды_Hope_Lost_2015_2.mkv /home/pemaltynov/IN/_DONE/
+		//уточняем машину на которой будет считаться
+		if err := handle.ArchiveDelay(arg, archive); err != nil {
 			return err
 		}
-		task = filmtask
-	}
-	////////
-	//fmt.Println(task)
-	nameBase := task.OutputBaseName()
-	//setpts=N/(25*TB)
-	fmt.Printf(`DEMUX TO: \\nas\ROOT\EDIT\%v%v`+"\n", tablemanager.ProposeTargetDirectory(handle.TaskListFull(), task), nameBase)
-	archive := tablemanager.ProposeArchiveDirectory(task)
-	fmt.Printf("ARCHIVE TO: %v\n", archive)
-	tFormat := &format.TargetFormat{}
-	switch {
-	default:
-		tFormat, _ = format.SetAs(format.FilmHD)
-	case strings.Contains(task.Name(), " SD"):
-		tFormat, _ = format.SetAs(format.FilmSD)
-	case strings.Contains(task.Name(), " 4K"):
-		tFormat, _ = format.SetAs(format.Film4K)
-	}
-	fmt.Println(" ")
-	fmt.Println("Check Input:")
-	for _, issue := range Issues(tFormat, task) {
-		fmt.Println("WARNING: " + issue)
 	}
 	return nil
 }
@@ -84,14 +172,24 @@ func Precheck(c *cli.Context) error {
 	if len(args) == 0 {
 		return fmt.Errorf("no arguments provided")
 	}
+	fmt.Println(" ")
 	for _, arg := range args {
 		fmt.Println(arg)
 	}
+	fmt.Println(" ")
 	selected := handle.SelectionSingle("Перечень исходных файлов корректен?", []string{"ДА", "НЕТ"}...)
 	if selected != "ДА" {
 		return fmt.Errorf("User abort")
 	}
+
 	for _, arg := range args {
+		for _, s := range []string{" ", "(", ")"} {
+			if strings.Contains(arg, s) {
+				fmt.Println("Внимание: Имя файла содержит недопустимый символ: '%v'", s)
+				return fmt.Errorf("недопустимый символ '%v'", s)
+			}
+		}
+
 		com, err := command.New(
 			command.CommandLineArguments("fflite", "-i "+arg),
 			command.Set(command.TERMINAL_ON),
@@ -115,7 +213,7 @@ func DefineFilmTask() (tablemanager.TaskData, error) {
 	for _, t := range taskList {
 		s = append(s, t.String())
 	}
-	taskStr := handle.SelectionSingle("Данные из таблицы", s...)
+	taskStr := handle.SelectionSingle("Данные из таблицы: ", s...)
 	for _, t := range taskList {
 		if t.Match(taskStr) {
 			task = t
@@ -178,4 +276,67 @@ func mapSum(sm map[string]int) int {
 		s += v
 	}
 	return s
+}
+
+/*
+fflite -n -r 25 -i /home/pemaltynov/IN/_IN_PROGRESS/No309_UHZA${ss}*.mov -filter_complex "[0:v:0]yadif[video];[0:a:0]aresample=48000,atempo=25/(25/1)[arus]" -map [video] -c:v libx264 -preset medium -crf 16 -pix_fmt yuv420p -g 0 -map_metadata -1 -map_chapters -1 /mnt/pemaltynov/ROOT/EDIT/_russian_report/Nomer_309_s01/Nomer_309_s01_${ss}_HD.mp4 -map [arus] -c:a alac -compression_level 0 -map_metadata -1 -map_chapters -1 /mnt/pemaltynov/ROOT/EDIT/_russian_report/Nomer_309_s01/Nomer_309_s01_${ss}_AUDIORUS20.m4a
+*/
+
+func formAmediaFFmpegComLine(inputPath string, audioTags []string, task tablemanager.TaskData) (string, error) {
+	fcUsed := false
+	rep, err := probe.NewReport(inputPath)
+	if err != nil {
+		return "", err
+	}
+	fps := rep.FPS()
+	str := "-r 25"
+	str += fmt.Sprintf(` -i \\nas\buffer\IN\_IN_PROGRESS\%v`, inputPath)
+	str += fmt.Sprintf(` -filter_complex`)
+	activeMap := []string{}
+	for i, audStr := range audioTags {
+		if i == 0 {
+			str += ` "`
+		}
+		fcUsed = true
+		key := strings.Split(audStr, "__")
+		actMap := fmt.Sprintf("aud%v", i)
+		str += fmt.Sprintf(`[0%v]aresample=48000,atempo=25/(%v)[%v]; `, key[0], fps, actMap)
+		activeMap = append(activeMap, actMap)
+		if i == len(audioTags)-1 {
+			str = strings.TrimSuffix(str, "; ")
+			str += `"`
+		}
+	}
+	if !fcUsed {
+		str = strings.Replace(str, " -filter_complex", "", -1)
+	}
+	crf := "16"
+	switch {
+	default:
+	case strings.Contains(task.Name(), " 4K"):
+		crf = "18"
+	case strings.Contains(task.Name(), " SD"):
+		crf = "13"
+	}
+	str += fmt.Sprintf(` -map 0:v:0 -c:v libx264 -preset medium -crf %v -pix_fmt yuv420p -g 0 -map_metadata -1 -map_chapters -1 \\nas\ROOT\EDIT\%v%v_HD.mp4`, crf, tablemanager.ProposeTargetDirectory(handle.TaskListFull(), task), task.OutputBaseName())
+	for s, key := range activeMap {
+		audTag := strings.Split(audioTags[s], "__")[1]
+		str += fmt.Sprintf(` -map [%v] -c:a -vn -acodec alac -compression_level 0 -map_metadata -1 -map_chapters -1 \\nas\ROOT\EDIT\%v%v_%v.m4a`, key, tablemanager.ProposeTargetDirectory(handle.TaskListFull(), task), task.OutputBaseName(), audTag)
+	}
+
+	return str, nil
+}
+
+/*
+Для амедии:
+*/
+
+func formFullCommandFilm(inputFile, ffmpegCMD, targetDir, outBaseName string) string {
+	fullCommand := ""
+	fullCommand += fmt.Sprintf(`cls`)
+	fullCommand += fmt.Sprintf(` && move \\nas\buffer\IN\%v \\nas\buffer\IN\_IN_PROGRESS\`, inputFile)
+	fullCommand += fmt.Sprintf(` && fflite %v`, ffmpegCMD)
+	fullCommand += fmt.Sprintf(` && echo 1>` + targetDir + outBaseName + ".ready")
+	fullCommand += fmt.Sprintf(` && move \\nas\buffer\IN\_IN_PROGRESS\%v \\nas\buffer\IN\_DONE\`, inputFile)
+	return fullCommand
 }

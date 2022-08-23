@@ -164,6 +164,7 @@ type demuxer struct {
 	sourceInfo   map[int]*ffinfo.File
 	targetFormat *format.TargetFormat
 	tableData    tablemanager.TaskData
+	mappingOut   map[string]string
 }
 
 func New(targetFormat, taskName, agent, publicationDate string, sourcePaths ...string) (*demuxer, error) {

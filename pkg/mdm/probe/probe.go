@@ -45,6 +45,7 @@ type VideoData struct {
 	dimentions Dimentions
 	sar        string
 	dar        string
+	fcMapKey   string
 	issues     []string
 }
 
@@ -100,11 +101,15 @@ type AudioData struct {
 	chanNum    int
 	sampleRate int
 	language   string
-	fcMapValue string
+	fcMapKey   string
 }
 
 func (ad *AudioData) ChanLayout() string {
 	return ad.chanLayout
+}
+
+func (ad *AudioData) FCmapKey() string {
+	return ad.fcMapKey
 }
 
 func (d *Dimentions) String() string {
@@ -140,7 +145,8 @@ func NewReport(path string) (*FileReport, error) {
 	// com.Run()
 	// report.data += "\n" + com.StdOut() + "\n" + com.StdErr()
 	allStreams := f.Format.NbStreams
-
+	videoStream := 0
+	audStream := 0
 	for st := 0; st < allStreams; st++ {
 		stream := f.Streams[st]
 		switch stream.CodecType {
@@ -152,21 +158,25 @@ func NewReport(path string) (*FileReport, error) {
 			switch stream.RFrameRate {
 			default:
 				vid.fps = stream.RFrameRate + " (unknown)"
-			case "2997/125", "24000/1001", "24/1", "25/1":
+			case "2997/125", "24000/1001", "24/1", "25/1", "27021/1127":
 				vid.fps = stream.RFrameRate
 			}
 			vid.dimentions = Dimentions{stream.Width, stream.Height}
 			//vid.issues = dimentionIssue(vid.Dimentions, targetDimentions(mr.mediaType))
 			vid.sar = stream.SampleAspectRatio
 			vid.dar = stream.DisplayAspectRatio
+			vid.fcMapKey = fmt.Sprintf(":v:%v", videoStream)
 			report.vData = append(report.vData, vid)
+			videoStream++
 		case "audio":
 			aud := AudioData{}
 			aud.chanNum = stream.Channels
 			aud.sampleRate = stream.Channels
 			aud.chanLayout = stream.ChannelLayout
 			aud.language = stream.Tags.Language
+			aud.fcMapKey = fmt.Sprintf(":a:%v", audStream)
 			report.aData = append(report.aData, aud)
+			audStream++
 		}
 
 	}
@@ -249,7 +259,7 @@ func SelectAudio(allStreams []AudioData) []AudioData {
 		opt = append(opt, fmt.Sprintf("%v - %v", i, as.String()))
 	}
 	msq := survey.MultiSelect{
-		Message: "Select tracks",
+		Message: "Аудио стримы: ",
 		Options: opt,
 	}
 

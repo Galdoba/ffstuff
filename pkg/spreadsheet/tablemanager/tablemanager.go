@@ -178,7 +178,7 @@ func ProposeTargetDirectory(tl *TaskList, task TaskData) string {
 
 func ProposeArchiveDirectory(task TaskData) string {
 	agentFolderName, _ := translit.Do(task.contragent)
-	nameFolderName := task.outputName.outBase
+	nameFolderName := strings.ToTitle(task.outputName.outBase)
 	if task.outputName.season != "" {
 		nameFolderName += "_s" + task.outputName.season
 	}
@@ -195,6 +195,7 @@ func (t *TaskData) OutputBaseName() string {
 	if t.outputName.episode != "" {
 		name += "_" + t.outputName.episode
 	}
+	name = strings.Title(name)
 	return name
 }
 
