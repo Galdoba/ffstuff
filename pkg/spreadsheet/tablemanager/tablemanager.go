@@ -60,6 +60,10 @@ func TaskListFrom(sp TableData) *TaskList {
 	return &tl
 }
 
+func (tl *TaskList) ParseErrors() []error {
+	return tl.parseErrors
+}
+
 func (tl *TaskList) Downloading() []TaskData {
 	list := []TaskData{}
 	for _, task := range tl.tasks {
@@ -178,7 +182,7 @@ func ProposeTargetDirectory(tl *TaskList, task TaskData) string {
 
 func ProposeArchiveDirectory(task TaskData) string {
 	agentFolderName, _ := translit.Do(task.contragent)
-	nameFolderName := strings.ToTitle(task.outputName.outBase)
+	nameFolderName := strings.Title(task.outputName.outBase)
 	if task.outputName.season != "" {
 		nameFolderName += "_s" + task.outputName.season
 	}
@@ -253,7 +257,7 @@ func ParseRow(data []string) (TaskData, error) {
 		return r, nil
 	}
 	if len(data) != 15 {
-		return r, fmt.Errorf("row format incorect")
+		return r, fmt.Errorf("row format incorect (expect len(data) = 15 have) %v", len(data))
 	}
 	sep := strings.Join(data[2:7], "")
 	if sep == "" {

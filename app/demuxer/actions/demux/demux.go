@@ -2,6 +2,7 @@ package actiondemux
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/fatih/color"
@@ -39,6 +40,11 @@ demuxer -tofile file.txt -update demux -i film.mp4
 
 */
 
+const (
+	taskTypeFILM    = "Фильм"
+	taskTypeTRAILER = "Трейлер (НЕ РАБОТАЕТ)"
+)
+
 var inputBuffer []string
 var inputPaths []string
 
@@ -50,26 +56,28 @@ func Run(c *cli.Context) error {
 	fmt.Println("Precheck complete")
 	args := c.Args()
 	for _, arg := range args {
-		taskType := handle.SelectionSingle("Что в исходнике?", []string{"Фильм"}...)
-		task := tablemanager.TaskData{}
+		taskType := handle.SelectionSingle("Что в исходнике?", []string{taskTypeFILM, taskTypeTRAILER}...)
+		// task := tablemanager.TaskData{}
 		fmt.Println("в исходнике: ", taskType)
-		switch taskType {
-		case "Фильм":
-			filmtask, err := DefineFilmTask()
-			if err != nil {
-				return err
-			}
-			task = filmtask
+		task, err := DefineTask(taskType)
+		if err != nil {
+			fmt.Println(err.Error())
+			return err
 		}
-		////////
-		//fmt.Println(task)
-		//nameBase := task.OutputBaseName()
-		//setpts=N/(25*TB)
+
+		///////////////////////
+
 		targetDir := `\\nas\ROOT\EDIT\` + tablemanager.ProposeTargetDirectory(handle.TaskListFull(), task)
 		outBaseName := task.OutputBaseName()
-		fmt.Printf(`DEMUX TO: %v%v`+"\n", targetDir, outBaseName)
+		fmt.Printf(`DEMUX DIR  : %v%v`+"\n", targetDir, outBaseName)
+		if err := confirmDir(targetDir); err != nil {
+			return err
+		}
 		archive := tablemanager.ProposeArchiveDirectory(task)
-		fmt.Printf("ARCHIVE TO: %v\n", archive)
+		fmt.Printf("ARCHIVE DIR: %v\n", archive)
+		if err := confirmDir(archive); err != nil {
+			return err
+		}
 		tFormat := &format.TargetFormat{}
 		switch {
 		default:
@@ -104,11 +112,15 @@ func Run(c *cli.Context) error {
 		langData := []string{}
 		langAdded := make(map[string]int)
 
+		//checkMono(ad []probe.AudioData)
+
 		for a, str := range selectedAudio {
 			fmt.Println(" ")
 			lang := str.FCmapKey() + "__AUDIO"
 			lang += handle.SelectionSingle(fmt.Sprintf("Язык стрима [0:%v]: %v", a, str.String()), []string{"RUS", "ENG", "QQQ"}...)
 			switch str.ChanLayout() {
+			default:
+				lang += "ХЗ"
 			case "stereo":
 				lang += "20"
 			case "5.1", "5.1(side)":
@@ -185,14 +197,14 @@ func Precheck(c *cli.Context) error {
 	for _, arg := range args {
 		for _, s := range []string{" ", "(", ")"} {
 			if strings.Contains(arg, s) {
-				fmt.Println("Внимание: Имя файла содержит недопустимый символ: '%v'", s)
+				fmt.Printf("Внимание: Имя файла содержит недопустимый символ: '%v'\n", s)
 				return fmt.Errorf("недопустимый символ '%v'", s)
 			}
 		}
 
 		com, err := command.New(
 			command.CommandLineArguments("fflite", "-i "+arg),
-			command.Set(command.TERMINAL_ON),
+			command.Set(command.TERMINAL_OFF),
 			command.Set(command.BUFFER_ON),
 		)
 		if err != nil {
@@ -202,13 +214,22 @@ func Precheck(c *cli.Context) error {
 		com.Run()
 		inputBuffer = strings.Split(com.StdOut()+"\n"+com.StdErr(), "\n")
 	}
-	fmt.Println(" ")
+	for _, line := range inputBuffer {
+		fmt.Println(color.HiYellowString(line))
+	}
+
 	return nil
 }
 
-func DefineFilmTask() (tablemanager.TaskData, error) {
+func DefineTask(taskType string) (tablemanager.TaskData, error) {
 	task := tablemanager.TaskData{}
-	taskList := handle.SelectFromTable("Фильм")
+	taskList := []tablemanager.TaskData{}
+	switch taskType {
+	default:
+		return task, fmt.Errorf("DefineTask(taskType): taskType=%v (unknown)", taskType)
+	case taskTypeFILM, taskTypeTRAILER:
+		taskList = handle.SelectFromTable(taskType)
+	}
 	s := []string{}
 	for _, t := range taskList {
 		s = append(s, t.String())
@@ -278,10 +299,6 @@ func mapSum(sm map[string]int) int {
 	return s
 }
 
-/*
-fflite -n -r 25 -i /home/pemaltynov/IN/_IN_PROGRESS/No309_UHZA${ss}*.mov -filter_complex "[0:v:0]yadif[video];[0:a:0]aresample=48000,atempo=25/(25/1)[arus]" -map [video] -c:v libx264 -preset medium -crf 16 -pix_fmt yuv420p -g 0 -map_metadata -1 -map_chapters -1 /mnt/pemaltynov/ROOT/EDIT/_russian_report/Nomer_309_s01/Nomer_309_s01_${ss}_HD.mp4 -map [arus] -c:a alac -compression_level 0 -map_metadata -1 -map_chapters -1 /mnt/pemaltynov/ROOT/EDIT/_russian_report/Nomer_309_s01/Nomer_309_s01_${ss}_AUDIORUS20.m4a
-*/
-
 func formAmediaFFmpegComLine(inputPath string, audioTags []string, task tablemanager.TaskData) (string, error) {
 	fcUsed := false
 	rep, err := probe.NewReport(inputPath)
@@ -327,10 +344,6 @@ func formAmediaFFmpegComLine(inputPath string, audioTags []string, task tableman
 	return str, nil
 }
 
-/*
-Для амедии:
-*/
-
 func formFullCommandFilm(inputFile, ffmpegCMD, targetDir, outBaseName string) string {
 	fullCommand := ""
 	fullCommand += fmt.Sprintf(`cls`)
@@ -338,5 +351,34 @@ func formFullCommandFilm(inputFile, ffmpegCMD, targetDir, outBaseName string) st
 	fullCommand += fmt.Sprintf(` && fflite %v`, ffmpegCMD)
 	fullCommand += fmt.Sprintf(` && echo 1>` + targetDir + outBaseName + ".ready")
 	fullCommand += fmt.Sprintf(` && move \\nas\buffer\IN\_IN_PROGRESS\%v \\nas\buffer\IN\_DONE\`, inputFile)
+	fullCommand += fmt.Sprintf(` && echo 1> \\nas\buffer\IN\z_TASK_COMPLETE_` + outBaseName + ".txt")
+	//fullCommand += fmt.Sprintf(` && \\nas\buffer\IN\TASK_COMPLETE_` + outBaseName + ".txt")
 	return fullCommand
+}
+
+/*
+\\nas\buffer\IN\bats\checkForErrors.bat
+/home/pemaltynov/IN/bats/checkForErrors.bat
+*/
+
+func confirmDir(d string) error {
+	dir, err := os.Stat(d)
+	if err != nil {
+		switch {
+		default:
+			return fmt.Errorf("confirming directory: %v", err.Error())
+		case strings.Contains(err.Error(), "system cannot find the file specified"):
+			switch handle.SelectionSingle(fmt.Sprintf("WARNING:\n'%v' не существует!\nСоздать?", d), "ДА", "НЕТ") {
+			case "ДА":
+				os.MkdirAll(d, 0777)
+				return nil
+			case "НЕТ":
+				return fmt.Errorf("нет папки назначения")
+			}
+		}
+	}
+	if !dir.Mode().IsDir() {
+		return fmt.Errorf("%v is not a directory", d)
+	}
+	return nil
 }

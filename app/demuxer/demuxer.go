@@ -104,6 +104,9 @@ func main() {
 			Action: func(c *cli.Context) error {
 				fmt.Println("Start Action Demux")
 				demuxerr := actiondemux.Run(c)
+				if demuxerr != nil {
+					fmt.Println("ERROR:", demuxerr.Error())
+				}
 				//fmt.Println("demuxerr =", demuxerr)
 				//fmt.Println("End Action Demux")
 				return demuxerr

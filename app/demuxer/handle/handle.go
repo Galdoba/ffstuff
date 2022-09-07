@@ -61,9 +61,17 @@ func Error(err error, notFatal ...error) {
 func SelectFromTable(listType string) []tablemanager.TaskData {
 	sp, _ := spreadsheet.New()
 	tlist := tablemanager.TaskListFrom(sp)
+	//for _, err := range tlist.ParseErrors() {
+	//		fmt.Println(err.Error())
+	//}
 	switch listType {
+	default:
+		fmt.Printf("SelectFromTable(listType string): listType=%v (unknown listType)", listType)
+		return nil
 	case "Фильм":
 		return tlist.ReadyForDemux()
+	case "Трейлер":
+		return tlist.ReadyTrailers()
 
 	}
 	return nil
