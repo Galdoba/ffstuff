@@ -113,6 +113,25 @@ func main() {
 			},
 		},
 		{
+			Name:        "test",
+			ShortName:   "",
+			Usage:       "тестирует то что в разработке",
+			UsageText:   "исходный файл должен быть аргументом",
+			Description: "TODO: подробное описание команды",
+			ArgsUsage:   "TODO: подробное описание как пользовать аргументы",
+
+			Action: func(c *cli.Context) error {
+				fmt.Println("Start Action Demux")
+				demuxerr := actiondemux.RunUNTESTED(c)
+				if demuxerr != nil {
+					fmt.Println("ERROR:", demuxerr.Error())
+				}
+				//fmt.Println("demuxerr =", demuxerr)
+				//fmt.Println("End Action Demux")
+				return demuxerr
+			},
+		},
+		{
 			Name:      "fullhelp",
 			ShortName: "",
 			Usage:     "Предоставляет полное описание всего что умеет программа",

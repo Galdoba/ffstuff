@@ -382,3 +382,178 @@ func confirmDir(d string) error {
 	}
 	return nil
 }
+
+func RunUNTESTED(c *cli.Context) error {
+	args, err := CheckArguments(c)
+	if err != nil {
+		return err
+	}
+	streams, err := probe.StreamsData(args...)
+	if err != nil {
+		return err
+	}
+	vid, aud := probe.SeparateByTypes(streams)
+	if len(vid)+len(aud) == 0 {
+		return fmt.Errorf("file(s) contains no video and no audio streams")
+	}
+	for _, stream := range streams {
+		fmt.Println(stream.PrintStreamData())
+	}
+	fmt.Println("TODO: Выбрать Схему желаемого результата")
+	taskType := handle.SelectionSingle("Что делаем?", "Фильм", "Трейлер", "Сериал")
+	fmt.Println("TODO: Выбрать интересующие видео дорожки")
+	fmt.Println("TODO: Выбрать интересующие аудио дорожки")
+
+	return nil
+	fmt.Println("RUN Precheck")
+	if err := Precheck(c); err != nil {
+		return err
+	}
+	fmt.Println("Precheck complete")
+	args = c.Args()
+	for _, arg := range args {
+		taskType := handle.SelectionSingle("Что в исходнике?", []string{taskTypeFILM, taskTypeTRAILER}...)
+		// task := tablemanager.TaskData{}
+		fmt.Println("в исходнике: ", taskType)
+		task, err := DefineTask(taskType)
+		if err != nil {
+			fmt.Println(err.Error())
+			return err
+		}
+
+		///////////////////////
+
+		targetDir := `\\nas\ROOT\EDIT\` + tablemanager.ProposeTargetDirectory(handle.TaskListFull(), task)
+		outBaseName := task.OutputBaseName()
+		fmt.Printf(`DEMUX DIR  : %v%v`+"\n", targetDir, outBaseName)
+		if err := confirmDir(targetDir); err != nil {
+			return err
+		}
+		archive := tablemanager.ProposeArchiveDirectory(task)
+		fmt.Printf("ARCHIVE DIR: %v\n", archive)
+		if err := confirmDir(archive); err != nil {
+			return err
+		}
+		tFormat := &format.TargetFormat{}
+		switch {
+		default:
+			tFormat, _ = format.SetAs(format.FilmHD)
+		case strings.Contains(task.Name(), " SD"):
+			tFormat, _ = format.SetAs(format.FilmSD)
+		case strings.Contains(task.Name(), " 4K"):
+			tFormat, _ = format.SetAs(format.Film4K)
+		}
+		fmt.Println(" ")
+		fmt.Println("Check Input:")
+		for _, issue := range Issues(tFormat, task) {
+			fmt.Println("WARNING: " + issue)
+		}
+		rep, _ := probe.NewReport(arg)
+		audioStreams := rep.Audio()
+		needSelect := false
+		if len(audioStreams) > 2 {
+			needSelect = true
+		}
+		for _, as := range audioStreams {
+			switch as.ChanLayout() {
+			case "stereo", "5.1", "5.1(side)":
+			default:
+				needSelect = true
+			}
+		}
+		selectedAudio := audioStreams
+		if needSelect {
+			selectedAudio = probe.SelectAudio(rep.Audio())
+		}
+		langData := []string{}
+		langAdded := make(map[string]int)
+
+		//checkMono(ad []probe.AudioData)
+
+		for a, str := range selectedAudio {
+			fmt.Println(" ")
+			lang := str.FCmapKey() + "__AUDIO"
+			lang += handle.SelectionSingle(fmt.Sprintf("Язык стрима [0:%v]: %v", a, str.String()), []string{"RUS", "ENG", "QQQ"}...)
+			switch str.ChanLayout() {
+			default:
+				lang += "ХЗ"
+			case "stereo":
+				lang += "20"
+			case "5.1", "5.1(side)":
+				lang += "51"
+			}
+			if langAdded[lang] > 0 {
+				lang += fmt.Sprintf("_%v", langAdded[lang])
+			}
+			langAdded[lang]++
+			langData = append(langData, lang)
+		}
+
+		fmt.Println("||||||||||||||||")
+		ffmpegCMD, errff := formAmediaFFmpegComLine(arg, langData, task)
+		if errff != nil {
+			fmt.Println(errff)
+		}
+
+		fullCommand := formFullCommandFilm(arg, ffmpegCMD, targetDir, outBaseName)
+		processOS := handle.SelectionSingle("На какой операционной системе будет просчет?", "Linux", "Windows")
+		switch processOS {
+		default:
+			return fmt.Errorf("выбрана неизвестная ОС")
+		case "Windows":
+		case "Linux":
+			fullCommand = handle.ConvertToLinux(fullCommand)
+		}
+
+		fmt.Println(" ")
+		fmt.Printf("Скопируйте строку в терминал машины, что будет заниматься просчетом:\n")
+		fmt.Println(color.HiGreenString(fmt.Sprintf("\n%v\n", fullCommand)))
+		fmt.Println(" ")
+		//echo %DATE% %TIME% >\\nas\buffer\IN\%v.ready
+		//&& mv /home/pemaltynov/IN/_IN_PROGRESS/Потеря_надежды_Hope_Lost_2015_2.mkv /home/pemaltynov/IN/_DONE/
+		//уточняем машину на которой будет считаться
+		if err := handle.ArchiveDelay(arg, archive); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func CheckArguments(c *cli.Context) ([]string, error) {
+	args := c.Args()
+	if len(args) == 0 {
+		return nil, fmt.Errorf("no arguments provided")
+	}
+	fmt.Println(" ")
+	for _, arg := range args {
+		fmt.Println(arg)
+	}
+	fmt.Println(" ")
+	selected := handle.SelectionSingle("Перечень исходных файлов корректен?", []string{"ДА", "НЕТ"}...)
+	if selected != "ДА" {
+		return nil, fmt.Errorf("перечень исходных файлов не корректен")
+	}
+	for _, arg := range args {
+		for _, s := range []string{" ", "(", ")"} {
+			if strings.Contains(arg, s) {
+				fmt.Printf("Внимание: Имя файла содержит недопустимый символ: '%v'\n", s)
+				return nil, fmt.Errorf("недопустимый символ '%v'", s)
+			}
+		}
+		com, err := command.New(
+			command.CommandLineArguments("fflite", "-i "+arg),
+			command.Set(command.TERMINAL_OFF),
+			command.Set(command.BUFFER_ON),
+		)
+		if err != nil {
+			return nil, err
+		}
+		fmt.Println(" ")
+		com.Run()
+		inputBuffer = append(inputBuffer, strings.Split(com.StdOut(), "\n")...)
+	}
+	for _, line := range inputBuffer {
+		fmt.Println(color.HiYellowString(line))
+	}
+	return args, nil
+}

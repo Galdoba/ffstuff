@@ -40,15 +40,6 @@ type issue struct {
 	text  string
 }
 
-type VideoData struct {
-	fps        string
-	dimentions Dimentions
-	sar        string
-	dar        string
-	fcMapKey   string
-	issues     []string
-}
-
 var dimentionsSD Dimentions
 var dimentionsHD Dimentions
 var dimentions4K Dimentions
@@ -70,50 +61,6 @@ func Dimention(d int) Dimentions {
 	case Dimention4K:
 		return dimentions4K
 	}
-}
-
-func (vd *VideoData) String() string {
-	str := vd.dimentions.String()
-	if vd.dar+vd.sar != "" {
-		str += " ["
-		if vd.sar != "" {
-			str += "SAR " + vd.sar
-		}
-		if vd.dar != "" && vd.sar != "" {
-			str += " "
-		}
-		if vd.dar != "" {
-			str += "DAR " + vd.dar
-		}
-		str += "]"
-	}
-	str += " " + vd.fps
-	return str
-}
-
-type Dimentions struct {
-	width  int
-	height int
-}
-
-type AudioData struct {
-	chanLayout string
-	chanNum    int
-	sampleRate int
-	language   string
-	fcMapKey   string
-}
-
-func (ad *AudioData) ChanLayout() string {
-	return ad.chanLayout
-}
-
-func (ad *AudioData) FCmapKey() string {
-	return ad.fcMapKey
-}
-
-func (d *Dimentions) String() string {
-	return fmt.Sprintf("%vx%v", d.width, d.height)
 }
 
 /*
@@ -277,14 +224,6 @@ func SelectAudio(allStreams []AudioData) []AudioData {
 	return picked
 }
 
-func (ad *AudioData) String() string {
-	str := fmt.Sprintf("audio: %v, %v channels", ad.chanLayout, ad.chanNum)
-	if ad.language != "" {
-		str += " (" + ad.language + ")"
-	}
-	return str
-}
-
 func (mr *FileReport) Issues() []string {
 	targetDimentions := Dimentions{}
 	str := []string{}
@@ -341,13 +280,6 @@ func (mr *FileReport) Video() []VideoData {
 	return mr.vData
 }
 
-func (vid *VideoData) SAR() string {
-	return vid.sar
-}
-func (vid *VideoData) Dimentions() (int, int) {
-	return vid.dimentions.width, vid.dimentions.height
-}
-
 func InterlaceByIdet(path string) (bool, error) {
 	length, err := info.Duration(path)
 	if err != nil {
@@ -397,4 +329,114 @@ func InterlaceByIdet(path string) (bool, error) {
 	}
 
 	return false, nil
+}
+
+func StreamsData(paths ...string) ([]Stream, error) {
+	streams := []Stream{}
+	for i, path := range paths {
+		f, e := ffinfo.Probe(path)
+		if e != nil {
+			return nil, e
+		}
+		//fmt.Println(f.String())
+		allStreams := f.Format.NbStreams
+		videoStream := 0
+		audStream := 0
+		for st := 0; st < allStreams; st++ {
+			stream := f.Streams[st]
+			switch stream.CodecType {
+			default:
+				//fmt.Println("DEBUG: unimplemented or unknown stream type: stream", st)
+				//TODO: обработка стримов Data (d), Subtitles (s), Attachments (t)
+			case "video":
+				vid := fillVideoData(stream)
+				vid.SetFcMapKey(i, videoStream)
+				streams = append(streams, &vid)
+				videoStream++
+			case "audio":
+				aud := fillAudioData(stream)
+				aud.SetMapKey(i, audStream)
+				streams = append(streams, &aud)
+				audStream++
+			}
+		}
+	}
+	return streams, nil
+}
+
+func NewReport0(path string) (*FileReport, error) {
+	report := FileReport{}
+	f, e := ffinfo.Probe(path)
+	if e != nil {
+		return &report, e
+	}
+
+	report.filename = f.Format.Filename
+	report.data = f.String()
+	// com, err := command.New(command.CommandLineArguments(fmt.Sprintf("ffprobe -i %v", path)),
+	// 	command.Set(command.BUFFER_ON),
+	// 	command.Set(command.TERMINAL_OFF),
+	// )
+	// if err != nil {
+	// 	return &report, err
+	// }
+	// com.Run()
+	// report.data += "\n" + com.StdOut() + "\n" + com.StdErr()
+	allStreams := f.Format.NbStreams
+	videoStream := 0
+	audStream := 0
+	for st := 0; st < allStreams; st++ {
+		stream := f.Streams[st]
+		switch stream.CodecType {
+		default:
+			fmt.Println("DEBUG: unimplemented or unknown stream type: stream", st)
+		case "video":
+			vid := VideoData{}
+
+			switch stream.RFrameRate {
+			default:
+				vid.fps = stream.RFrameRate + " (unknown)"
+			case "2997/125", "24000/1001", "24/1", "25/1", "27021/1127":
+				vid.fps = stream.RFrameRate
+			}
+			vid.dimentions = Dimentions{stream.Width, stream.Height}
+			//vid.issues = dimentionIssue(vid.Dimentions, targetDimentions(mr.mediaType))
+			vid.sar = stream.SampleAspectRatio
+			vid.dar = stream.DisplayAspectRatio
+			vid.fcMapKey = fmt.Sprintf(":v:%v", videoStream)
+			report.vData = append(report.vData, vid)
+			videoStream++
+		case "audio":
+			aud := AudioData{}
+			aud.chanNum = stream.Channels
+			aud.sampleRate = stream.Channels
+			aud.chanLayout = stream.ChannelLayout
+			aud.language = stream.Tags.Language
+			aud.fcMapKey = fmt.Sprintf(":a:%v", audStream)
+			report.aData = append(report.aData, aud)
+			audStream++
+		}
+
+	}
+	//fmt.Println(f.String())
+	//fmt.Println(f.Format.Filename)
+	//fmt.Println("------------")
+	//fmt.Println(report)
+
+	return &report, nil
+}
+
+func SeparateByTypes(strs []Stream) ([]VideoData, []AudioData) {
+	video := []VideoData{}
+	audio := []AudioData{}
+	for _, str := range strs {
+		switch t := str.(type) {
+		case *VideoData:
+			video = append(video, *t)
+		case *AudioData:
+			audio = append(audio, *t)
+		default:
+		}
+	}
+	return video, audio
 }
