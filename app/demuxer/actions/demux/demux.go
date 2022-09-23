@@ -43,6 +43,7 @@ demuxer -tofile file.txt -update demux -i film.mp4
 const (
 	taskTypeFILM    = "Фильм"
 	taskTypeTRAILER = "Трейлер (НЕ РАБОТАЕТ)"
+	taskTypeSERIES  = "Сериал  (НЕ РАБОТАЕТ)"
 )
 
 var inputBuffer []string
@@ -400,7 +401,9 @@ func RunUNTESTED(c *cli.Context) error {
 		fmt.Println(stream.PrintStreamData())
 	}
 	fmt.Println("TODO: Выбрать Схему желаемого результата")
-	taskType := handle.SelectionSingle("Что делаем?", "Фильм", "Трейлер", "Сериал")
+	taskType := handle.SelectionSingle("Что делаем?", taskTypeFILM, taskTypeTRAILER, taskTypeSERIES)
+	fmt.Println(taskType)
+	fmt.Println("TODO: Выбрать позицию в таблице")
 	fmt.Println("TODO: Выбрать интересующие видео дорожки")
 	fmt.Println("TODO: Выбрать интересующие аудио дорожки")
 

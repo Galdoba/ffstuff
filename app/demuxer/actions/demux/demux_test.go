@@ -8,6 +8,7 @@ import (
 )
 
 func TestSoundSelection(t *testing.T) {
+	return
 	rep, _ := probe.StreamsData(`\\nas\ROOT\IN\_UMS\_DONE\Haker\HACKED_Prores422HQ_8ch_Master_012722.mov`, `\\nas\ROOT\IN\_UMS\_DONE\Haker\Hacked_[rus].ac3`, `\\nas\ROOT\IN\_UMS\_DONE\Proklyatie_mayya\CurseOfTheMayansThe_Feat_1080p2398_178_EN51_EN20.mov`, `\\nas\ROOT\IN\_UMS\_DONE\Proklyatie_mayya\The.Curse.of.the.Mayans_[rus].ac3`, `\\nas\ROOT\IN\_MEGO_DISTRIBUSHN\_DONE\Vse_putem\Все_путем.mkv`)
 	for i, str := range rep {
 		fmt.Printf("%v	%v\n", i, str.PrintStreamData())
@@ -23,7 +24,7 @@ func TestSoundSelection(t *testing.T) {
 
 func TestInterlaceSearch(t *testing.T) {
 	for _, path := range []string{
-		//`\\nas\ROOT\IN\_AMEDIA\_DONE\Industriya_s02\Industriya_s02e07_SER_12301.mp4`,
+		`Rusalki_ostrova_mako_s01e01_130-255335_.mov`,
 	} {
 		found, err := probe.InterlaceByIdet(path)
 		switch found {

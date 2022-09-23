@@ -152,6 +152,11 @@ func (tl *TaskList) ByName(name string) TaskData {
 	return TaskData{}
 }
 
+func ProposeTargetDirectoryTrailer() string {
+	path := `\\nas\ROOT\EDIT\@trailers_temp\`
+	return path
+}
+
 func ProposeTargetDirectory(tl *TaskList, task TaskData) string {
 	path := ``
 	if task.rowType != rowTypeInfo {
@@ -188,6 +193,17 @@ func ProposeArchiveDirectory(task TaskData) string {
 	}
 	//отделить сериалы от фильмов
 	path := `\\nas\ROOT\IN\_` + strings.ToUpper(agentFolderName) + `\_DONE\` + nameFolderName + `\`
+	return path
+}
+
+func ProposeArchiveDirectoryTrailer(task TaskData) string {
+	//`\\nas\ROOT\IN\@TRAILERS\_DONE\Bolshoe_nebo_s01_TRL\`
+	nameFolderName := strings.Title(task.outputName.outBase)
+	if task.outputName.season != "" {
+		nameFolderName += "_s" + task.outputName.season
+	}
+	//отделить сериалы от фильмов
+	path := `\\nas\ROOT\IN\@TRAILERS\_DONE\` + nameFolderName + `\`
 	return path
 }
 
