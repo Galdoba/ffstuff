@@ -135,7 +135,10 @@ func Run(c *cli.Context) error {
 		}
 
 		fmt.Println("||||||||||||||||")
-		ffmpegCMD, errff := formAmediaFFmpegComLine(arg, langData, task)
+		proxy := ""
+		proxy = handle.SelectionSingle("Делать Прокси?", "ДА", "НЕТ")
+
+		ffmpegCMD, errff := formAmediaFFmpegComLine(arg, langData, task, proxy)
 		if errff != nil {
 			fmt.Println(errff)
 		}
@@ -300,7 +303,16 @@ func mapSum(sm map[string]int) int {
 	return s
 }
 
-func formAmediaFFmpegComLine(inputPath string, audioTags []string, task tablemanager.TaskData) (string, error) {
+func dupeSlice(sl []string) []string {
+	sR := []string{}
+	for _, s := range sl {
+		sR = append(sR, s)
+		sR = append(sR, s)
+	}
+	return sR
+}
+
+func formAmediaFFmpegComLine(inputPath string, audioTags []string, task tablemanager.TaskData, proxy string) (string, error) {
 	fcUsed := false
 	rep, err := probe.NewReport(inputPath)
 	if err != nil {
@@ -310,23 +322,42 @@ func formAmediaFFmpegComLine(inputPath string, audioTags []string, task tableman
 	str := "-r 25"
 	str += fmt.Sprintf(` -i \\nas\buffer\IN\_IN_PROGRESS\%v`, inputPath)
 	str += fmt.Sprintf(` -filter_complex`)
+	if proxy == "ДА" {
+		fcUsed = true
+		str += fmt.Sprintf(` "[0:v:0]scale=iw/2:ih, setsar=(1/1)*2[vidp]; `)
+	}
 	activeMap := []string{}
+	stream2LangMAP := make(map[string]string)
 	for i, audStr := range audioTags {
-		if i == 0 {
+		if i == 0 && fcUsed == false {
 			str += ` "`
 		}
 		fcUsed = true
+		fmt.Println("audStr=", audStr)
 		key := strings.Split(audStr, "__")
 		actMap := fmt.Sprintf("aud%v", i)
 		str += fmt.Sprintf(`[0%v]aresample=48000,atempo=25/(%v)[%v]; `, key[0], fps, actMap)
 		activeMap = append(activeMap, actMap)
-		if i == len(audioTags)-1 {
-			str = strings.TrimSuffix(str, "; ")
-			str += `"`
+		fmt.Println("ADDED=", actMap)
+		stream2LangMAP[actMap] = key[1]
+		if proxy == "ДА" {
+			str += fmt.Sprintf(`[0%v]aresample=48000,atempo=25/(%v)[%v]; `, key[0], fps, actMap+"_pr")
+			activeMap = append(activeMap, actMap+"_pr")
+			fmt.Println("ADDED=", actMap+"_pr")
+			stream2LangMAP[actMap+"_pr"] = key[1] + "_proxy"
 		}
+		//str = strings.TrimSuffix(str, "; ")
+		// if i == len(audioTags)-1 {
+
+		// 	str += `"`
+		// }
 	}
+
 	if !fcUsed {
 		str = strings.Replace(str, " -filter_complex", "", -1)
+	} else {
+		str = strings.TrimSuffix(str, "; ")
+		str += `"`
 	}
 	crf := "16"
 	switch {
@@ -337,9 +368,21 @@ func formAmediaFFmpegComLine(inputPath string, audioTags []string, task tableman
 		crf = "13"
 	}
 	str += fmt.Sprintf(` -map 0:v:0 -c:v libx264 -preset medium -crf %v -pix_fmt yuv420p -g 0 -map_metadata -1 -map_chapters -1 \\nas\ROOT\EDIT\%v%v_HD.mp4`, crf, tablemanager.ProposeTargetDirectory(handle.TaskListFull(), task), task.OutputBaseName())
+	if proxy == "ДА" {
+		str += fmt.Sprintf(` -map [vidp] -c:v libx264 -x264opts interlaced=1 -preset medium -pix_fmt yuv420p  -b:v 2000k -maxrate 2000k \\nas\ROOT\EDIT\%v%v_HD_proxy.mp4`, tablemanager.ProposeTargetDirectory(handle.TaskListFull(), task), task.OutputBaseName())
+	}
 	for s, key := range activeMap {
-		audTag := strings.Split(audioTags[s], "__")[1]
-		str += fmt.Sprintf(` -map [%v] -c:a -vn -acodec alac -compression_level 0 -map_metadata -1 -map_chapters -1 \\nas\ROOT\EDIT\%v%v_%v.m4a`, key, tablemanager.ProposeTargetDirectory(handle.TaskListFull(), task), task.OutputBaseName(), audTag)
+		fmt.Println("DEB", s, key, stream2LangMAP[key])
+		switch {
+		default:
+			//fmt.Println("ERR", s, key)
+			audTag := stream2LangMAP[key]
+			str += fmt.Sprintf(` -map [%v] -c:a -vn -acodec alac -compression_level 0 -map_metadata -1 -map_chapters -1 \\nas\ROOT\EDIT\%v%v_%v.m4a`, key, tablemanager.ProposeTargetDirectory(handle.TaskListFull(), task), task.OutputBaseName(), audTag)
+		case strings.Contains(key, "_pr"):
+			audTag := stream2LangMAP[key]
+			str += fmt.Sprintf(` -map [%v] -c:a ac3 -b:a 128k \\nas\ROOT\EDIT\%v%v_%v.ac3`, key, tablemanager.ProposeTargetDirectory(handle.TaskListFull(), task), task.OutputBaseName(), audTag)
+		}
+
 	}
 
 	return str, nil
@@ -384,6 +427,7 @@ func confirmDir(d string) error {
 	return nil
 }
 
+/*
 func RunUNTESTED(c *cli.Context) error {
 	args, err := CheckArguments(c)
 	if err != nil {
@@ -521,7 +565,7 @@ func RunUNTESTED(c *cli.Context) error {
 	}
 	return nil
 }
-
+*/
 func CheckArguments(c *cli.Context) ([]string, error) {
 	args := c.Args()
 	if len(args) == 0 {

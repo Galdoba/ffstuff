@@ -87,25 +87,90 @@ func testNames() []string {
 		// "Titane_AUDIORUS51.m4a",
 		// "Titane_HD.mp4",
 		// "Titane_SD.mp4",
-		"Край земли. 01 сезон. 01 серия (Edge of The Earth)",
-		`Мы владеем этим городом. 01 сезон. 01 серия`,
-		`Под угрозой (Endangered)`,
-		`По волчьим законам. 06 сезон. 05 серия`,
-		`Обратная сторона красоты. 01 сезон. 04 серия`,
-		`Лестница. 01 сезон. 01 серия`,
-		`Лестница. 01 сезон. 02 серия`,
-		`Лестница. 01 сезон. 03 серия`,
-		`Лестница. 01 сезон. 04 серия`,
-		`Край земли. 01 сезон. 01 серия (Edge of The Earth)`,
-		`Малыш. 01 сезон. 01 серия`,
-		`Малыш. 01 сезон. 02 серия`,
-		`Малыш. 01 сезон. 03 серия`,
-		`The Baby. 01 сезон. 04 серия`,
-		`The Staircase. 01 сезон. 01 серия`,
-		`The Staircase. 01 сезон. 02 серия`,
-		`The Staircase. 01 сезон. `,
-		`Род мужской (Men) 4K`,
+		//"Край земли. 01 сезон. 01 серия (Edge of The Earth)",
+		//`Мы владеем этим городом. 01 сезон. 01 серия`,
+		//`Под угрозой (Endangered)`,
+		//`По волчьим законам. 06 сезон. 05 серия`,
+		//`Обратная сторона красоты. 01 сезон. 04 серия`,
+		//`Лестница. 01 сезон. 01 серия`,
+		//`Лестница. 01 сезон. 02 серия`,
+		//`Лестница. 01 сезон. 03 серия`,
+		//`Лестница. 01 сезон. 04 серия`,
+		//`Край земли. 01 сезон. 01 серия (Edge of The Earth)`,
+		//`Малыш. 01 сезон. 01 серия`,
+		//`Малыш. 01 сезон. 02 серия`,
+		//`Малыш. 01 сезон. 03 серия`,
+		//`The Baby. 01 сезон. 04 серия`,
+		//`The Staircase. 01 сезон. 01 серия`,
+		//`The Staircase. 01 сезон. 02 серия`,
+		//`The Staircase. 01 сезон. `,
+		//`Род мужской (Men) 4K`,
+		//"Jumong_Prince_Of_the_Legend_13.mov",
+		//"Jumong_Prince_Of_the_Legend_14.mov",
+		//"Jumong_Prince_Of_the_Legend_15.mov",
+		//"Jumong_Prince_Of_the_Legend_16.mov",
+		//"Jumong_Prince_Of_the_Legend_17.mov",
+		//"Spy_Myeong_Wol_03.mov",
+		//"Spy_Myeong_Wol_04.mov",
+		//"Spy_Myeong_Wol_05.mov",
+		//"Spy_Myeong_Wol_06.mov",
+		//"Spy_Myeong_Wol_07.mov",
+		//"Spy_Myeong_Wol_08.mov",
+		//"Spy_Myeong_Wol_09.mov",
+		//"Spy_Myeong_Wol_10.mov",
+		//"Spy_Myeong_Wol_11.mov",
+		//"Spy_Myeong_Wol_12.mov",
+		//"Spy_Myeong_Wol_13.mov",
+		//"Spy_Myeong_Wol_14.mov",
+		//"Spy_Myeong_Wol_15.mov",
+		//"Spy_Myeong_Wol_16.mov",
+		//"Spy_Myeong_Wol_17.mov",
+		//"Spy_Myeong_Wol_18.mov",
+		//`Chumon_s01_01_AUDIORUS51.m4a`,
+		//`Chumon_s01_01_AUDIORUS51_proxy.ac3`,
+		//`Chumon_s01_01_HD.mp4`,
+		//`Chumon_s01_01_HD_proxy.mp4`,
+		//`Chumon_s01_02_AUDIORUS51.m4a`,
+		//`Chumon_s01_02_AUDIORUS51_proxy.ac3`,
+		//`Chumon_s01_02_HD.mp4`,
+		//`Chumon_s01_02_HD_proxy.mp4`,
+		//"VRfighter_feature_ProRes422HQ_1080p24_RU20_RU51.mov",
+		//`Bortprovodnica_s02e01_SER_12143.mp4`,
+		//`Bortprovodnica_s02e01_SER_12143.RUS.srt`,
+		//`Bortprovodnica_s02e02_SER_12144.mp4`,
+		//`Bortprovodnica_s02e02_SER_12144.RUS.srt`,
+		//`Bortprovodnica_s02e03_SER_12145.mp4`,
+		//`Bortprovodnica_s02e03_SER_12145.RUS.srt`,
+		//`Bortprovodnica_s02e04_SER_12146.mp4`,
+		//`Bortprovodnica_s02e04_SER_12146.RUS.srt`,
+		//`Bortprovodnica_s02e05_SER_12147.mp4`,
+		//`Bortprovodnica_s02e05_SER_12147.RUS.srt`,
+		//`Bortprovodnica_s02e06_SER_12148.mp4`,
+		//`Bortprovodnica_s02e06_SER_12148.RUS.srt`,
+		//`Bortprovodnica_s02e07_SER_12149.mp4`,
+		//`Bortprovodnica_s02e07_SER_12149.RUS.srt`,
+		//`Bortprovodnica_s02e08_SER_12150.mp4`,
+		//`Bortprovodnica_s02e08_SER_12150.RUS.srt`,
+		//`Zalozhniki_s01_01.srt`,
+		//`Zalozhniki_s01_01.ready`,
+		//`Zalozhniki_s01_01_AUDIOENG20.m4a`,
+		//`Zalozhniki_s01_01_AUDIOENG20_proxy.ac3`,
+		//`Zalozhniki_s01_01_AUDIORUS51.m4a`,
+		//`Zalozhniki_s01_01_AUDIORUS51_proxy.ac3`,
+		`\\nas\ROOT\EDIT\_amedia\Zalozhniki_s01\Zalozhniki_s01_01_AUDIOENG20.m4a`,
+		`\\nas\ROOT\EDIT\_amedia\Zalozhniki_s01\Zalozhniki_s01_01.ready`,
 	}
+}
+
+func Test_SearchNameMask(t *testing.T) {
+	mask, err := SearchMask(testNames())
+	for _, name := range testNames() {
+		fmt.Printf("%v\n", name)
+	}
+	fmt.Println("")
+	fmt.Println(mask.matchPattern)
+	fmt.Println(mask.typePattern)
+	fmt.Println(err)
 }
 
 func TestNameSplitting(t *testing.T) {
@@ -124,6 +189,7 @@ func TestNameSplitting(t *testing.T) {
 }
 
 func TestTransliterate(t *testing.T) {
+	return
 	for _, name := range testNames() {
 		res := TransliterateForEdit(name)
 		byRune := strings.Split(res, "")

@@ -251,6 +251,92 @@ func RenamerMap() (map[string]string, error) {
 	return rnMap, nil
 }
 
+type textMask struct {
+	//original     string
+	matchPattern string
+	typePattern  string
+}
+
+/*получая список имен пытаемся вывести маску из списка
+Легенда выхода:
+L - Letter
+D - Digit
+_ - space or special symbol
++ - Any symbol expected
+- - Any symbol might or might not be
+*/
+//
+func SearchMask(names []string) (textMask, error) {
+	tm := textMask{}
+	longest := 0
+	for _, name := range names {
+		l := len(strings.Split(name, ""))
+		if longest <= l {
+			longest = l
+		}
+	}
+	for n := 0; n <= longest; n++ {
+		symb := ""
+		typeMap := make(map[string]int)
+		sMap := make(map[string]int)
+		for _, name := range names {
+			if n > len(strings.Split(name, ""))-1 {
+				symb = " "
+				sMap[symb]++
+				typeMap[" "]++
+				continue
+			} else {
+				sl := strings.Split(name, "")
+				symb = sl[n]
+				sMap[symb]++
+				symbType := glyphType(symb)
+				typeMap[symbType]++
+
+			}
+		}
+		switch {
+		default:
+			tm.matchPattern += "*"
+		case len(sMap) == 1:
+			tm.matchPattern += symb
+		}
+		switch {
+		default:
+			if n < longest {
+				tm.typePattern += "*"
+			}
+		case summOfMap(typeMap) == typeMap[`d`]:
+			tm.typePattern += "d"
+		case summOfMap(typeMap) == typeMap[`w`]:
+			tm.typePattern += "w"
+		case summOfMap(typeMap) == typeMap[`_`]:
+			tm.typePattern += "_"
+		}
+	}
+	return tm, nil
+}
+
+func glyphType(s string) string {
+	switch s {
+	default:
+		return "*"
+	case "0", "1", "2", "3", "4", "5", "6", "7", "8", "9":
+		return `d`
+	case "A", "a", "B", "b", "C", "c", "D", "d", "E", "e", "F", "f", "G", "g", "H", "h", "I", "i", "J", "j", "K", "k", "L", "l", "M", "m", "N", "n", "O", "o", "P", "p", "Q", "q", "R", "r", "S", "s", "T", "t", "U", "u", "V", "v", "W", "w", "X", "x", "Y", "y", "Z", "z", "А", "а", "Б", "б", "В", "в", "Г", "г", "Д", "д", "Е", "е", "Ё", "ё", "Ж", "ж", "З", "з", "И", "и", "Й", "й", "К", "к", "Л", "л", "М", "м", "Н", "н", "О", "о", "П", "п", "Р", "р", "С", "с", "Т", "т", "У", "у", "Ф", "ф", "Х", "х", "Ц", "ц", "Ч", "ч", "Ш", "ш", "Щ", "щ", "Ъ", "ъ", "Ы", "ы", "Ь", "ь", "Э", "э", "Ю", "ю", "Я", "я":
+		return `w`
+	case `!`, `@`, `#`, `$`, `%`, `^`, `&`, `*`, `(`, `)`, `_`, `+`, ` `, `"`, `№`, `;`, `:`, `?`, `-`, `=`, `/`, `\`, `|`, `,`, `.`, ``:
+		return `_`
+	}
+}
+
+func summOfMap(m map[string]int) int {
+	s := 0
+	for _, v := range m {
+		s += v
+	}
+	return s
+}
+
 type NameForm struct {
 	name       string
 	season     int

@@ -201,8 +201,11 @@ func ListAssosiated(readyPath string) ([]string, error) {
 	}
 	result := []string{}
 	for _, f := range list {
-		if !strings.Contains(f, ".ready") {
+		switch {
+		default:
 			result = append(result, f)
+		case strings.Contains(f, ".ready") == true:
+		case strings.Contains(strings.ToUpper(f), "_PROXY") == true: //TODO: Перенести в флаг для граббера
 		}
 	}
 	return result, nil
