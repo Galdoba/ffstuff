@@ -101,13 +101,15 @@ func Run(c *cli.Context) (string, error) {
 	}
 	//Declarations:
 	cur_dir := currentDir()
+	fmt.Println("cur_dir", cur_dir)
 	file := args[0]
 	com, _ := command.New(
-		command.CommandLineArguments("ffmpeg", "-i ", file),
+		command.CommandLineArguments("fflite", "-i ", file),
 		command.Set(command.TERMINAL_ON),
 	)
 	com.Run()
 	work_dir := conf["InProgressDir"]
+	fmt.Println("work_dir", work_dir)
 	//videoMapping := ""
 	//atempo := ""
 	//destination := ""
@@ -115,7 +117,7 @@ func Run(c *cli.Context) (string, error) {
 	//vtag := ""
 	//atag := ""
 	trl_done_dir := conf["TrlDoneDir"]
-
+	fmt.Println("trl_done_dir", trl_done_dir)
 	//comLine := ""
 	// mediaReport, err := probe.MediaFileReport(file, probe.MediaTypeTrailerHD)
 	// handle.Error(err)
@@ -129,18 +131,18 @@ func Run(c *cli.Context) (string, error) {
 	//MOVE [CURRENT_DIR][FILE] [WORKFOLDER]
 	res := fmt.Sprintf("%v\\%v %v ", cur_dir, file, work_dir)
 	//ffmpeg -y -r 25 -i [WORKFOLDER][FILE]
-	res += fmt.Sprintf("&& ffmpeg -y -r 25 -i %v\\%v ", work_dir, file)
+	res += fmt.Sprintf("&& fflite -y -r 25 -i %v\\%v ", work_dir, file)
 	//-filter complex [0:v:0][VIDEOMAPPING][video];[0:a:0]aresample=48000,atempo=[ATEMPO][audio]
 	videomapping, atempo := VideoMapping(file) //TODO: нужна адекватная общая функция дающая строку для -filter_complex от всего файла.
-	res += fmt.Sprintf("-filter_complex [0:v:0]%v[video];[0:a:0]aresample=48000,atempo=%v[audio]", videomapping, atempo)
+	res += fmt.Sprintf("-filter_complex [0:v:0]%v[video];[0:a:0]aresample=48000,atempo=25/(%v)[audio]", videomapping, atempo)
 	//-map [video] -an -vcodec libx264 -preset medium -crf 10 -pix_fmt yuv420p -g 0 -map_metadata -1 -map_chapters -1 [DESTINATION][NAME][VTAG]
 	name := namedata.TransliterateForEdit(task.Name())
 	vtag := "_HD_TRL"
-	res += fmt.Sprintf("-map [video] -an -vcodec libx264 -preset medium -crf 10 -pix_fmt yuv420p -g 0 -map_metadata -1 -map_chapters -1 %v%v%v.mp4 ", trl_done_dir, name, vtag)
+	res += fmt.Sprintf(" -map [video] -an -vcodec libx264 -preset medium -crf 10 -pix_fmt yuv420p -g 0 -map_metadata -1 -map_chapters -1 %v%v%v.mp4 ", trl_done_dir, name, vtag)
 	//-map [audio] -vn -acodec alac -compression_level 0 -map_metadata -1 -map_chapters -1 [DESTINATION][NAME][ATAG]
 	aStream := mediaInfo.Audio()
 	atag := analyzeAudio(aStream)
-	res += fmt.Sprintf("-map [audio] -vn -acodec alac -compression_level 0 -map_metadata -1 -map_chapters -1 %v%v%v ", trl_done_dir, name, atag)
+	res += fmt.Sprintf(" -map [audio] -vn -acodec alac -compression_level 0 -map_metadata -1 -map_chapters -1 %v%v%v ", trl_done_dir, name, atag)
 	return res, nil
 }
 
