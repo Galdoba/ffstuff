@@ -15,4 +15,5 @@ require (
 	github.com/stretchr/testify v1.8.0 // indirect
 	github.com/urfave/cli v1.22.9
 	gopkg.in/AlecAivazis/survey.v1 v1.8.8
+	gopkg.in/yaml.v3 v3.0.1
 )

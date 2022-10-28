@@ -3,11 +3,28 @@ package main
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/Galdoba/ffstuff/app/dirtracker/filelist"
+	"github.com/Galdoba/ffstuff/pkg/config"
+	"github.com/Galdoba/utils"
 	"github.com/urfave/cli"
 	"gopkg.in/AlecAivazis/survey.v1"
+	"gopkg.in/yaml.v3"
 )
+
+const (
+	program = "dirtracker"
+)
+
+type confFile struct {
+	Root                string
+	WhiteListEnabled    bool
+	WhiteList           []string
+	BlackListEnabled    bool
+	BlackList           []string
+	UpdateCycle_seconds int
+}
 
 func main() {
 	app := cli.NewApp()
@@ -33,6 +50,35 @@ func main() {
 	//ДО НАЧАЛА ДЕЙСТВИЯ
 	app.Before = func(c *cli.Context) error {
 		//Убедиться что есть файлы статистики. если нет то создать
+		cfg := config.File{}
+		if !config.Exists(program) {
+			fmt.Println("Config not detected...")
+			cfg, err := config.ConstructManual(program)
+			if err != nil {
+				return err
+			}
+			fmt.Println("Filling default Data...")
+			conf := confFile{
+				Root:                "\\\\nas\\buffer\\IN\\",
+				WhiteListEnabled:    false,
+				WhiteList:           []string{"DIR1\\", "DIR2\\"},
+				BlackListEnabled:    false,
+				BlackList:           []string{"DIR1\\", "DIR2\\"},
+				UpdateCycle_seconds: 5,
+			}
+			dt, err := yaml.Marshal(conf)
+			if err := cfg.Write(dt); err != nil {
+				return err
+			}
+			fmt.Println("Default data filled...")
+			return nil
+		}
+		fmt.Println("Config detected...")
+		//yaml.Unmarshal(cfg.Data, confFile{})
+		if err := yaml.Unmarshal(cfg.Data, confFile{}); err != nil {
+			return err
+		}
+		fmt.Println("Content is valid...")
 		return nil
 	}
 	//ПО ОКОНЧАНИЮ ДЕЙСТВИЯ
@@ -56,24 +102,44 @@ func main() {
 					Составить Список имеющихся файлов
 					Вывести Список
 				*/
-				fl := filelist.New(`\\nas\buffer\IN\`)
-				fl.AddExeption(`\\nas\buffer\IN\.Trash-1000`)
-				fl.AddExeption(`\\nas\buffer\IN\@GOBLIN`)
-				fl.AddExeption(`\\nas\buffer\IN\@KURAZH_BAMBEY`)
-				fl.AddExeption(`\\nas\buffer\IN\@SCRIPTS`)
-				fl.AddExeption(`\\nas\buffer\IN\@TEST`)
-				fl.AddExeption(`\\nas\buffer\IN\@WINK_SRC`)
-				fl.AddExeption(`\\nas\buffer\IN\_AWAIT`)
-				//fl.AddExeption(`\\nas\buffer\IN\_DONE`)
-				//fl.AddExeption(`\\nas\buffer\IN\_IN_PROGRESS`)
-				fl.AddExeption(`\\nas\buffer\IN\_REJECTED`)
-				fl.AddExeption(`\\nas\buffer\IN\bats`)
-				fl.AddExeption(`\\nas\buffer\IN\CASES`)
-				fl.AddExeption(`\\nas\buffer\IN\Doramy`)
-				fl.AddExeption(`\\nas\buffer\IN\errors`)
-				fl.AddExeption(`\\nas\buffer\IN\ffmpegs`)
-				fl.AddExeption(`\\nas\buffer\IN\Torrent`)
-				fl.Print()
+				//TODO: Вывести параметры root и exeptions в конфиг
+				cfgData, err := config.ReadFrom(program)
+				if err != nil {
+					return err
+				}
+				fl, _ := filelist.New(cfgData)
+				d, f := fl.Stats()
+				//FillConfig()
+				utils.ClearScreen()
+				fmt.Printf("found %v files in %v directories\n", f, d)
+				output := ""
+				/*
+
+
+
+				 */
+				for {
+					fl.Update()
+					if err := fl.Compile(); err != nil {
+						output = "No files compiled"
+						utils.ClearScreen()
+					} else {
+						if output != fl.String() {
+							utils.ClearScreen()
+							//	fmt.Println(fl.String())
+						}
+						output = fl.String()
+						utils.ClearScreen()
+						fmt.Println(output)
+					}
+					updCyc := fl.NextUpdate()
+					for i := updCyc; i > -1; i-- {
+						fmt.Printf("Next update in %v seconds...             \r", i)
+						time.Sleep(time.Second)
+					}
+
+				}
+				fmt.Println(output)
 				return nil
 			},
 		},
@@ -91,38 +157,3 @@ func main() {
 	survey.AskOne(promptInput, &exit, val)
 
 }
-
-/*
-fmpeg -i Сквозь_огонь_Through_the_fire.mkv
-  INPUT 0: Сквозь_огонь_Through_the_fire.mkv
-  Duration: 01:52:36.12, start: 0.000000, bitrate: 18720 kb/s
-    0:0 (eng) Video: h264 (Main), yuv420p(progressive), 1920x1080 [SAR 1:1 DAR 16:9], 25 fps, 25 tbr, 1k tbn, 50 tbc (default)
-    0:1 (rus) Audio: mp3, 48000 Hz, stereo, fltp, 320 kb/s (default)
-    0:2 (rus) Audio: ac3, 48000 Hz, 5.1(side), fltp, 448 kb/s
-    0:3 (fre) Audio: mp3, 48000 Hz, stereo, fltp, 320 kb/s
-    0:4 (fre) Audio: ac3, 48000 Hz, 5.1(side), fltp, 448 kb/s
-*/
-/*
-clear
-&& mkdir -p /mnt/aakkulov/ROOT/IN/_MEGO_DISTRIBUTION/_DONE/Skvoz_ogon
-&& mkdir -p /mnt/aakkulov/ROOT/EDIT/_mego_distribushn/
-&& mv /home/aakkulov/IN/Сквозь_огонь_Through_the_fire.mkv /home/aakkulov/IN/_IN_PROGRESS/
-&& fflite -r 25 -i /home/aakkulov/IN/_IN_PROGRESS/Сквозь_огонь_Through_the_fire.mkv
-	-filter_complex "[0:a:1]aresample=48000,atempo=25/(25)[arus]"
-	-map [arus] -c:a alac -compression_level 0 -map_metadata -1 -map_chapters -1 /mnt/aakkulov/ROOT/EDIT/_mego_distribushn/Skvoz_ogon_AUDIORUS51.m4a
-	-map 0:v:0 -c:v libx264 -preset medium -crf 16 -pix_fmt yuv420p -g 0 -map_metadata -1 -map_chapters -1 /mnt/aakkulov/ROOT/EDIT/_mego_distribushn/Skvoz_ogon_HD.mp4
-&& touch /mnt/aakkulov/ROOT/EDIT/_mego_distribushn/Skvoz_ogon.ready
-&& mv /home/aakkulov/IN/_IN_PROGRESS/Сквозь_огонь_Through_the_fire.mkv /home/aakkulov/IN/_DONE/
-&& at now + 10 hours <<< "mv /home/aakkulov/IN/_DONE/Сквозь_огонь_Through_the_fire.mkv /mnt/aakkulov/ROOT/IN/_MEGO_DISTRIBUTION/_DONE/Skvoz_ogon"
-&& clear
-&& touch /home/aakkulov/IN/TASK_COMPLETE_Сквозь_огонь_Through_the_fire.mkv.txt
-*/
-/*
-fflite -r 25 -i /home/aakkulov/IN/_IN_PROGRESS/Сквозь_огонь_Through_the_fire.mkv
-	-filter_complex "[0:a:1]aresample=48000,atempo=25/(25)[arus]"
-	-map [arus] -c:a alac -compression_level 0 -map_metadata -1 -map_chapters -1 /mnt/aakkulov/ROOT/EDIT/_mego_distribushn/Skvoz_ogon_AUDIORUS51.m4a
-	-map 0:v:0 -c:v libx264 -preset medium -crf 16 -pix_fmt yuv420p -g 0 -map_metadata -1 -map_chapters -1 /mnt/aakkulov/ROOT/EDIT/_mego_distribushn/Skvoz_ogon_HD.mp4
-
-
-
-*/
