@@ -2,11 +2,14 @@ package filelist
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
+	"sync"
+	"time"
 
-	"github.com/Galdoba/ffstuff/pkg/scanner"
-	"gopkg.in/yaml.v3"
+	"github.com/Galdoba/utils"
 )
 
 const (
@@ -15,183 +18,297 @@ const (
 )
 
 type FileList struct {
-	paths    []fpath
-	stats    map[string]int
-	config   *config
-	compiled string
+	paths []fpath
+	stats map[string]int
+	root  string
+	//config    *config
+	compiled  string
+	opCounter int
 }
 
 type fpath struct {
 	dir  string
 	name string
+	err  error
 }
 
-type config struct {
-	Root                string
-	WhiteListEnabled    bool
-	WhiteList           []string
-	BlackListEnabled    bool
-	BlackList           []string
-	UpdateCycle_seconds int
+/*
+TODO:
+1/ сбор всех объектов от Рута
+2/ фильтрация (нужен конфиг)
+3/ вывод
+4/ доп действия с ботом
+
+ВЫВЕСТИ КОНФИГ ИЗ FileList{}
+*/
+
+func Compile(fullList []fpath, whiteList, blackList []string) []fpath {
+	shortList := []fpath{}
+	for _, obj := range fullList {
+		if inList(obj.dir+obj.name, blackList) {
+			continue
+		}
+		dir := strings.TrimSuffix(obj.dir, string(filepath.Separator))
+		if len(whiteList) == 0 {
+			shortList = append(shortList, obj)
+			continue
+		}
+		for _, wlDir := range whiteList {
+			wlDir = strings.TrimSuffix(wlDir, string(filepath.Separator))
+			if dir == wlDir && obj.name != "" {
+				shortList = append(shortList, obj)
+			}
+		}
+	}
+	return shortList
 }
 
-type Config interface {
-	GetRoot() string
-	GetWhiteListEnabled() bool
-	GetWhiteList() []string
-	GetBlackListEnabled() bool
-	GetBlackList() []string
-	GetUpdateCycle_seconds() int
+/*
+
+ */
+func Format(list []fpath, whiteList []string) (string, error) {
+	res := ""
+	for _, wDir := range whiteList {
+		res += wDir + "\n"
+		for _, fp := range list {
+			if fp.name == "" {
+				continue
+			}
+			errFild := ""
+
+			if inList(fp.name, []string{" ", "(", ")", "$", "#", "%", "|", ";", ":", "^", "{", "}"}) {
+				errFild = " Неформатное имя файла"
+			}
+			if fp.err != nil {
+				errFild = fp.err.Error()
+				//return res, fp.err
+			}
+			if fp.dir == wDir {
+				f, err := os.Stat(fp.dir + fp.name)
+				size := ""
+				moddate := ""
+				perm := ""
+				//used := ""
+				if err != nil {
+					size = "  No Data"
+					moddate = "            No Data"
+					perm = "         "
+					errFild = err.Error()
+				} else {
+					size = formatSize(f.Size())
+					moddate = f.ModTime().Format("2006-01-02 15:04:05")
+					perm = f.Mode().Perm().String()
+				}
+
+				res += "  " + setLen(fp.name, 37) + "|" + size + "|" + moddate + "|" + perm + "|" + errFild + "\n"
+			}
+		}
+	}
+	res += "---------|---------|---------|---------|---------|---------|---------|---------|\n"
+	return res, nil
 }
 
-func (cf *config) GetRoot() string {
-	return cf.Root
-}
-func (cf *config) GetWhiteListEnabled() bool {
-	return cf.WhiteListEnabled
-}
-func (cf *config) GetWhiteList() []string {
-	return cf.WhiteList
-}
-func (cf *config) GetBlackListEnabled() bool {
-	return cf.BlackListEnabled
-}
-func (cf *config) GetBlackList() []string {
-	return cf.BlackList
-}
-func (cf *config) GetUpdateCycle_seconds() int {
-	return cf.UpdateCycle_seconds
+func formatSize(btSize int64) string {
+	if btSize < 0 {
+		return "no data "
+	}
+	sizeFl := float64(btSize)
+	show := ""
+	for _, suff := range []string{"bt", "kb", "Mb", "Gb", "Tb"} {
+		if sizeFl > 1024.0 {
+			sizeFl = utils.RoundFloat64(sizeFl/1024, 1)
+			continue
+		}
+		show = fmt.Sprintf("%v %v", sizeFl, suff)
+		for len(show) < 9 {
+			show = " " + show
+		}
+		break
+	}
+	return show
 }
 
-func New(cfgData []byte) (*FileList, error) {
+func setLen(str string, l int) string {
+	ltrs := strings.Split(str, "")
+	for len(ltrs) < l {
+		ltrs = append(ltrs, " ")
+	}
+	if len(ltrs) > l {
+		if l < 3 {
+			return ""
+		}
+		ltrs = ltrs[:l-2]
+		ltrs = append(ltrs, "..")
+	}
+	return strings.Join(ltrs, "")
+}
+
+func New(root string) (*FileList, error) {
 	fl := &FileList{}
 	fl.stats = make(map[string]int)
-	conf := &config{}
-	err := yaml.Unmarshal(cfgData, conf)
-	if err != nil {
-		return fl, err
-	}
-	conf.normalizePaths()
-	fl.config = conf
-	if err := fl.Update(); err != nil {
-		return fl, err
-	}
+	fl.root = root
+
 	return fl, nil
 }
 
-func (fl *FileList) Update() error {
+func (fl *FileList) FullList() []fpath {
+	return fl.paths
+}
+
+func (fl *FileList) Update(maxTreads int) error {
 	fl.paths = []fpath{}
-	l, err := scanner.Scan(fl.config.Root, "")
-	if err != nil {
-		return err
-	}
-	for _, pth := range l {
-		if err := fl.AddEntry(pth); err != nil {
-			return err
+	fl.protoUpdate(maxTreads)
+	fl.stats = make(map[string]int)
+	for _, f := range fl.paths {
+		if f.name == "" {
+			fl.stats["dir"]++
+		} else {
+			fl.stats["file"]++
+		}
+		if f.err != nil {
+			fl.stats["err"]++
 		}
 	}
-	fl.Compile()
-	return nil
-}
-
-func (cfg *config) normalizePaths() {
-	cfg.Root = strings.Replace(cfg.Root, "\\", "/", -1)
-	for i := range cfg.WhiteList {
-		cfg.WhiteList[i] = strings.Replace(cfg.WhiteList[i], "\\", "/", -1)
-	}
-	for i := range cfg.BlackList {
-		cfg.BlackList[i] = strings.Replace(cfg.BlackList[i], "\\", "/", -1)
-	}
-}
-
-func (fl *FileList) AddEntry(entry string) error {
-	entry = strings.Replace(entry, "\\", "/", -1)
-	prts := strings.Split(entry, "/")
-	srtName := prts[len(prts)-1]
-	dir := strings.TrimSuffix(entry, srtName)
-	fp := fpath{dir, srtName}
-	if err := fp.ensureDir(); err != nil {
-		return err
-	}
-	switch fp.name {
-	default:
-		fl.stats[isFile]++
-	case "":
-		fl.stats[isDir]++
-	}
-	fl.paths = append(fl.paths, fp)
-	return nil
-}
-
-func (fl *FileList) Stats() (int, int) {
-	return fl.stats[isDir], fl.stats[isFile]
-}
-func (fl *FileList) NextUpdate() int {
-	return fl.config.GetUpdateCycle_seconds()
-}
-
-//Compile - Выводит отдает список директорий/файлов исходя из следующих правил:
-//если белый список более 0 - отдаем только то что попадает под белый список
-//если черный список более 0 - отдаем только то что попадает не под черный список
-func (fl *FileList) Compile() error {
-	actual := []fpath{}
-	if fl.config.WhiteListEnabled && fl.config.BlackListEnabled {
-		return fmt.Errorf("can't have both White and Black lists enabled\ncheck file: {USER}/.config/dirtracker/dirtracker.config")
-	}
-	switch {
-	case fl.config.WhiteListEnabled:
-		for _, pth := range fl.config.WhiteList {
-			actual = append(actual, fpath{pth, ""})
-			for _, path := range fl.paths {
-				if path.dir != pth {
-					continue
-				}
-				actual = append(actual, path)
+	if fl.stats["err"] != 0 {
+		er := "Error List:"
+		for _, f := range fl.paths {
+			if f.err != nil {
+				er += fmt.Sprintf("%v%v\n%v\n", f.dir, f.name, f.err.Error())
 			}
 		}
-		//TODO: нужна логика поведения при включенном черном списке
-		//case fl.config.BlackListEnabled:
+		er += " \n"
+		return fmt.Errorf("%v", er)
 	}
-	if len(actual) == 0 {
-		fl.compiled = ""
-		return fmt.Errorf("Compiled empty list")
-	}
-	compiled := ""
-	activeDir := ""
-	activeDirectories := []string{}
-	fileMaps := make(map[string][]string)
-	for _, act := range actual {
-		if activeDir != act.dir {
-			activeDir = act.dir
-			activeDirectories = append(activeDirectories, act.dir)
-		}
-		if act.name != "" {
-			fileMaps[act.dir] = append(fileMaps[act.dir], act.name)
-		}
-	}
-	for _, directory := range activeDirectories {
-		compiled += fmt.Sprintf("%v\nfiles found %v:\n", directory, len(fileMaps[directory]))
-		for _, file := range fileMaps[directory] {
-			compiled += "  " + file + "\n"
-		}
-	}
-	fl.compiled = compiled
+
 	return nil
 }
 
-func (fl *FileList) String() string {
-	return fl.compiled
+func (fl *FileList) Stats() map[string]int {
+	return fl.stats
 }
 
-func (fp *fpath) ensureDir() error {
-	chk := fp.dir + fp.name
-	st, err := os.Stat(chk)
-	if err != nil {
-		return fmt.Errorf("func (fp *fpath) ensureDir(): os.Stat(%v): returned\n %v", chk, err.Error())
+func FilePathWalkDir(root string) ([]fpath, error, int) {
+	var fpaths []fpath
+	opCounter := 0
+	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+		fp := fpath{}
+		switch info.IsDir() {
+		case true:
+			fp = fpath{path, "", err}
+		case false:
+			dir, file := filepath.Split(path)
+			fp = fpath{dir, file, err}
+		}
+		fpaths = append(fpaths, fp)
+		fmt.Printf("%v files found                        \r", len(fpaths))
+		return nil
+	})
+	return fpaths, err, opCounter
+}
+
+type buffer struct {
+	buf   []fpath
+	mutex sync.Mutex
+}
+
+func (b *buffer) append(fp fpath) {
+	b.mutex.Lock()
+	b.buf = append(b.buf, fp)
+	b.mutex.Unlock()
+}
+
+func (b *buffer) drain() (fpath, bool) {
+	defer b.mutex.Unlock()
+	b.mutex.Lock()
+	if len(b.buf) == 0 {
+		return fpath{}, false
 	}
-	if st.IsDir() {
-		fp.dir = fp.dir + fp.name
-		fp.name = ""
+	fp := b.buf[len(b.buf)-1]
+	b.buf = b.buf[:len(b.buf)-1]
+	return fp, true
+}
+
+func (fl *FileList) protoUpdate(maxTreads int) error {
+	fl.paths = nil
+	numJobs := make(chan bool, maxTreads)
+	buffer := buffer{}
+	ch := make(chan fpath)
+
+	go func() {
+		for {
+			fp, ok := buffer.drain()
+			if !ok {
+				if len(numJobs) == 0 {
+					close(ch)
+					break
+				}
+				time.Sleep(time.Millisecond)
+				continue
+			}
+
+			numJobs <- true
+			go func(inputPath fpath) {
+				defer func() {
+					<-numJobs
+				}()
+				list, err := ioutil.ReadDir(inputPath.dir)
+				inputPath.err = err
+				ch <- inputPath
+				if err != nil {
+					return
+					//смотризаметки в конце файла
+					//Заметка 1
+				}
+				for _, info := range list {
+					fp := fpath{}
+					switch {
+					case info.IsDir():
+						fp = fpath{inputPath.dir + "\\" + info.Name(), "", nil}
+						buffer.append(fp)
+					default:
+						fp = fpath{inputPath.dir, info.Name(), nil}
+						ch <- fp
+					}
+
+				}
+			}(fp) //, id)
+		}
+	}()
+
+	buffer.append(fpath{strings.TrimSuffix(fl.root, "\\"), "", nil})
+	for elem := range ch {
+		// if elem.err != nil {
+		// 	fmt.Println("----------", elem.name, elem.err.Error())
+		// } else {
+		if !strings.HasSuffix(elem.dir, "\\") {
+			elem.dir += "\\"
+		}
+		fl.paths = append(fl.paths, elem)
+		//fmt.Printf("%v paths detected    \r", len(fl.paths))
+		//}
 	}
+
 	return nil
 }
+
+func inList(el string, sl []string) bool {
+	for i := range sl {
+		if strings.Contains(el, sl[i]) {
+			return true
+		}
+	}
+	return false
+}
+
+/*
+Заметка 1:
+//случается Access Denied
+/*
+						Updating...
+	panic: ?????open \\nas\buffer\IN\@KURAZH_BAMBEY\2021.07.05\node_modules\fs-extra\lib\path-exists: Access is denied.
+	goroutine 12640 [running]:
+	github.com/Galdoba/ffstuff/app/dirtracker/filelist.(*FileList).protoUpdate.func1.1(0xc000014770, 0xc0002462a0, 0xc00034ac00, 0xc0003ae280, 0x4f, 0x0, 0x0, 0x0, 0x0)
+	        d:/Documents/Tools/golang/src/github.com/Galdoba/ffstuff/app/dirtracker/filelist/list.go:494 +0x365
+	created by github.com/Galdoba/ffstuff/app/dirtracker/filelist.(*FileList).protoUpdate.func1
+	        d:/Documents/Tools/golang/src/github.com/Galdoba/ffstuff/app/dirtracker/filelist/list.go:488 +0x133
+*/

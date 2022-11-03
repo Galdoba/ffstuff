@@ -3,13 +3,13 @@ package main
 import (
 	"fmt"
 	"os"
+	"runtime"
 	"time"
 
 	"github.com/Galdoba/ffstuff/app/dirtracker/filelist"
 	"github.com/Galdoba/ffstuff/pkg/config"
 	"github.com/Galdoba/utils"
 	"github.com/urfave/cli"
-	"gopkg.in/AlecAivazis/survey.v1"
 	"gopkg.in/yaml.v3"
 )
 
@@ -24,28 +24,22 @@ type confFile struct {
 	BlackListEnabled    bool
 	BlackList           []string
 	UpdateCycle_seconds int
+	Max_threads         int
 }
+
+var Conf *confFile
 
 func main() {
 	app := cli.NewApp()
-	app.Version = "v 0.0.0"
+	app.Version = "v 0.0.1"
 	app.Name = "dirtracker"
 	app.Usage = "Отслеживает файлы в указанных директориях"
-	app.Description = "Должен крутиться постоянно чтобы считывать изменения и вести статистику"
+	app.Description = "После сбора информации об имеющихся файлах и папках ниже корня готовит отчеты для вывода в файл/на терминал"
 	app.Flags = []cli.Flag{
-		cli.BoolFlag{
-			Name:  "update",
-			Usage: "если активен, то до начала выполнения любой команды - обновится csv с рабочей таблицей",
-		},
-		cli.StringFlag{
-			Name:  "tofile",
-			Usage: "указывает адрес файла в который будет добавляться вывод терминала",
-			Value: "",
-		},
-		cli.BoolFlag{
-			Name:  "process, p",
-			Usage: "Если активен, программа запустит ffmpeg с полученной командной строкой",
-		},
+		// cli.BoolFlag{
+		// 	Name:  "update",
+		// 	Usage: "если активен, то до начала выполнения любой команды - обновится csv с рабочей таблицей",
+		// },
 	}
 	//ДО НАЧАЛА ДЕЙСТВИЯ
 	app.Before = func(c *cli.Context) error {
@@ -65,6 +59,7 @@ func main() {
 				BlackListEnabled:    false,
 				BlackList:           []string{"DIR1\\", "DIR2\\"},
 				UpdateCycle_seconds: 5,
+				Max_threads:         5,
 			}
 			dt, err := yaml.Marshal(conf)
 			if err := cfg.Write(dt); err != nil {
@@ -74,7 +69,6 @@ func main() {
 			return nil
 		}
 		fmt.Println("Config detected...")
-		//yaml.Unmarshal(cfg.Data, confFile{})
 		if err := yaml.Unmarshal(cfg.Data, confFile{}); err != nil {
 			return err
 		}
@@ -93,48 +87,68 @@ func main() {
 			Name:        "start",
 			ShortName:   "",
 			Usage:       "запустить программу",
-			UsageText:   "TODO: прописать основную логику",
+			UsageText:   "Собирает необходимую информацию из config.file после чего формирует общий список и пропускает его через фильтры для формирования короткого списка",
 			Description: "TODO: подробное описание команды",
-			ArgsUsage:   "TODO: подробное описание как пользовать аргументы",
+			ArgsUsage:   "Аргументов не имеет\nВ планах локальный режим и указание файла в который должен писаться отчет",
 			Action: func(c *cli.Context) error {
-				//Непосредственно команда
-				/*
-					Составить Список имеющихся файлов
-					Вывести Список
-				*/
-				//TODO: Вывести параметры root и exeptions в конфиг
-				cfgData, err := config.ReadFrom(program)
+				cfgData, err := config.ReadFrom(program) //считываем содержание конфига
 				if err != nil {
-					return err
+					return fmt.Errorf("config.ReadFrom: %v", err)
 				}
-				fl, _ := filelist.New(cfgData)
-				d, f := fl.Stats()
-				//FillConfig()
-				utils.ClearScreen()
-				fmt.Printf("found %v files in %v directories\n", f, d)
+				if err := yaml.Unmarshal(cfgData, &Conf); err != nil { //интерпритируем конфиг для дальнейшего пользования
+					return fmt.Errorf("yaml.Unmarshal: %v", err)
+				}
+				runtime.GOMAXPROCS(runtime.NumCPU() - 1) // занимаем все ядра кроме одного чтобы система не висла в случае избыточного кол-ва тредов
+
+				fl, _ := filelist.New(Conf.Root)
 				output := ""
-				/*
-
-
-
-				 */
 				for {
-					fl.Update()
-					if err := fl.Compile(); err != nil {
-						output = "No files compiled"
-						utils.ClearScreen()
-					} else {
-						if output != fl.String() {
-							utils.ClearScreen()
-							//	fmt.Println(fl.String())
+					fmt.Printf("Updating...                                   \n")
+					atempt := 1
+					for atempt <= 100 {
+						if err := fl.Update(Conf.Max_threads); err != nil {
+							fmt.Print("Try ", atempt, " ", err.Error(), "\n") //на случай если будет ошибка обновления списка
+							time.Sleep(time.Second)
+						} else {
+							break
 						}
-						output = fl.String()
-						utils.ClearScreen()
-						fmt.Println(output)
+						atempt++
+						if atempt > 10 {
+							return fmt.Errorf("To many atempts to update list")
+						}
 					}
-					updCyc := fl.NextUpdate()
+
+					shortList := filelist.Compile(fl.FullList(), Conf.WhiteList, Conf.BlackList)
+
+					res, err := filelist.Format(shortList, Conf.WhiteList)
+					if err != nil {
+						return err
+					}
+					utils.ClearScreen()
+					fmt.Println(len(shortList))
+					stats := fl.Stats()
+					fmt.Printf("Found %v files in %v directories with %v errors\n", stats["file"], stats["dir"], stats["err"])
+					sendToBot := false
+					if output != res {
+						if output != "" {
+							sendToBot = true
+						}
+					}
+					output = res
+					fmt.Println(output)
+					switch sendToBot {
+					case true:
+						fmt.Println("Sending To Bot")
+					case false:
+						fmt.Println("NOT Sending To Bot")
+					}
+
+					updCyc := Conf.UpdateCycle_seconds
 					for i := updCyc; i > -1; i-- {
-						fmt.Printf("Next update in %v seconds...             \r", i)
+						switch i {
+						default:
+							fmt.Printf("Next update in %v seconds...             \r", i)
+						}
 						time.Sleep(time.Second)
 					}
 
@@ -143,17 +157,18 @@ func main() {
 				return nil
 			},
 		},
+		{},
 	}
 
 	args := os.Args
 	if err := app.Run(args); err != nil {
 		fmt.Printf("application returned error: %v", err.Error())
 	}
-	exit := ""
-	val := survey.ComposeValidators()
-	promptInput := &survey.Input{
-		Message: "Enter для завершения",
-	}
-	survey.AskOne(promptInput, &exit, val)
+	// exit := ""
+	// val := survey.ComposeValidators()
+	// promptInput := &survey.Input{
+	// 	Message: "Enter для завершения",
+	// }
+	// survey.AskOne(promptInput, &exit, val)
 
 }

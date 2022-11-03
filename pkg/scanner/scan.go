@@ -24,12 +24,12 @@ func Scan(root string, querry string) ([]string, error) {
 	if !rootStat.IsDir() {
 		return resultList, errors.New("root is not a directory")
 	}
+
 	srcInfo, errS := os.Open(root)
 	if errS != nil {
 		return resultList, errors.New("scan source error: " + errS.Error()) //
 	}
 	defer srcInfo.Close()
-
 	//Читаем и получаем список всего находящегося в корне
 	found, errR := srcInfo.Readdir(0)
 	if errR != nil {
@@ -43,6 +43,50 @@ func Scan(root string, querry string) ([]string, error) {
 		if val.IsDir() {
 			subResults, errSub := Scan(root+val.Name()+"\\", querry)
 			if errSub != nil {
+				return resultList, errSub
+			}
+			resultList = append(resultList, subResults...)
+		}
+	}
+	return resultList, nil
+}
+
+func ScanN(root string, querry string) ([]string, error) {
+	var resultList []string
+	//открываем корень и собираем статистику
+	rootStat, errSt := os.Stat(root)
+	if errSt != nil {
+		fmt.Println("errSt", errSt.Error())
+		return resultList, errSt
+	}
+	if !rootStat.IsDir() {
+		return resultList, errors.New("root is not a directory")
+	}
+
+	srcInfo, errS := os.Open(root)
+	if errS != nil {
+		return resultList, errors.New("scan source error: " + errS.Error()) //
+	}
+	defer srcInfo.Close()
+	//Читаем и получаем список всего находящегося в корне
+	found, errR := srcInfo.Readdirnames(0)
+	if errR != nil {
+		return resultList, errors.New("scan read error: " + errR.Error())
+	}
+	for _, val := range found {
+		if strings.Contains(val, querry) {
+			//fmt.Println(root + val.Name())
+			resultList = append(resultList, root+val)
+		}
+		fi, err := os.Stat(root + val)
+		if err != nil {
+			fmt.Println("os.Stat(val) - ", err.Error())
+			return resultList, err
+		}
+		if fi.IsDir() {
+			subResults, errSub := ScanN(root+val+"\\", querry)
+			if errSub != nil {
+				fmt.Println("errSub", errSub.Error())
 				return resultList, errSub
 			}
 			resultList = append(resultList, subResults...)
@@ -209,4 +253,15 @@ func ListAssosiated(readyPath string) ([]string, error) {
 		}
 	}
 	return result, nil
+}
+
+func FilePathWalkDir(root string) ([]string, error) {
+	var files []string
+	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+		if !info.IsDir() {
+			files = append(files, path)
+		}
+		return nil
+	})
+	return files, err
 }
