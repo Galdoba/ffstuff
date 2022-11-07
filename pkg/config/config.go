@@ -73,6 +73,17 @@ func Exists(program string) bool {
 	return true
 }
 
+func Path(program string) bool {
+	confDir, file := configPathManual(program)
+	_, err := os.Stat(confDir + "\\" + file)
+	if err != nil {
+		fmt.Println(err)
+		return false
+	}
+
+	return true
+}
+
 func ConstructManual(program string) (File, error) {
 	confDir, file := configPathManual(program)
 	os.MkdirAll(confDir, os.ModePerm)
@@ -111,12 +122,20 @@ func configPath() (string, string) {
 	configDir := home + "\\.config\\ffstuff"
 	return configDir, "ffstuff.config"
 }
+
+func Filepath(program string) string {
+	pathSep := string(filepath.Separator)
+	dir, name := configPathManual(program)
+	return dir + pathSep + name
+}
+
 func configPathManual(program string) (string, string) {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		fmt.Println(err)
 	}
-	configDir := home + "\\.config\\" + program
+	pathSep := filepath.Separator
+	configDir := home + string(pathSep) + ".config" + string(pathSep) + program
 	return configDir, program + ".config"
 }
 

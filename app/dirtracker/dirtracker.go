@@ -17,7 +17,7 @@ const (
 	program = "dirtracker"
 )
 
-type confFile struct {
+type ConfFile struct {
 	Root                string
 	WhiteListEnabled    bool
 	WhiteList           []string
@@ -27,11 +27,11 @@ type confFile struct {
 	Max_threads         int
 }
 
-var Conf *confFile
+var Conf *ConfFile
 
 func main() {
 	app := cli.NewApp()
-	app.Version = "v 0.0.1"
+	app.Version = "v 0.2.1"
 	app.Name = "dirtracker"
 	app.Usage = "Отслеживает файлы в указанных директориях"
 	app.Description = "После сбора информации об имеющихся файлах и папках ниже корня готовит отчеты для вывода в файл/на терминал"
@@ -52,7 +52,7 @@ func main() {
 				return err
 			}
 			fmt.Println("Filling default Data...")
-			conf := confFile{
+			conf := ConfFile{
 				Root:                "\\\\nas\\buffer\\IN\\",
 				WhiteListEnabled:    false,
 				WhiteList:           []string{"DIR1\\", "DIR2\\"},
@@ -69,7 +69,7 @@ func main() {
 			return nil
 		}
 		fmt.Println("Config detected...")
-		if err := yaml.Unmarshal(cfg.Data, confFile{}); err != nil {
+		if err := yaml.Unmarshal(cfg.Data, ConfFile{}); err != nil {
 			return err
 		}
 		fmt.Println("Content is valid...")
@@ -118,16 +118,15 @@ func main() {
 						}
 					}
 
-					shortList := filelist.Compile(fl.FullList(), Conf.WhiteList, Conf.BlackList)
+					shortList := filelist.Compile(fl.FullList(), Conf.WhiteList, Conf.WhiteListEnabled, Conf.BlackList, Conf.BlackListEnabled)
 
-					res, err := filelist.Format(shortList, Conf.WhiteList)
+					res, err := filelist.Format(shortList, Conf.WhiteList, Conf.WhiteListEnabled)
 					if err != nil {
 						return err
 					}
 					utils.ClearScreen()
-					fmt.Println(len(shortList))
-					stats := fl.Stats()
-					fmt.Printf("Found %v files in %v directories with %v errors\n", stats["file"], stats["dir"], stats["err"])
+					//stats := fl.Stats()
+					//fmt.Printf("Found %v files in %v directories with %v errors\n", stats["file"], stats["dir"], stats["err"])
 					sendToBot := false
 					if output != res {
 						if output != "" {
@@ -136,9 +135,11 @@ func main() {
 					}
 					output = res
 					fmt.Println(output)
+
 					switch sendToBot {
 					case true:
 						fmt.Println("Sending To Bot")
+
 					case false:
 						fmt.Println("NOT Sending To Bot")
 					}
@@ -157,7 +158,27 @@ func main() {
 				return nil
 			},
 		},
-		{},
+		{
+			Name:        "config",
+			ShortName:   "",
+			Usage:       "Показывает информацию о текущих настройках",
+			UsageText:   "ТУДУ: описание как использовать команду",
+			Description: "TODO: подробное описание команды",
+			ArgsUsage:   "",
+			Action: func(c *cli.Context) error {
+
+				cfgData, err := config.ReadFrom(program)
+				if err != nil {
+					return err
+				}
+				fmt.Printf("Current config is:\n")
+				fmt.Println("--------------------------------------------------------------------------------")
+				fmt.Println(string(cfgData))
+				fmt.Println("--------------------------------------------------------------------------------")
+				fmt.Println("File location: ", config.Filepath(program))
+				return nil
+			},
+		},
 	}
 
 	args := os.Args

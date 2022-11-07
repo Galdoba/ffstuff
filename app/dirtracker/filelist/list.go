@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/Galdoba/utils"
+	"github.com/fatih/color"
 )
 
 const (
@@ -42,79 +43,183 @@ TODO:
 ВЫВЕСТИ КОНФИГ ИЗ FileList{}
 */
 
-func Compile(fullList []fpath, whiteList, blackList []string) []fpath {
+func Compile(fullList []fpath, whiteList []string, wlEnabled bool, blackList []string, blEnabled bool) []fpath {
 	shortList := []fpath{}
 	for _, obj := range fullList {
-		if inList(obj.dir+obj.name, blackList) {
-			continue
+		if blEnabled {
+			if inList(obj.dir+obj.name, blackList) {
+				continue
+			}
 		}
 		dir := strings.TrimSuffix(obj.dir, string(filepath.Separator))
-		if len(whiteList) == 0 {
-			shortList = append(shortList, obj)
-			continue
-		}
-		for _, wlDir := range whiteList {
-			wlDir = strings.TrimSuffix(wlDir, string(filepath.Separator))
-			if dir == wlDir && obj.name != "" {
-				shortList = append(shortList, obj)
+
+		// if len(whiteList) == 0 {
+		// 	shortList = append(shortList, obj)
+		// 	continue
+		// }
+		if wlEnabled {
+			for _, wlDir := range whiteList {
+				wlDir = strings.TrimSuffix(wlDir, string(filepath.Separator))
+				if dir == wlDir {
+					shortList = append(shortList, obj)
+				}
 			}
+		} else {
+			shortList = append(shortList, obj)
 		}
 	}
 	return shortList
 }
 
-/*
+func sort(origin []fpath) []fpath {
+	dirs := []string{}
+	rootLen := 1024
 
- */
-func Format(list []fpath, whiteList []string) (string, error) {
-	res := ""
-	for _, wDir := range whiteList {
-		res += wDir + "\n"
-		for _, fp := range list {
-			if fp.name == "" {
-				continue
-			}
-			errFild := ""
-
-			if inList(fp.name, []string{" ", "(", ")", "$", "#", "%", "|", ";", ":", "^", "{", "}"}) {
-				errFild = " Неформатное имя файла"
-			}
-			if fp.err != nil {
-				errFild = fp.err.Error()
-				//return res, fp.err
-			}
-			if fp.dir == wDir {
-				f, err := os.Stat(fp.dir + fp.name)
-				size := ""
-				moddate := ""
-				perm := ""
-				//used := ""
-				if err != nil {
-					size = "  No Data"
-					moddate = "            No Data"
-					perm = "         "
-					errFild = err.Error()
-				} else {
-					size = formatSize(f.Size())
-					moddate = f.ModTime().Format("2006-01-02 15:04:05")
-					perm = f.Mode().Perm().String()
-				}
-
-				res += "  " + setLen(fp.name, 37) + "|" + size + "|" + moddate + "|" + perm + "|" + errFild + "\n"
+	for _, o := range origin {
+		dirs = utils.AppendUniqueStr(dirs, o.dir)
+		if len(o.dir) < rootLen {
+			rootLen = len(o.dir)
+		}
+	}
+	resulted := []fpath{}
+	for _, dir := range dirs {
+		if len(dir) == rootLen {
+			continue
+		}
+		for _, o := range origin {
+			if o.dir == dir {
+				resulted = append(resulted, o)
 			}
 		}
 	}
-	res += "---------|---------|---------|---------|---------|---------|---------|---------|\n"
+	for _, o := range origin {
+		if len(o.dir) == rootLen {
+			resulted = append(resulted, o)
+		}
+	}
+	return resulted
+}
+
+/*
+
+ */
+func Format(list []fpath, whiteList []string, wlEnabled bool) (string, error) {
+	res := ""
+	switch wlEnabled {
+	case false:
+		for _, fp := range list {
+			lineData := make(map[string]string)
+			if inList(fp.name, []string{" ", "(", ")", "$", "#", "%", "|", ";", ":", "^", "{", "}", "&"}) {
+				lineData["err"] = color.YellowString(" Неформатное имя файла")
+			}
+			if fp.err != nil {
+				lineData["err"] += "|" + fp.err.Error()
+				//return res, fp.err
+			}
+			lineData["name"] = formatName(fp)
+			if strings.HasSuffix(lineData["name"], "]") {
+				res += color.HiYellowString(lineData["name"]) + "\n"
+				continue
+			}
+			f, err := os.Stat(fp.dir + fp.name)
+			if err != nil {
+				lineData["err"] += "|" + err.Error()
+			} else {
+				lineData["size"] = formatSize(f.Size())
+				lineData["date"] = formatFileDate(f.ModTime())
+				lineData["perm"] = formatPermissions(f)
+			}
+
+			res += formatTerminalrow(lineData)
+		}
+	case true:
+		for _, wDir := range whiteList {
+			res += color.WhiteString(wDir) + "\n"
+			for _, fp := range list {
+				lineData := make(map[string]string)
+				if fp.name == "" {
+					continue
+				}
+
+				if inList(fp.name, []string{" ", "(", ")", "$", "#", "%", "|", ";", ":", "^", "{", "}", "&"}) {
+					lineData["err"] = color.YellowString(" Неформатное имя файла")
+				}
+				if fp.err != nil {
+					lineData["err"] += "|" + fp.err.Error()
+					//return res, fp.err
+				}
+
+				if fp.dir == wDir {
+					lineData["name"] = formatName(fp)
+					if strings.HasSuffix(lineData["name"], "]") {
+						res += color.HiYellowString(lineData["name"]) + "\n"
+						continue
+					}
+					f, err := os.Stat(fp.dir + fp.name)
+					if err != nil {
+						lineData["err"] += "|" + err.Error()
+					} else {
+						lineData["size"] = formatSize(f.Size())
+						lineData["date"] = formatFileDate(f.ModTime())
+						lineData["perm"] = formatPermissions(f)
+					}
+
+					res += formatTerminalrow(lineData)
+				}
+
+				//res += "  " + setLen(fp.name, 37) + "|" + size + "|" + moddate + "|" + perm + "|" + errFild + "\n"
+			}
+		}
+	}
+
 	return res, nil
+}
+
+func formatName(fp fpath) string {
+	name := fp.name
+	switch {
+	case name == "":
+		return "[" + fp.dir + "]"
+	default:
+		name = "  " + name
+	}
+	n := setLen(name, 39)
+	switch {
+	case strings.HasSuffix(name, ".mp4"), strings.HasSuffix(name, ".mov"), strings.HasSuffix(name, ".m2ts"), strings.HasSuffix(name, ".mkv"), strings.HasSuffix(name, ".mxf"):
+		n = color.HiGreenString(n)
+	case strings.HasSuffix(name, ".srt"):
+		n = color.HiBlueString(n)
+	case strings.HasSuffix(name, ".txt"):
+		n = color.HiBlackString(n)
+	case strings.HasSuffix(name, ".wav"), strings.HasSuffix(name, ".aac"), strings.HasSuffix(name, ".ac3"):
+		n = color.HiCyanString(n)
+	case strings.HasSuffix(name, ".#err"):
+		n = color.RedString(n)
+	}
+	return n
+}
+
+func formatTerminalrow(data map[string]string) string {
+	return data["name"] + "|" + data["size"] + "|" + data["date"] + "|" + data["err"] + "\n"
+}
+
+func formatPermissions(f os.FileInfo) string {
+	perm := f.Mode().Perm().String()
+	switch {
+	default:
+		perm = color.RedString(perm)
+	case perm == "-rw-rw-rw-":
+	}
+	return perm
 }
 
 func formatSize(btSize int64) string {
 	if btSize < 0 {
-		return "no data "
+		return "         "
 	}
 	sizeFl := float64(btSize)
 	show := ""
-	for _, suff := range []string{"bt", "kb", "Mb", "Gb", "Tb"} {
+	for s, suff := range []string{"bt", "kb", "Mb", "Gb", "Tb"} {
 		if sizeFl > 1024.0 {
 			sizeFl = utils.RoundFloat64(sizeFl/1024, 1)
 			continue
@@ -123,9 +228,36 @@ func formatSize(btSize int64) string {
 		for len(show) < 9 {
 			show = " " + show
 		}
+		switch s {
+		case 0:
+			show = color.HiBlackString(show)
+		case 1:
+			show = color.HiBlueString(show)
+		case 2:
+			show = color.YellowString(show)
+		case 4:
+			show = color.RedString(show)
+		}
 		break
 	}
 	return show
+}
+
+func formatFileDate(t time.Time) string {
+	date := "                   "
+	since := time.Since(t)
+	switch {
+	default:
+		date = t.Format("2006-01-02 15:04:05")
+	case since.Hours() < 1:
+		date = color.HiCyanString(t.Format("2006-01-02 15:04:05"))
+	case since.Hours() > 24:
+		date = color.YellowString(t.Format("2006-01-02 15:04:05"))
+	case since.Hours() > 72:
+		date = color.RedString(t.Format("2006-01-02 15:04:05"))
+	}
+
+	return date
 }
 
 func setLen(str string, l int) string {
@@ -158,6 +290,7 @@ func (fl *FileList) FullList() []fpath {
 func (fl *FileList) Update(maxTreads int) error {
 	fl.paths = []fpath{}
 	fl.protoUpdate(maxTreads)
+	fl.paths = sort(fl.paths)
 	fl.stats = make(map[string]int)
 	for _, f := range fl.paths {
 		if f.name == "" {
