@@ -136,6 +136,8 @@ func extention(fileName string) string {
 func validFileExtetions() []string {
 	return []string{
 		".m4a",
+		".aac",
+		".ac3",
 		".mp4",
 	}
 }

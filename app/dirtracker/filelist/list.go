@@ -184,6 +184,7 @@ func formatName(fp fpath) string {
 		name = "  " + name
 	}
 	n := setLen(name, 39)
+	name = strings.ToLower(fp.name)
 	switch {
 	case strings.HasSuffix(name, ".mp4"), strings.HasSuffix(name, ".mov"), strings.HasSuffix(name, ".m2ts"), strings.HasSuffix(name, ".mkv"), strings.HasSuffix(name, ".mxf"):
 		n = color.HiGreenString(n)
@@ -200,7 +201,7 @@ func formatName(fp fpath) string {
 }
 
 func formatTerminalrow(data map[string]string) string {
-	return data["name"] + "|" + data["size"] + "|" + data["date"] + "|" + data["err"] + "\n"
+	return data["name"] + "|" + data["size"] + "|" + data["date"] + "|" + data["perm"] + "|" + data["err"] + "\n"
 }
 
 func formatPermissions(f os.FileInfo) string {
