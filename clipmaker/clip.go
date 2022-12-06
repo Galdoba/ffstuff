@@ -202,7 +202,7 @@ func (cl *clip) formArgsD(sourceDir, targetDir string) []string {
 		cl.targetFileName = targetDir + shortName(cl.sourceFileName) + "_VCLIP_" + indexStr(cl.index) + extention(cl.sourceFileName)
 		argums = []string{"-i", sourceDir + cl.sourceFileName, "-an", "-map", "0:0", "-vcodec", "copy", "-ss", ssStamp, "-t", tStamp, cl.targetFileName}
 
-	case ".m4a":
+	case ".m4a", ".ac3", ".aac":
 		cl.targetFileName = targetDir + shortName(cl.sourceFileName) + "_ACLIP_" + indexStr(cl.index) + extention(cl.sourceFileName)
 		argums = []string{"-i", sourceDir + cl.sourceFileName, "-vn", "-acodec", "copy", "-ss", ssStamp, "-t", tStamp, cl.targetFileName}
 	default:

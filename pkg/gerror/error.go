@@ -1,6 +1,19 @@
 package gerror
 
+import "fmt"
+
 type customError struct {
 	message string
 	level   int
+}
+
+func Wrap(msg string, err error) error {
+	return fmt.Errorf("%s: %w", msg, err)
+}
+
+func WrapIfErr(msg string, err error) error {
+	if err == nil {
+		return nil
+	}
+	return Wrap(msg, err)
 }

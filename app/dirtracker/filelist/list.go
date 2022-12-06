@@ -113,8 +113,12 @@ func Format(list []fpath, whiteList []string, wlEnabled bool) (string, error) {
 				lineData["err"] = color.YellowString(" Неформатное имя файла")
 			}
 			if fp.err != nil {
-				lineData["err"] += "|" + fp.err.Error()
-				//return res, fp.err
+				switch {
+				default:
+					lineData["err"] += "|" + fp.err.Error()
+				case strings.Contains(fp.err.Error(), "Access is denied"):
+					lineData["err"] = " Доступ Ограничен"
+				}
 			}
 			lineData["name"] = formatName(fp)
 			if strings.HasSuffix(lineData["name"], "]") {
@@ -145,7 +149,13 @@ func Format(list []fpath, whiteList []string, wlEnabled bool) (string, error) {
 					lineData["err"] = color.YellowString(" Неформатное имя файла")
 				}
 				if fp.err != nil {
-					lineData["err"] += "|" + fp.err.Error()
+					switch {
+					default:
+						lineData["err"] += "|" + fp.err.Error()
+					case strings.Contains(fp.err.Error(), "Access is denied"):
+						lineData["err"] = " Доступ Ограничен"
+					}
+
 					//return res, fp.err
 				}
 
@@ -157,7 +167,12 @@ func Format(list []fpath, whiteList []string, wlEnabled bool) (string, error) {
 					}
 					f, err := os.Stat(fp.dir + fp.name)
 					if err != nil {
-						lineData["err"] += "|" + err.Error()
+						switch {
+						default:
+							lineData["err"] += "|" + err.Error()
+						case strings.Contains(err.Error(), "Access is denied"):
+							lineData["err"] = " Доступ Ограничен"
+						}
 					} else {
 						lineData["size"] = formatSize(f.Size())
 						lineData["date"] = formatFileDate(f.ModTime())
@@ -192,7 +207,7 @@ func formatName(fp fpath) string {
 		n = color.HiBlueString(n)
 	case strings.HasSuffix(name, ".txt"):
 		n = color.HiBlackString(n)
-	case strings.HasSuffix(name, ".wav"), strings.HasSuffix(name, ".aac"), strings.HasSuffix(name, ".ac3"):
+	case strings.HasSuffix(name, ".wav"), strings.HasSuffix(name, ".aac"), strings.HasSuffix(name, ".ac3"), strings.HasSuffix(name, ".m4a"):
 		n = color.HiCyanString(n)
 	case strings.HasSuffix(name, ".#err"):
 		n = color.RedString(n)
@@ -311,7 +326,7 @@ func (fl *FileList) Update(maxTreads int) error {
 			}
 		}
 		er += " \n"
-		return fmt.Errorf("%v", er)
+		//return fmt.Errorf("%v", er)
 	}
 
 	return nil
