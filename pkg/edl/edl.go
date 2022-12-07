@@ -9,7 +9,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/macroblock/imed/pkg/types"
+	"github.com/Galdoba/ffstuff/pkg/types"
 )
 
 type edlData struct {

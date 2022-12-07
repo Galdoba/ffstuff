@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/macroblock/imed/pkg/types"
+	"github.com/Galdoba/ffstuff/pkg/types"
 )
 
 func sampleLines() []string {

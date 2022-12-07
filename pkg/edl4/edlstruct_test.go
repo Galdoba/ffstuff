@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/Galdoba/ffstuff/pkg/types"
 	"github.com/Galdoba/utils"
-	"github.com/macroblock/imed/pkg/types"
 )
 
 func testInput() []string {

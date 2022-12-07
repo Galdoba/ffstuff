@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/Galdoba/ffstuff/pkg/disk"
 	"github.com/Galdoba/ffstuff/pkg/glog"
 	"github.com/Galdoba/ffstuff/pkg/namedata"
 	"github.com/Galdoba/ffstuff/pkg/stamp"
@@ -37,9 +36,7 @@ func CopyFile(source string, destination string, flags ...bool) error {
 	if !destInfo.IsDir() {
 		return errors.New("Destination is not a directory: " + destInfo.Name())
 	}
-	if !destinationSpaceAvailable(destination, srcInfo.Size()) {
-		return errors.New("Not enough space on drive " + namedata.RetrieveDrive(destination))
-	}
+
 	//check earlirer copies
 	srcBase := namedata.RetrieveShortName(source)
 	_, err := os.Stat(destination + srcBase)
@@ -188,14 +185,6 @@ func size2MbString(bts int64) string {
 	return gbtStr
 }
 
-func destinationSpaceAvailable(destPath string, copySize int64) bool {
-	drive := namedata.RetrieveDrive(destPath)
-	//usage := du.NewDiskUsage(drive)
-	usage := disk.Usage(drive)
-	freeSpace := int64(usage.Available())
-	return freeSpace > copySize
-}
-
 func VerifyDestination(destination string) error {
 	destInfo, errD := os.Stat(destination)
 	if errD != nil {
@@ -303,9 +292,7 @@ func Download(logger glog.Logger, source, destination string) error {
 	if !destInfo.IsDir() {
 		return LogWith(logger, errors.New("Destination is not a directory: "+destInfo.Name()))
 	}
-	if !destinationSpaceAvailable(destination, srcInfo.Size()) {
-		return LogWith(logger, errors.New("Not enough space on drive "+namedata.RetrieveDrive(destination)))
-	}
+
 	//check earlirer copies
 	srcBase := namedata.RetrieveShortName(source)
 	copyInfo, err := os.Stat(destination + srcBase)

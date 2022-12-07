@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/Galdoba/ffstuff/pkg/translit"
 	"github.com/Galdoba/utils"
-	"github.com/macroblock/imed/pkg/translit"
 )
 
 const (
@@ -492,7 +492,7 @@ func intToIndex(i, f int) string {
 
 func TransliterateForEdit(name string) string {
 	clName := strings.Split(name, " (")[0]
-	trName, _ := translit.Do(clName)
+	trName := translit.Transliterate(clName)
 	nTag := ""
 	sTag := ""
 	for s := 0; s < 100; s++ {

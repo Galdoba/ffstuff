@@ -1,6 +1,6 @@
 package edl3
 
-import "github.com/macroblock/imed/pkg/types"
+import "github.com/Galdoba/ffstuff/pkg/types"
 
 type edlData struct {
 	data []statementData

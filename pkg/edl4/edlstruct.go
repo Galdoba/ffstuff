@@ -3,8 +3,8 @@ package edl4
 import (
 	"strconv"
 
+	"github.com/Galdoba/ffstuff/pkg/types"
 	"github.com/Galdoba/utils"
-	"github.com/macroblock/imed/pkg/types"
 )
 
 type parcedData struct {

@@ -3,7 +3,7 @@ package edl3
 import (
 	"testing"
 
-	"github.com/macroblock/imed/pkg/types"
+	"github.com/Galdoba/ffstuff/pkg/types"
 )
 
 type sampleData struct {
