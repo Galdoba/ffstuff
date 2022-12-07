@@ -2,7 +2,7 @@ package telegram
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"path"
@@ -32,7 +32,7 @@ func New(host string, token string) *Client {
 
 func (c *Client) SendMessage(chatID int, text string) error {
 	q := url.Values{}
-	q.Add("chatID", strconv.Itoa(chatID))
+	q.Add("chat_id", strconv.Itoa(chatID))
 	q.Add("text", text)
 	_, err := c.doRequest(methodSendMessage, q)
 	if err != nil {
@@ -79,9 +79,28 @@ func (c *Client) doRequest(method string, query url.Values) (data []byte, err er
 		return nil, err
 	}
 	defer func() { _ = resp.Body.Close() }()
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
 	return body, err
+}
+
+//ReadAll - копия функции из Go 1.18:
+//io.ReadAll(r Reader) ([]byte, error)
+func ReadAll(r io.Reader) ([]byte, error) {
+	b := make([]byte, 0, 512)
+	for {
+		if len(b) == cap(b) {
+			b = append(b, 0)[:len(b)]
+		}
+		n, err := r.Read(b[len(b):cap(b)])
+		b = b[:len(b)+n]
+		if err != nil {
+			if err.Error() == "EOF" {
+				err = nil
+			}
+			return b, err
+		}
+	}
 }

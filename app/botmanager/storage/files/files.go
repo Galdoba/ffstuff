@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -53,8 +54,10 @@ func (su *StorageUnit) Remove(p *storage.Page) error {
 	}
 	path := filepath.Join(su.basePath, p.UserName, f)
 	if err := os.Remove(path); err != nil {
+		fmt.Println("----", err.Error())
 		return gerror.Wrap(fmt.Sprintf("can't remove page [%v]: ", path), err)
 	}
+	log.Printf("%v removed", path)
 	return nil
 }
 
@@ -76,11 +79,16 @@ func (su *StorageUnit) IsExists(p *storage.Page) (bool, error) {
 
 func (su *StorageUnit) decodePage(filePath string) (*storage.Page, error) {
 	f, err := os.Open(filePath)
+	defer f.Close()
+
 	if err != nil {
 		return nil, gerror.Wrap("can't decode page: ", err)
 	}
 	var p storage.Page
 	if err := gob.NewDecoder(f).Decode(&p); err != nil {
+		if err.Error() == "EOF" {
+			return &p, nil
+		}
 		return nil, gerror.Wrap("can't decode page: ", err)
 	}
 	return &p, nil
@@ -101,7 +109,7 @@ func (su *StorageUnit) Save(page *storage.Page) (err error) {
 	if err != nil {
 		return err
 	}
-	defer func() { _ = file.Close() }()
+	defer func() { _ = closeLogged(file) }()
 
 	if err := gob.NewEncoder(file).Encode(page); err != nil {
 		return err
@@ -111,4 +119,12 @@ func (su *StorageUnit) Save(page *storage.Page) (err error) {
 
 func fileName(p *storage.Page) (string, error) {
 	return p.Hash()
+}
+
+func closeLogged(f *os.File) error {
+	err := f.Close()
+	if err != nil {
+		log.Printf("log close err: %v")
+	}
+	return err
 }

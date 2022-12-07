@@ -44,6 +44,7 @@ func (c *ConsumerUnit) handleEvents(events []events.Event) error {
 		log.Printf("new event: %s", event.Text)
 		if err := c.processor.Process(event); err != nil {
 			log.Printf("can't handle event: %s", event.Text)
+			log.Printf("reason: %s", err.Error())
 			continue
 		}
 	}

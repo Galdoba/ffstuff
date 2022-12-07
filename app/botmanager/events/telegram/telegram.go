@@ -2,7 +2,6 @@ package telegram
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/Galdoba/ffstuff/app/botmanager/clients/telegram"
 	"github.com/Galdoba/ffstuff/app/botmanager/events"
@@ -37,7 +36,7 @@ func (p *ProcessorUnit) Fetch(limit int) ([]events.Event, error) {
 		return nil, gerror.Wrap("can't get events", err)
 	}
 	if len(updates) == 0 {
-		return nil, fmt.Errorf("no updates found")
+		return nil, nil //fmt.Errorf("no updates found")
 	}
 	res := make([]events.Event, 0, len(updates))
 

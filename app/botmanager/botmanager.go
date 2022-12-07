@@ -12,7 +12,7 @@ import (
 
 const (
 	tgBotHost   = "api.telegram.org"
-	storagePath = "storage"
+	storagePath = `c:\Users\Public\Documents\Link_Storage\`
 	batchSize   = 100
 )
 

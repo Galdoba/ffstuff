@@ -71,6 +71,9 @@ func (p *ProcessorUnit) sendRandom(chatID int, username string) (err error) {
 	if errors.Is(err, storage.ErrNoFiles) {
 		p.tg.SendMessage(chatID, msgNoSavedPages)
 	}
+	if page == nil {
+		return nil
+	}
 	if err := p.tg.SendMessage(chatID, page.URL); err != nil {
 		return err
 	}
