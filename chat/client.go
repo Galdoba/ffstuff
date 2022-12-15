@@ -69,3 +69,31 @@ func (c *client) err(err error) {
 func (c *client) msg(msg string) {
 	c.conn.Write([]byte("> " + msg + "\r\n"))
 }
+
+/*
++------------------------------------------------------------------------------..+
+[Chat rooms]-------|-[chat 1]---|---------|---------|---------|---------|---------|
+Chat rooms:        | [User 1]: [Message_sdfnjasdfjajfdsjajfsdjlfkaslf]
+*[chat 1]          | [User 2]: [Message_sdfnjasdfjaывфжадлфывжалжфывдлажфыжвалfsdf
+[chat 2]           |    d;gsdgfjlkdfgjsdfjfdsjajfsdjlfkaslf]
+[chat__long_name..]| [User 1]: [Message]
+                   |
+                   |
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+*/
