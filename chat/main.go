@@ -3,6 +3,8 @@ package main
 import (
 	"log"
 	"net"
+
+	"github.com/ffstuff/chat/server"
 )
 
 const (
@@ -10,8 +12,8 @@ const (
 )
 
 func main() {
-	s := NewServer()
-	go s.run()
+	s := server.NewServer()
+	go s.Run()
 
 	listener, err := net.Listen("tcp", address)
 	if err != nil {
