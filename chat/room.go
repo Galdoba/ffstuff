@@ -1,5 +1,6 @@
 package main
 
+/*
 import "net"
 
 type room struct {
@@ -14,3 +15,4 @@ func (r *room) broadcast(sender *client, msg string) {
 		}
 	}
 }
+*/

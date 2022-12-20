@@ -14,18 +14,20 @@ type Client struct {
 	nick     string
 	room     *protocol.Room
 	commands chan<- protocol.Command
+	//commandStr chan<- string
 }
 
-func New(conn net.Conn) Client {
-	return Client{
+func New(conn net.Conn, comChan chan<- protocol.Command) *Client {
+	return &Client{
 		conn:     conn,
 		nick:     "Anonymous",
 		room:     &protocol.Room{},
-		commands: make(chan<- protocol.Command),
+		commands: comChan,
 	}
 }
 
 func (c *Client) ReadInput() {
+	c.Msg("you are in")
 	for {
 		msg, err := bufio.NewReader(c.conn).ReadString('\n')
 		if err != nil {
@@ -34,9 +36,11 @@ func (c *Client) ReadInput() {
 		msg = strings.Trim(msg, "\r\n")
 
 		args := strings.Split(msg, " ")
-		cmd := strings.TrimSpace(args[0])
-
-		switch cmd {
+		cmd := strings.TrimSpace(args[0]) + " " + c.conn.RemoteAddr().Network() + " " + c.conn.RemoteAddr().String() + " " + strings.Join(args[1:], " ")
+		cm, _ := protocol.Assemble(cmd)
+		cm.Sender = c
+		go func() { c.commands <- cm }()
+		/*switch cmd {
 		case "/nick":
 			c.commands <- command{
 				id:     CMD_NICK,
@@ -69,18 +73,38 @@ func (c *Client) ReadInput() {
 			}
 		default:
 			c.err(fmt.Errorf("unknown command: '%s'", cmd))
-		}
+		}*/
+		fmt.Println("End CYCLE client")
 	}
 }
 
-func (c *Client) err(err error) {
+func (c *Client) Err(err error) {
 	c.conn.Write([]byte("Error: " + err.Error() + "\n"))
 }
 
-func (c *Client) msg(msg string) {
+func (c *Client) Msg(msg string) {
 	c.conn.Write([]byte("> " + msg + "\n"))
 }
 
 func (c *Client) Conn() net.Conn {
 	return c.conn
+}
+func (c *Client) Nick() string {
+	return c.nick
+}
+
+func (c *Client) SetNick(n string) {
+	c.nick = n
+}
+
+func (c *Client) Room() string {
+	if c.room == nil {
+		fmt.Println("------NO ROOM")
+		return "[NO ROOM]"
+	}
+	return c.room.Name()
+}
+
+func (c *Client) LeaveRoom() {
+	c.room = nil
 }

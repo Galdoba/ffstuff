@@ -1,5 +1,6 @@
 package main
 
+/*
 import (
 	"fmt"
 	"log"
@@ -114,3 +115,4 @@ func (s *server) leaveCurrentRoom(c *client) error {
 	}
 	return nil
 }
+*/

@@ -1,5 +1,6 @@
 package main
 
+/*
 import (
 	"bufio"
 	"fmt"
@@ -69,3 +70,4 @@ func (c *client) err(err error) {
 func (c *client) msg(msg string) {
 	c.conn.Write([]byte("> " + msg + "\n"))
 }
+*/

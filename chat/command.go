@@ -1,5 +1,6 @@
 package main
 
+/*
 type commandID int
 
 const (
@@ -15,3 +16,4 @@ type command struct {
 	client *client
 	args   []string
 }
+*/
