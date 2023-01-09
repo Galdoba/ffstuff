@@ -37,43 +37,17 @@ func (c *Client) ReadInput() {
 
 		args := strings.Split(msg, " ")
 		cmd := strings.TrimSpace(args[0]) + " " + c.conn.RemoteAddr().Network() + " " + c.conn.RemoteAddr().String() + " " + strings.Join(args[1:], " ")
-		cm, _ := protocol.Assemble(cmd)
+		fmt.Println("SEND:", cmd)
+		c.Msg("SEND: " + cmd)
+		cm, err := protocol.Assemble(cmd)
+		if err != nil {
+			c.Err(err)
+			continue
+		}
+
 		cm.Sender = c
-		go func() { c.commands <- cm }()
-		/*switch cmd {
-		case "/nick":
-			c.commands <- command{
-				id:     CMD_NICK,
-				client: c,
-				args:   args,
-			}
-		case "/join":
-			c.commands <- command{
-				id:     CMD_JOIN,
-				client: c,
-				args:   args,
-			}
-		case "/rooms":
-			c.commands <- command{
-				id:     CMD_ROOMS,
-				client: c,
-				args:   args,
-			}
-		case "/msg":
-			c.commands <- command{
-				id:     CMD_MSG,
-				client: c,
-				args:   args,
-			}
-		case "/quit":
-			c.commands <- command{
-				id:     CMD_QUIT,
-				client: c,
-				args:   args,
-			}
-		default:
-			c.err(fmt.Errorf("unknown command: '%s'", cmd))
-		}*/
+		c.commands <- cm
+
 		fmt.Println("End CYCLE client")
 	}
 }
@@ -105,6 +79,15 @@ func (c *Client) Room() string {
 	return c.room.Name()
 }
 
+func (c *Client) CurrentRoom() *protocol.Room {
+	return c.room
+}
+
 func (c *Client) LeaveRoom() {
 	c.room = nil
+}
+
+func (c *Client) DebugMessage() {
+	s := fmt.Sprintf("%v", c)
+	c.Msg(s)
 }

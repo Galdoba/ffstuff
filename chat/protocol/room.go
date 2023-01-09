@@ -38,11 +38,14 @@ func (r *Room) Broadcast(sender Receiver, msg string) {
 }
 
 func (r *Room) Join(member Receiver) error {
+
 	addr := member.Conn().RemoteAddr()
 	if _, ok := r.members[addr]; ok == true {
 		return fmt.Errorf("cann't join room: same connection already exists")
 	}
+	fmt.Println(r.members)
 	r.members[addr] = member
+	fmt.Println(r.members)
 	return nil
 }
 

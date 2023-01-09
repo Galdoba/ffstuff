@@ -22,19 +22,26 @@ func NewServer() *server {
 	}
 }
 
+func debugServerCommands(s *server) {
+	fmt.Printf("s.commands: %v\n", s.commands)
+}
+
 func (s *server) Run() {
 	fmt.Println("SERVER RUN")
 	fmt.Println(s.commands)
 	fmt.Println("-----------")
+
 	for cmd := range s.commands {
-		fmt.Println("new command:", cmd)
+		fmt.Println("new command:", cmd.ID)
+		fmt.Println("server rooms:", s.rooms)
+		fmt.Println("server comands:", s.commands)
+		debugServerCommands(s)
 		switch cmd.ID {
+		default:
+			fmt.Println("UNK", cmd)
 		case protocol.CMD_NICK:
-			fmt.Println(0, s)
 			s.cmd_nick(cmd.Sender, cmd.Args)
-			fmt.Println(1, s)
 		case protocol.CMD_JOIN:
-			fmt.Println(2, s)
 			s.cmd_join(cmd.Sender, cmd.Args)
 		case protocol.CMD_ROOMS:
 			s.cmd_rooms(cmd.Sender, cmd.Args)
@@ -42,8 +49,9 @@ func (s *server) Run() {
 			s.cmd_msg(cmd.Sender, cmd.Args)
 		case protocol.CMD_QUIT:
 			s.cmd_quit(cmd.Sender, cmd.Args)
-		default:
-			fmt.Println("UNK", cmd)
+		case protocol.CMD_ERR:
+			fmt.Println("UNK ????", cmd)
+
 		}
 	}
 	fmt.Println("SERVER END")
@@ -65,13 +73,13 @@ func (s *server) NewClient(conn net.Conn) {
 
 func (s *server) cmd_nick(c protocol.Receiver, args []string) error {
 	//c.nick = args[1]
-	fmt.Println("cmd_nick")
 	switch c.(type) {
 	case *client.Client:
 		v := c.(*client.Client)
 		fmt.Println(args)
 		v.SetNick(args[0])
 		v.Msg(fmt.Sprintf("You are now: %s", args[0]))
+		v.DebugMessage()
 	}
 
 	return nil
@@ -83,16 +91,17 @@ func (s *server) cmd_join(v protocol.Receiver, args []string) error {
 		c := v.(*client.Client)
 		roomName := args[0]
 		r, ok := s.rooms[roomName]
+
 		if !ok {
 			r = protocol.NewRoom(roomName)
 			s.rooms[roomName] = r
 			log.Printf("room [%v] was created", roomName)
 		}
-		if err := r.Join(c); err != nil {
+		if err := s.rooms[roomName].Join(v); err != nil {
 			return fmt.Errorf("cann't execute command [/join]: %v", err.Error())
 		}
 
-		r.Broadcast(c, fmt.Sprintf("%s has joined the room", c.Nick()))
+		s.rooms[roomName].Broadcast(c, fmt.Sprintf("%s has joined the room", c.Nick()))
 		c.Msg(fmt.Sprintf("welcome to %s", r.Name()))
 	}
 	return nil
@@ -112,17 +121,34 @@ func (s *server) cmd_rooms(v protocol.Receiver, args []string) error {
 }
 
 func (s *server) cmd_msg(v protocol.Receiver, args []string) error {
+	fmt.Println("START cmd_msg")
 	switch v.(type) {
+	default:
+		fmt.Println("cmd_msg type undetermend")
 	case *client.Client:
+
+		fmt.Println("cmd_msg type Client")
+		fmt.Println(args)
 		c := v.(*client.Client)
-		if c.Room() == "[NO ROOM]" {
+		fmt.Println("defined room c:", c.CurrentRoom().Name())
+		fmt.Println("defined room v:", v.CurrentRoom().Name())
+		fmt.Println("Server rooms:", s.rooms["q"].Members())
+		fmt.Println("ROOM:", s.rooms[c.Room()], v.CurrentRoom(), c.CurrentRoom())
+		//fmt.Println("MEMBERS1:", s.rooms[c.Room()].Members())
+		fmt.Println("MEMBERS2:", v.CurrentRoom().Members())
+		fmt.Println("MEMBERS3:", c.CurrentRoom().Members())
+		if c.Room() == "" {
 			err := fmt.Errorf("you must join the room first")
 			c.Err(err)
+			fmt.Println("ERROR cmd_msg")
 			return err
 		}
+		fmt.Println("ROOM:", s.rooms[c.Room()], v.CurrentRoom(), c.CurrentRoom())
+		fmt.Println("MEMBERS:", s.rooms[c.Room()].Members(), v.CurrentRoom().Members(), c.CurrentRoom().Members())
 		s.rooms[c.Room()].Broadcast(c, c.Nick()+": "+strings.Join(args, " "))
 		//c.room.broadcast(c, c.nick+": "+strings.Join(args[1:], " "))
 	}
+	fmt.Println("END cmd_msg")
 	return nil
 }
 

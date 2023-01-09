@@ -9,12 +9,12 @@ import (
 type commandID int
 
 const (
-	CMD_NICK commandID = iota
+	CMD_ERR commandID = iota
+	CMD_NICK
 	CMD_JOIN
 	CMD_ROOMS
 	CMD_MSG
 	CMD_QUIT
-	CMD_ERR
 )
 
 type Command struct {
@@ -27,17 +27,21 @@ type Command struct {
 
 type Receiver interface {
 	Conn() net.Conn
+	CurrentRoom() *Room
 }
 
 func ReceiveMsg(r Receiver, msg string) {
 	r.Conn().Write([]byte("> " + msg + "\n"))
 }
 
+//export PATH=$PATH:~/IN/@SCRIPTS/
+
 func Assemble(cmd_str string) (Command, error) {
 	args := strings.Fields(cmd_str)
-	if len(args) < 4 {
-		return Command{}, fmt.Errorf("cann't assemble command: len(args) < 4")
-	}
+	fmt.Println("args:", args)
+	// if len(args) < 4 {
+	// 	return CommandError(args), fmt.Errorf("cann't assemble command: len(args) < 4")
+	// }
 	cmd := Command{}
 	cmd_id := convertCommandID(args[0])
 	if cmd_id == CMD_ERR {
@@ -56,8 +60,18 @@ func Assemble(cmd_str string) (Command, error) {
 	return cmd, nil
 }
 
+func CommandError(args []string) Command {
+	com := Command{}
+	com.ID = CMD_ERR
+	com.Args = args
+	com.Args = append(com.Args, "invalid_command")
+	return com
+}
+
 func convertCommandID(str string) commandID {
 	switch str {
+	default:
+		return CMD_ERR
 	case "/nick":
 		return CMD_NICK
 	case "/join":
@@ -68,8 +82,7 @@ func convertCommandID(str string) commandID {
 		return CMD_MSG
 	case "/quit":
 		return CMD_QUIT
-	default:
-		return CMD_ERR
+
 	}
 	/*
 	   CMD_NICK
