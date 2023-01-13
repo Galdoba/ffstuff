@@ -2,7 +2,6 @@ package inputinfo
 
 import (
 	"fmt"
-	"sort"
 	"testing"
 
 	"github.com/Galdoba/utils"
@@ -10,15 +9,32 @@ import (
 
 func TestInputReading(t *testing.T) {
 	examples := gatherInfo()
-	darMap := make(map[string]int)
-	out := []string{}
+	//darMap := make(map[string]int)
+	//out := []string{}
+	metadataKeys := make(map[int]int)
 	for i, input := range examples {
-		fmt.Printf("example %v: ", i)
+
+		if i < 0 || i > 2000 {
+			continue
+		}
 		pi, err := parse(input)
 		if err != nil {
 			t.Errorf(err.Error())
 		}
-		fmt.Printf("%v                  \n", pi)
+		//if pi.filename != "" {
+		fmt.Printf("example %v: \n", i)
+
+		fmt.Printf("%v", pi)
+		//for k, _ := range pi.metadata {
+		metadataKeys[pi.globBitrate]++
+
+		if pi.globBitrate == -1 {
+			fmt.Println(pi.filename, "------")
+
+		}
+		//}
+
+		//}
 		// mf := CollectData(input)
 		// name, foundName := input.parseName()
 		// if foundName == -1 {
@@ -56,20 +72,44 @@ func TestInputReading(t *testing.T) {
 		// //}
 
 	}
-	fmt.Println("//////////////")
-	//for i := 0; i < 1500; i++ {
-	for k, v := range darMap {
-		//		if v == i {
-		//			fmt.Println(k, v)
-		//		}
-		out = append(out, fmt.Sprintf("%v = %v", k, v))
+	//out := []string{}
+	// fmt.Println("//////////////")
+	for i := 0; i < 1900; i++ {
+		for k, v := range metadataKeys {
+			if v == i {
+				fmt.Println(k, v)
+			}
+			//out = append(out, fmt.Sprintf("%v = %v", k, v))
+		}
 	}
-	sort.Strings(out)
-	//for _, s := range out {
-	//fmt.Println(s)
-	//}
-	//}
+	// sort.Strings(out)
+	// fmt.Println("----------------")
+	// for _, s := range out {
+	// 	fmt.Println(s)
+	// 	//}
+	// 	//}
 
+	// }
+}
+
+func (pi *parseInfo) String() string {
+	str := ""
+	str += fmt.Sprintf("name: %v\n", pi.filename)
+	str += fmt.Sprintf("scanned: %v\n", pi.scanTime)
+	str += fmt.Sprintf("GlobMeta: %v\n", len(pi.metadata))
+	//for k, v := range pi.metadata {
+	//str += fmt.Sprintf("  %v: %v\n", k, v)
+	//}
+	str += fmt.Sprintf("durdata: %v - %v - %v\n", pi.duration, pi.start, pi.globBitrate)
+	str += fmt.Sprintf("Streams: %v\n", len(pi.streams))
+	for i, s := range pi.streams {
+		if len(s.metadata) > 0 {
+			str += fmt.Sprintf("  stream %v has %v metadata\n", i, len(s.metadata))
+		}
+	}
+
+	str += "------------\n"
+	return str
 }
 
 func gatherInfo() []inputdata {
