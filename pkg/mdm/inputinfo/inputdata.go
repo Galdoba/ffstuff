@@ -22,6 +22,11 @@ type parseInfo struct {
 	streams     []stream
 	parsedLines int
 	parseStage  int
+	comment     string
+	video       []videostream
+	audio       []audiostream
+	data        []datastream
+	subtitles   []subtitlestream
 }
 
 type stream struct {
@@ -52,20 +57,18 @@ func hasTrigger(line, trigger string) bool {
 }
 
 func hasStreamInfo(line string) bool {
-	//  Stream #0:0(und): Video: h264 (High 4:2:2) (avc1 / 0x31637661), yuv422p, 1920x1080 [SAR 1:1 DAR 16:9], 10687 kb/s, 25 fps, 25 tbr, 12800 tbn, 50 tbc (default)
-	//    0:0 Video: prores (HQ) (apch / 0x68637061), yuv422p10le(tv, bt709, progressive), 1920x1080, SAR 1:1 DAR 16:9, 24 tbr, 24 tbn, 24 tbc
-	//  Stream #0:0: Audio:
-	r := regexp.MustCompile(`Stream\ \#\d+\:`)
-	streamTag := r.FindString(line)
-	if streamTag != "" {
+	if strings.Contains(line, "Video:") {
 		return true
 	}
-	r = regexp.MustCompile(`\ \ \ \ \d+\:\d+`)
-	streamTag = r.FindString(line)
-	if streamTag != "" {
+	if strings.Contains(line, "Audio:") {
 		return true
 	}
-	//       \ (\#)?\d+\:\d+
+	if strings.Contains(line, "Data:") {
+		return true
+	}
+	if strings.Contains(line, "Subtitle:") {
+		return true
+	}
 	return false
 }
 
@@ -83,14 +86,8 @@ func parse(input inputdata) (*parseInfo, error) {
 	pi.start = math.NaN()
 	pMethod := unknown
 	pStage := stage_ParseScanTime
-	metadata := make(map[string]string)
-	stream := stream{"NO DATA", nil}
+	dsbMap := make(map[string]string)
 	for _, line := range input.data {
-		switch line {
-		case "At least one output file must be specified":
-			continue
-		}
-		//fmt.Println("START: ", line)
 		switch {
 		case hasTrigger(line, prefix_StartTime) && (pStage == stage_ParseScanTime):
 			pi.scanTime = grepScantime(line)
@@ -102,27 +99,17 @@ func parse(input inputdata) (*parseInfo, error) {
 			pMethod = parseMethod_FFLITE
 			pStage = stage_ParseFilename
 		case hasTrigger(line, prefix_FFMPEG_Metadata):
-			pStage = stage_ParseGlobalMeta
-			//continue
+			switch len(pi.streams) {
+			case 0:
+				pStage = stage_ParseGlobalMeta
+			default:
+				pStage = stage_ParseStreamMeta
+			}
 		case hasTrigger(line, prefix_FFMPEG_Duration):
 			pStage = stage_ParseDuration
 		case hasStreamInfo(line):
 			pStage = stage_ParseStreams
 		}
-		switch pStage {
-		case stage_ParseStreams:
-			if stream.data != "NO DATA" {
-
-				////
-				pi.metadata = metadata
-				delete(pi.metadata, "Metadata")
-				//pi.AddGlobalMetaData(metadata)
-			} else {
-				pi.AddStreamData(stream, metadata)
-			}
-			metadata = make(map[string]string)
-		}
-		//fmt.Println(pStage, line)
 		switch pStage {
 		case stage_ParseFilename:
 			switch pMethod {
@@ -137,40 +124,69 @@ func parse(input inputdata) (*parseInfo, error) {
 				panic(0)
 			case parseMethod_FFMPEG:
 				key, val := grepGlobalMetadataFFMPEG(line)
-				metadata[key] = val
+				pi.injectMetadata(key, val)
 			}
 		case stage_ParseDuration:
-
-			switch pMethod {
-			default:
-				panic("parse method unknown")
-			case parseMethod_FFMPEG:
-				//fmt.Println("|||", line)
-				pi.duration, pi.start, pi.globBitrate = grepDurationDataFFMPEG(line)
-			case parseMethod_FFLITE:
-				pi.duration, pi.globBitrate = grepDurationDataFFLITE(line)
-			}
+			dsbMap = parseDSB(line)
+			pi.injectDurationInfo(dsbMap)
 			if pi.globBitrate == -1 {
 				fmt.Println(pMethod)
 				panic(pi.filename)
 			}
 		case stage_ParseStreams:
-			stream = newStream()
+			stream := newStream()
 			stream.data = line
+			stream.metadata = make(map[string]string)
+			pi.streams = append(pi.streams, stream)
 			pStage = stage_ParseStreamMeta
 		case stage_ParseStreamMeta:
 			key, val := grepGlobalMetadataFFMPEG(line)
-			metadata[key] = val
+			pi.injectMetadata(key, val)
 		}
 	}
-	pi.AddStreamData(stream, metadata)
+	pi.parseStreams()
 	return &pi, nil
 }
 
-func (pi *parseInfo) AddStreamData(stream stream, metadata map[string]string) {
-	stream.metadata = metadata
-	delete(stream.metadata, "Metadata")
-	pi.streams = append(pi.streams, stream)
+func (pi *parseInfo) injectDurationInfo(dsb map[string]string) {
+	for k, v := range dsb {
+		switch k {
+		case "Duration":
+			pi.duration = durationStrToFl64(v)
+		case "start":
+			pi.start = startStrToFl64(v)
+		case "bitrate":
+			x, _ := strconv.Atoi(strings.TrimSuffix(v, " kb/s"))
+			pi.globBitrate = x
+		}
+	}
+}
+
+func (pi *parseInfo) injectMetadata(key, val string) {
+	switch key {
+	case "At least one output file must be specified", "Metadata", "":
+		return
+	default:
+		strNum := len(pi.streams)
+		switch strNum {
+		case 0:
+			pi.metadata[key] = val
+		default:
+			pi.streams[strNum-1].metadata[key] = val
+		}
+	}
+}
+
+func parseDSB(line string) map[string]string {
+	parsed := make(map[string]string)
+	segments := strings.Split(line, ",")
+	for _, seg := range segments {
+		dtpts := strings.Split(seg, ": ")
+		key := strings.TrimSpace(dtpts[0])
+		val := strings.TrimSpace(dtpts[1])
+		parsed[key] = val
+	}
+	return parsed
 }
 
 /*
@@ -232,6 +248,9 @@ func grepGlobalMetadataFFMPEG(line string) (string, string) {
 	}
 	key = strings.TrimSpace(key)
 	val = strings.TrimSpace(val)
+	if key == "Metadata" && val == "" {
+		return "", ""
+	}
 	return key, val
 }
 
@@ -248,40 +267,6 @@ func parseMetaGlobal(line string) (string, string) {
 		return fields[0], ""
 	}
 	return fields[0], strings.Join(fields[1:], ": ")
-}
-
-func grepDurationDataFFMPEG(line string) (float64, float64, int) {
-	//  Duration: 00:46:12.02, start: 0.000000, bitrate: 10952 kb/s
-	duration := 0.0
-	start := 0.0
-	bitrate := 0
-	data := strings.Split(line, ",")
-	for i, ln := range data {
-		switch i {
-		case 0:
-			duration = grepDuration(ln)
-		case 1:
-			start = grepStart(ln)
-		case 2:
-			bitrate = grepBitrate(ln)
-		}
-	}
-	return duration, start, bitrate
-}
-
-func grepDurationDataFFLITE(line string) (float64, int) {
-	duration := 0.0
-	bitrate := 0
-	data := strings.Split(line, ",")
-	for i, ln := range data {
-		switch i {
-		case 0:
-			duration = grepDuration(ln)
-		case 1:
-			bitrate = grepBitrate(ln)
-		}
-	}
-	return duration, bitrate
 }
 
 func durationStrToFl64(dur string) float64 {
@@ -307,20 +292,6 @@ func durationStrToFl64(dur string) float64 {
 	return durationFL
 }
 
-func grepDuration(line string) float64 {
-	r := regexp.MustCompile(`Duration\:\ \d{2}\:\d{2}\:\d{2}\.\d{2}`)
-	dur := r.FindString(line)
-	dur = strings.TrimPrefix(dur, "Duration: ")
-	return durationStrToFl64(dur)
-}
-
-func grepStart(line string) float64 {
-	r := regexp.MustCompile(`start\:\ \d*\.\d*`)
-	stSTR := r.FindString(line)
-	stSTR = strings.TrimPrefix(stSTR, "start: ")
-	return startStrToFl64(stSTR)
-}
-
 func startStrToFl64(start string) float64 {
 	startFL, err := strconv.ParseFloat(start, 64)
 	if err != nil {
@@ -330,57 +301,247 @@ func startStrToFl64(start string) float64 {
 	return startFL
 }
 
-func grepBitrate(line string) int {
-	//Duration: 00:40:24.64, start: 0.000000, bitrate: 55084 kb/s
-	//
-	fmt.Println("grepBitrate", line)
-	r := regexp.MustCompile(`\d*\ kb\/s`)
-	btr := r.FindString(line)
-	btr = strings.TrimSuffix(btr, " kb/s")
-	br, err := strconv.Atoi(btr)
-	if err != nil {
-		return -1
+func (pi *parseInfo) parseStreams() {
+
+	for i, stream := range pi.streams {
+		data := stream.data
+		switch {
+		default:
+			panic("unknown stream type: " + data)
+		case strings.Contains(data, "Video:"):
+			vs := parseVideoData(pi.streams[i].data)
+			vs.metadata = stream.metadata
+			pi.video = append(pi.video, vs)
+		case strings.Contains(data, "Audio:"):
+			as := parseAudioData(pi.streams[i].data)
+			as.metadata = stream.metadata
+			pi.audio = append(pi.audio, as)
+		case strings.Contains(data, "Data:"):
+			dt := parseDataData(pi.streams[i].data)
+			dt.metadata = stream.metadata
+			pi.data = append(pi.data, dt)
+		case strings.Contains(data, "Subtitle:"):
+			st := parseSubtitleData(pi.streams[i].data)
+			st.metadata = stream.metadata
+			pi.subtitles = append(pi.subtitles, st)
+		}
 	}
-	return br
 }
 
-// func ripBetween(line, start, close string) string {
-// 	parts := strings.Split(line, start)
-// 	if len(parts) < 2 {
-// 		return ""
-// 	}
-// 	startless := strings.Join(parts[1:], "")
-// 	parts2 := strings.Split(startless, close)
-// 	result := strings.Join(parts2[:len(parts2)-1], "")
-// 	return result
-// }
+func parseDataData(data string) datastream {
+	ds := datastream{}
+	bra := deBracketSplit(data)
+	for i, aud := range bra {
+		switch i {
+		default:
+			ds.coments = append(ds.coments, aud)
+		}
+	}
+	ds.lang = grepLang(data)
+	return ds
+}
 
-// func containsAll(fullString string, sub ...string) bool {
-// 	for _, s := range sub {
-// 		if !strings.Contains(fullString, s) {
-// 			return false
-// 		}
-// 	}
-// 	return true
-// }
+func parseSubtitleData(data string) subtitlestream {
+	ss := subtitlestream{}
+	bra := deBracketSplit(data)
+	for i, aud := range bra {
+		switch i {
+		default:
+			ss.coments = append(ss.coments, aud)
+		}
+	}
+	ss.lang = grepLang(data)
+	return ss
+}
+
+func parseAudioData(data string) audiostream {
+	as := audiostream{}
+	//0:1 (eng) Audio: pcm_s24le (lpcm / 0x6D63706C), 48000 Hz, 5.1, s32 (24 bit), 6912 kb/s (default)
+	//0:1 (rus) Audio: aac (LC), 48000 Hz, stereo, fltp (default)
+	//Stream #0:1(rus): Audio: aac (LC) (mp4a / 0x6134706D), 48000 Hz, stereo, fltp, 127 kb/s (default)
+	bra := deBracketSplit(data)
+	for i, aud := range bra {
+		switch i {
+		case 0:
+			as.codec = aud
+		case 1:
+			as.hertz = grepFreq(aud)
+		case 2:
+			as.channel_layout = aud
+		case 3:
+			as.sample_format = aud
+		case 4:
+			as.bitrate = aud
+		default:
+			as.warnings = append(as.warnings, "unknown_data: "+aud)
+		}
+	}
+	as.lang = grepLang(data)
+	return as
+}
+
+func grepWH(data string) (int, int) {
+	for _, fld := range strings.Fields(data) {
+		r := regexp.MustCompile(`\d\dx\d\d`)
+		if r.FindString(fld) == "" {
+			continue
+		}
+		whStr := strings.Split(fld, "x")
+		w, _ := strconv.Atoi(whStr[0])
+		h, _ := strconv.Atoi(whStr[1])
+		return w, h
+	}
+	return -1, -1
+}
+
+func grepBitrate(data string) int {
+	r := regexp.MustCompile(`\d* kb`)
+	found := r.FindString(data)
+	if found == "" {
+		return -1
+	}
+	bt, _ := strconv.Atoi(strings.TrimSuffix(found, " kb"))
+	return bt
+}
+
+func grepFreq(data string) int {
+	r := regexp.MustCompile(`\d* Hz`)
+	found := r.FindString(data)
+	if found == "" {
+		return -1
+	}
+	bt, _ := strconv.Atoi(strings.TrimSuffix(found, " Hz"))
+	return bt
+}
+
+func parseVideoData(line string) videostream {
+	vs := videostream{}
+	bra := deBracketSplit(line)
+	for i, data := range bra {
+		switch i {
+		case 0:
+			dt := strings.Split(data, "Video: ")
+			codec := dt[len(dt)-1]
+			codec = strings.TrimSpace(codec)
+			vs.codecinfo = codec
+		case 1:
+			vs.pix_fmt = data
+		case 2:
+			vs.width, vs.height = grepWH(data)
+			if strings.Contains(data, "[SAR") {
+				vs.sardar = ripBetween(data, "[", "]")
+			}
+		default:
+			if strings.Contains(data, "kb/s") {
+				vs.bitrate = data
+			}
+			if strings.Contains(data, "SAR") {
+				if vs.sardar != "" {
+					vs.warnings = append(vs.warnings, vs.sardar)
+					vs.warnings = append(vs.warnings, data)
+				}
+				vs.sardar = data
+			}
+			if strings.Contains(data, " fps") {
+				vs.fps = data
+			}
+			if strings.Contains(data, " tbr") {
+				vs.tbr = data
+			}
+			if strings.Contains(data, " tbn") {
+				vs.tbn = data
+			}
+			if strings.Contains(data, " tbc") {
+				vs.tbc = data
+			}
+		}
+	}
+	vs.lang = grepLang(line)
+	return vs
+}
+
+func deBracketSplit(str string) []string {
+	sl := strings.Split(str, "")
+	buf := ""
+	bracketed := []string{}
+	closed := true
+	for _, s := range sl {
+		switch s {
+		case "(", "[":
+			closed = false
+		case ")", "]":
+			closed = true
+		case ",":
+			if closed {
+				bracketed = append(bracketed, buf)
+			}
+			buf = ""
+			continue
+		}
+		buf += s
+	}
+	return bracketed
+}
+
+func grepLang(streamdata string) string {
+	pts := strings.Split(streamdata, ":")
+	return ripBetween(pts[1], "(", ")")
+}
 
 type videostream struct {
+	//  Stream #0:0(und): Video: h264 (High 4:2:2) (avc1 / 0x31637661), yuv422p, 1920x1080 [SAR 1:1 DAR 16:9], 38375 kb/s, 25 fps, 25 tbr, 12800 tbn, 50 tbc (default)
+	codecinfo     string
 	pix_fmt       string
 	width, height int
-	bitrate       int
-	sar           string
-	dar           string
+	bitrate       string
+	sardar        string
 	fps           string
 	tbr           string
 	tbn           string
 	tbc           string
-	cc            string
+	lang          string
+	metadata      map[string]string
 	warnings      []string
 }
 
 type audiostream struct {
+	codec          string
 	hertz          int
-	bitrate        string
-	channels       int
 	channel_layout string
+	sample_format  string
+	bitrate        string
+	lang           string
+	metadata       map[string]string
+	warnings       []string
+}
+
+type datastream struct {
+	coments  []string
+	lang     string
+	metadata map[string]string
+}
+
+type subtitlestream struct {
+	coments  []string
+	lang     string
+	metadata map[string]string
+}
+
+func ripBetween(data, open, close string) string {
+	d := strings.Split(data, "")
+	opened := false
+	buf := ""
+	for _, s := range d {
+		switch s {
+		case open:
+			opened = true
+		case close:
+			opened = false
+		default:
+			if opened {
+				buf += s
+			}
+		}
+	}
+	return buf
 }
