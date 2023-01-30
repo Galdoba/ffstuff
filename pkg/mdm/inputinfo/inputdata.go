@@ -3,6 +3,7 @@ package inputinfo
 import (
 	"fmt"
 	"math"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -40,16 +41,18 @@ const (
 	stage_ParseScanTime
 	stage_ParseFilename
 	stage_ParseGlobalMeta
+	stage_ParseSideData
 	stage_ParseDuration
 	stage_ParseStreams
 	stage_ParseStreamMeta
 	parseMethod_FFLITE
 	parseMethod_FFMPEG
-	prefix_StartTime       = "Started:"
-	prefix_FFLITE_input    = "INPUT "
-	prefix_FFMPEG_input    = "Input "
-	prefix_FFMPEG_Metadata = "Metadata:"
-	prefix_FFMPEG_Duration = "Duration:"
+	prefix_StartTime        = "Started:"
+	prefix_FFLITE_input     = "INPUT "
+	prefix_FFMPEG_input     = "Input "
+	prefix_FFMPEG_Metadata  = "Metadata:"
+	prefix_FFMPEG_Duration  = "Duration:"
+	prefix_FFMPEG_Side_data = "Side data"
 )
 
 func hasTrigger(line, trigger string) bool {
@@ -89,6 +92,14 @@ func parse(input inputdata) (*parseInfo, error) {
 	dsbMap := make(map[string]string)
 	for _, line := range input.data {
 		switch {
+		default:
+			switch len(pi.streams) {
+			case 0:
+				pStage = stage_ParseGlobalMeta
+			default:
+				pStage = stage_ParseStreamMeta
+			}
+		case pStage == stage_ParseSideData:
 		case hasTrigger(line, prefix_StartTime) && (pStage == stage_ParseScanTime):
 			pi.scanTime = grepScantime(line)
 			pStage = stage_ParseFilename
@@ -105,6 +116,9 @@ func parse(input inputdata) (*parseInfo, error) {
 			default:
 				pStage = stage_ParseStreamMeta
 			}
+		case hasTrigger(line, prefix_FFMPEG_Side_data):
+			pStage = stage_ParseSideData
+			continue
 		case hasTrigger(line, prefix_FFMPEG_Duration):
 			pStage = stage_ParseDuration
 		case hasStreamInfo(line):
@@ -121,7 +135,7 @@ func parse(input inputdata) (*parseInfo, error) {
 		case stage_ParseGlobalMeta:
 			switch pMethod {
 			default:
-				panic(0)
+				//panic(0)
 			case parseMethod_FFMPEG:
 				key, val := grepGlobalMetadataFFMPEG(line)
 				pi.injectMetadata(key, val)
@@ -142,6 +156,9 @@ func parse(input inputdata) (*parseInfo, error) {
 		case stage_ParseStreamMeta:
 			key, val := grepGlobalMetadataFFMPEG(line)
 			pi.injectMetadata(key, val)
+		case stage_ParseSideData:
+			last := len(pi.streams) - 1
+			pi.streams[last].metadata["Side data"] = line
 		}
 	}
 	pi.parseStreams()
@@ -222,6 +239,7 @@ func grepFilenameFFMPEG(line string) string {
 	name := r.FindString(line)
 	name = strings.TrimPrefix(name, " '")
 	name = strings.TrimSuffix(name, "'")
+	name = filepath.Base(name)
 	return name
 }
 
@@ -234,6 +252,7 @@ func grepFilenameFFLITE(line string) string {
 		return ""
 	}
 	name = parts[1]
+	name = filepath.Base(name)
 	return name
 }
 
@@ -302,7 +321,7 @@ func startStrToFl64(start string) float64 {
 }
 
 func (pi *parseInfo) parseStreams() {
-
+	//fmt.Println("Parse", len(pi.streams), "streams")
 	for i, stream := range pi.streams {
 		data := stream.data
 		switch {
@@ -416,6 +435,7 @@ func grepFreq(data string) int {
 
 func parseVideoData(line string) videostream {
 	vs := videostream{}
+	vs.data = line
 	bra := deBracketSplit(line)
 	for i, data := range bra {
 		switch i {
@@ -490,6 +510,7 @@ func grepLang(streamdata string) string {
 
 type videostream struct {
 	//  Stream #0:0(und): Video: h264 (High 4:2:2) (avc1 / 0x31637661), yuv422p, 1920x1080 [SAR 1:1 DAR 16:9], 38375 kb/s, 25 fps, 25 tbr, 12800 tbn, 50 tbc (default)
+	data          string
 	codecinfo     string
 	pix_fmt       string
 	width, height int
@@ -501,6 +522,7 @@ type videostream struct {
 	tbc           string
 	lang          string
 	metadata      map[string]string
+	sidedata      string
 	warnings      []string
 }
 
@@ -545,3 +567,7 @@ func ripBetween(data, open, close string) string {
 	}
 	return buf
 }
+
+/*
+Stream #0:0(und): Video: h264 (High 4:2:2) (avc1 / 0x31637661), yuv422p, 1920x1080 [SAR 1:1 DAR 16:9], 25333 kb/s, 25 fps, 25 tbr, 12800 tbn, 50 tbc (default)
+*/

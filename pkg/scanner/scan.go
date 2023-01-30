@@ -159,7 +159,7 @@ func ListReady(readyfiles []string) []string {
 		}
 	}
 	for _, val := range resSl {
-		if strings.Contains(val, "_Proxy_") {
+		if strings.Contains(val, "_proxy") {
 			sorted = append(sorted, val)
 		}
 	}
@@ -249,10 +249,54 @@ func ListAssosiated(readyPath string) ([]string, error) {
 		default:
 			result = append(result, f)
 		case strings.Contains(f, ".ready") == true:
-		case strings.Contains(strings.ToUpper(f), "_PROXY") == true: //TODO: Перенести в флаг для граббера
+			//case strings.Contains(strings.ToUpper(f), "_PROXY") == true: //TODO: Перенести в флаг для граббера
 		}
 	}
+	result = sortAssosiatedList(result)
 	return result, nil
+}
+
+func sortAssosiatedList(list []string) []string {
+	sorted := []string{}
+	srt := []string{}
+	proxy := []string{}
+	sound := []string{}
+	videoSD := []string{}
+	videoHD := []string{}
+	video4K := []string{}
+	for _, name := range list {
+		if strings.Contains(strings.ToUpper(name), ".SRT") {
+			srt = append(srt, name)
+			continue
+		}
+		if strings.Contains(strings.ToUpper(name), "_PROXY") {
+			proxy = append(proxy, name)
+			continue
+		}
+		if strings.Contains(strings.ToUpper(name), "_AUDIO") {
+			sound = append(sound, name)
+			continue
+		}
+		if strings.Contains(strings.ToUpper(name), "_SD") {
+			videoSD = append(videoSD, name)
+			continue
+		}
+		if strings.Contains(strings.ToUpper(name), "_HD") {
+			videoHD = append(videoHD, name)
+			continue
+		}
+		if strings.Contains(strings.ToUpper(name), "_4K") {
+			video4K = append(video4K, name)
+			continue
+		}
+	}
+	sorted = append(sorted, srt...)
+	sorted = append(sorted, proxy...)
+	sorted = append(sorted, sound...)
+	sorted = append(sorted, videoSD...)
+	sorted = append(sorted, videoHD...)
+	sorted = append(sorted, video4K...)
+	return sorted
 }
 
 func FilePathWalkDir(root string) ([]string, error) {
