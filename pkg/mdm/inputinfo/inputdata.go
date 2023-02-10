@@ -28,6 +28,7 @@ type parseInfo struct {
 	audio       []audiostream
 	data        []datastream
 	subtitles   []subtitlestream
+	warnings    []string
 }
 
 type stream struct {
@@ -162,7 +163,38 @@ func parse(input inputdata) (*parseInfo, error) {
 		}
 	}
 	pi.parseStreams()
+	pi.mergeWarnings()
 	return &pi, nil
+}
+
+func (pi *parseInfo) mergeWarnings() {
+	for i, v := range pi.video {
+		if len(v.warnings) == 0 {
+			continue
+		}
+		pi.warnings = append(pi.warnings, fmt.Sprintf("video %v:", i))
+		for _, w := range v.warnings {
+			pi.warnings = append(pi.warnings, "  "+w)
+		}
+	}
+	for i, a := range pi.audio {
+		if len(a.warnings) == 0 {
+			continue
+		}
+		pi.warnings = append(pi.warnings, fmt.Sprintf("audio %v:", i))
+		for _, w := range a.warnings {
+			pi.warnings = append(pi.warnings, "  "+w)
+		}
+	}
+	if len(pi.video) > 1 {
+		pi.warnings = append(pi.warnings, fmt.Sprintf("file have %v video streams", len(pi.video)))
+	}
+	if len(pi.audio) > 2 {
+		pi.warnings = append(pi.warnings, fmt.Sprintf("file have %v audio streams", len(pi.audio)))
+	}
+	if len(pi.subtitles) > 0 && (len(pi.audio)+len(pi.video)) > 0 {
+		pi.warnings = append(pi.warnings, fmt.Sprintf("file have %v subtitle streams", len(pi.subtitles)))
+	}
 }
 
 func (pi *parseInfo) injectDurationInfo(dsb map[string]string) {
@@ -345,6 +377,7 @@ func (pi *parseInfo) parseStreams() {
 			pi.subtitles = append(pi.subtitles, st)
 		}
 	}
+
 }
 
 func parseDataData(data string) datastream {
@@ -382,7 +415,9 @@ func parseAudioData(data string) audiostream {
 	for i, aud := range bra {
 		switch i {
 		case 0:
-			as.codec = aud
+			data := strings.Split(aud, "Audio: ")
+			as.codec = data[1]
+
 		case 1:
 			as.hertz = grepFreq(aud)
 		case 2:
@@ -390,13 +425,34 @@ func parseAudioData(data string) audiostream {
 		case 3:
 			as.sample_format = aud
 		case 4:
-			as.bitrate = aud
+			dt := strings.Split(aud, " kb/s")
+			btrt, err := strconv.Atoi(strings.TrimSpace(dt[0]))
+			if err != nil {
+				as.warnings = append(as.warnings, "can't parse bitrate: "+aud)
+				continue
+			}
+			as.bitrate = btrt
 		default:
 			as.warnings = append(as.warnings, "unknown_data: "+aud)
 		}
 	}
 	as.lang = grepLang(data)
+	as.assessAudioStream()
 	return as
+}
+
+func (as *audiostream) assessAudioStream() {
+	switch {
+	default:
+		as.warnings = append(as.warnings, fmt.Sprintf("channel layout:%v", as.channel_layout))
+	case strings.HasPrefix(as.channel_layout, " 5.1"):
+	case strings.HasPrefix(as.channel_layout, " mono"):
+	case strings.HasPrefix(as.channel_layout, " stereo"):
+	case strings.HasPrefix(as.channel_layout, " 1 channels"):
+	}
+	if as.bitrate < 94 {
+		as.warnings = append(as.warnings, fmt.Sprintf("low bitrate: %v kb/s", as.bitrate))
+	}
 }
 
 func grepWH(data string) (int, int) {
@@ -472,12 +528,32 @@ func parseVideoData(line string) videostream {
 				vs.tbn = data
 			}
 			if strings.Contains(data, " tbc") {
-				vs.tbc = data
+				vs.tbc = strings.TrimSuffix(data, "\n")
 			}
 		}
 	}
 	vs.lang = grepLang(line)
+	vs.assessVideoStream()
 	return vs
+}
+
+func (vid *videostream) assessVideoStream() {
+	switch vid.fps {
+	default:
+		vid.warnings = append(vid.warnings, "bad fps:"+strings.TrimSuffix(vid.fps, " fps"))
+	case " 25 fps", " 24 fps", " 23.98 fps":
+	//case " 24.01 fps", " 24.02 fps", " 29.97 fps", " 24.97 fps", " 30 fps", " 50 fps", " 24.96 fps", " 23.99 fps", " 25.01 fps", " 25.02 fps": //bad
+	case "":
+		vid.warnings = append(vid.warnings, "no fps detected")
+	}
+	if strings.TrimSpace(vid.sardar) != "SAR 1:1 DAR 16:9" {
+		vid.warnings = append(vid.warnings, "atypical SAR/DAR: '"+vid.sardar+"'")
+	}
+	switch {
+	default:
+		vid.warnings = append(vid.warnings, "atypical width/height: "+fmt.Sprintf("%v:%v", vid.width, vid.height))
+	case vid.width == 1920 && vid.height == 1080:
+	}
 }
 
 func deBracketSplit(str string) []string {
@@ -500,6 +576,7 @@ func deBracketSplit(str string) []string {
 		}
 		buf += s
 	}
+	bracketed = append(bracketed, buf)
 	return bracketed
 }
 
@@ -510,20 +587,21 @@ func grepLang(streamdata string) string {
 
 type videostream struct {
 	//  Stream #0:0(und): Video: h264 (High 4:2:2) (avc1 / 0x31637661), yuv422p, 1920x1080 [SAR 1:1 DAR 16:9], 38375 kb/s, 25 fps, 25 tbr, 12800 tbn, 50 tbc (default)
-	data          string
-	codecinfo     string
-	pix_fmt       string
-	width, height int
-	bitrate       string
-	sardar        string
-	fps           string
-	tbr           string
-	tbn           string
-	tbc           string
-	lang          string
-	metadata      map[string]string
-	sidedata      string
-	warnings      []string
+	data      string
+	codecinfo string
+	pix_fmt   string
+	width     int
+	height    int
+	bitrate   string
+	sardar    string
+	fps       string
+	tbr       string
+	tbn       string
+	tbc       string
+	lang      string
+	metadata  map[string]string
+	sidedata  string
+	warnings  []string
 }
 
 type audiostream struct {
@@ -531,7 +609,7 @@ type audiostream struct {
 	hertz          int
 	channel_layout string
 	sample_format  string
-	bitrate        string
+	bitrate        int
 	lang           string
 	metadata       map[string]string
 	warnings       []string

@@ -4,6 +4,8 @@ github.com/Galdoba/convert v0.0.0-20190624041132-29cce9aaf367 h1:+wx3TnHWMRzfY5V
 github.com/Galdoba/convert v0.0.0-20190624041132-29cce9aaf367/go.mod h1:trgnT6xxj/VcUq2ViYhBggnxPQb7hvzosf0nICLo2fA=
 github.com/Galdoba/devtools v0.0.0-20220712063644-d2359005aed0 h1:cjh865GEwD1+cg4dad2BsAIoLL1rD1SfpR8jZ76VRRQ=
 github.com/Galdoba/devtools v0.0.0-20220712063644-d2359005aed0/go.mod h1:siQE0dUxR1HthsAiGjeB3WNcn9jA582sHiFDlYYJnR4=
+github.com/Galdoba/devtools v0.0.0-20230206034949-073280b34304 h1:6hvjel/5aIAuf/HTOb0QxSaBix2WyWQWUpy0tmIjKYA=
+github.com/Galdoba/devtools v0.0.0-20230206034949-073280b34304/go.mod h1:a+cj9zDhXXRddr2uLrAU1H+YyEsi4mtPylDjRYyg1yY=
 github.com/Galdoba/utils v0.0.0-20211006043430-41d7b3fa4b0a h1:G/xkIBAepccB7rBTs6m8MzdKsqmq4OY2EalD24kSoi8=
 github.com/Galdoba/utils v0.0.0-20211006043430-41d7b3fa4b0a/go.mod h1:WXWC9lUOMxvAvq3FT7RGDcBsGi2a3X3RX2ghULDNqpg=
 github.com/Netflix/go-expect v0.0.0-20180615182759-c93bf25de8e8 h1:xzYJEypr/85nBpB11F9br+3HUrpgb+fcm5iADzXXYEw=
@@ -48,6 +50,7 @@ github.com/mattn/go-runewidth v0.0.9 h1:Lm995f3rfxdpd6TSmuVCHVb/QhupuXlYr8sCI/Qd
 github.com/mattn/go-runewidth v0.0.9/go.mod h1:H031xJmbD/WCDINGzjvQ9THkh0rPKHF+m2gUSrubnMI=
 github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b h1:j7+1HpAFS1zy5+Q4qx1fWh90gTKwiN4QCGoY9TWyyO4=
 github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b/go.mod h1:01TrycV0kFyexm33Z7vhZRXopbI8J3TDReVlkTgMUxE=
+github.com/nsf/termbox-go v1.1.1/go.mod h1:T0cTdVuOwf7pHQNtfhnEbzHbcNyCEcVU4YPpouCbVxo=
 github.com/olekukonko/tablewriter v0.0.5 h1:P2Ga83D34wi1o9J6Wh1mRuqd4mF/x/lgBS7N7AbDhec=
 github.com/olekukonko/tablewriter v0.0.5/go.mod h1:hPp6KlRPjbx+hW8ykQs1w3UBbZlj6HuIJcUGPhkA7kY=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=

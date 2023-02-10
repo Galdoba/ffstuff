@@ -3,22 +3,18 @@ package inputinfo
 import (
 	"fmt"
 	"testing"
-
-	"github.com/Galdoba/utils"
 )
 
 func TestInputReading(t *testing.T) {
 
-	remember := []string{}
+	remember := []videostream{}
 	examples := gatherInfo()
-	//darMap := make(map[string]int)
+	darMap := make(map[string]int)
 	//out := []string{}
 	metadataKeys := make(map[string]int)
+	total := 0
 	for i, input := range examples {
-
-		if i < 1800 {
-			continue
-		}
+		total = i
 		pi, err := parse(input)
 		if err != nil {
 			t.Errorf(err.Error())
@@ -34,24 +30,55 @@ func TestInputReading(t *testing.T) {
 				panic(pi.filename)
 			}
 			for _, stream := range pi.video {
-				remember = append(remember, stream.data)
+				remember = append(remember, stream)
 			}
 			// if i == 1400 {
 			// 	fmt.Println(pi)
 			// 	fmt.Println(pi.video)
 			// 	fmt.Println(pi.audio)
 			// }
-
+			if len(pi.warnings) > 0 {
+				//fmt.Println(pi.filename)
+				//for _, wrn := range pi.warnings {
+				//	fmt.Print("" + wrn + "\n")
+				//}
+				//fmt.Println("")
+				darMap[fmt.Sprintf("have %v warnings", len(pi.warnings))]++
+			} else {
+				darMap["possible for automation"]++
+				//fmt.Println(pi.String())
+			}
 		}
 		//fmt.Println("----------")
 		//fmt.Println(metadataKeys)
 		//fmt.Println("----------")
-		for _, data := range remember {
-			fmt.Print(data)
 
+	}
+	fmt.Println("cycles", total)
+	fmt.Println("===============")
+	// for _, data := range remember {
+	// 	switch {
+	// 	default:
+	// 		//fmt.Println(data.sardar)
+	// 		// case strings.HasPrefix(data.codecinfo, "prores"):
+	// 		darMap[strings.TrimSpace(data.sardar)]++
+	// 		darMap["Total_Files"]++
+	// 		// case strings.HasPrefix(data.codecinfo, "mpeg2video"):
+	// 		// 	darMap["mpeg2video"]++
+	// 	}
+
+	// 	// }
+
+	// }
+	for i := 0; i < 5000; i++ {
+		for k, v := range darMap {
+			if v == i {
+				fmt.Println(k, v, "--")
+			}
 		}
 	}
 	fmt.Println("Stop")
+
 }
 
 func (pi *parseInfo) String() string {
@@ -93,41 +120,9 @@ func (pi *parseInfo) String() string {
 	return str
 }
 
-func gatherInfo() []inputdata {
-	allData := []inputdata{}
-	data := inputdata{}
-	// for _, line := range utils.LinesFromTXT(`C:\Users\a.akkulov\Desktop\cmdLine.go`) {
-	// 	if line == `/*` {
-	// 		data = inputdata{}
-	// 		continue
-	// 	}
-	// 	if line == `*/` {
-	// 		allData = append(allData, data)
-
-	// 		continue
-	// 	}
-	// 	data.data = append(data.data, line)
-	// }
-	for _, line := range utils.LinesFromTXT(`\\nas\buffer\IN\ScanData\input\ffmpeg\data.txt`) {
-		if line == `-START--------------------------------------------------------------------------` {
-			data = inputdata{}
-			continue
-		}
-		if line == `-END----------------------------------------------------------------------------` {
-			allData = append(allData, data)
-
-			continue
-		}
-		data.data = append(data.data, line+"\n")
-	}
-
-	fmt.Println(len(allData), "examples found")
-	return allData
-}
-
 func TestParseFile(t *testing.T) {
 	return
-	file := `\\nas\buffer\IN\_DONE\Poema_o_shanyan_s01e10_PRT230119004502_SER_12536.mp4`
+	file := `\\nas\buffer\IN\_DONE\Gorodskie_legendy_s04e02_PRT230208141911_SER_00385_18.mp4`
 	pi, err := ParseFile(file)
 	fmt.Println(pi)
 	fmt.Println("----------")
@@ -139,5 +134,33 @@ func TestParseFile(t *testing.T) {
 	}
 
 	fmt.Println("----------")
+	//fmt.Println(pi.video)
+	fmt.Println("data		:", pi.video[0].data)
+	//parseVideoLine(pi.video[0].data)
+	//fmt.Println("codecinfo	:", pi.video[0].codecinfo)
+	//fmt.Println("pix_fmt	:", pi.video[0].pix_fmt)
+	//fmt.Println("width		:", pi.video[0].width)
+	//fmt.Println("height		:", pi.video[0].height)
+	//fmt.Println("bitrate	:", pi.video[0].bitrate)
+	//fmt.Println("sardar		:", pi.video[0].sardar)
+	//fmt.Println("fps		:", pi.video[0].fps)
+	//fmt.Println("tbr		:", pi.video[0].tbr)
+	//fmt.Println("tbn		:", pi.video[0].tbn)
+	//fmt.Println("tbc		:", pi.video[0].tbc)
+	//fmt.Println("lang		:", pi.video[0].lang)
+	//fmt.Println("metadata	:", pi.video[0].metadata)
+	//fmt.Println("sidedata	:", pi.video[0].sidedata)
+	//fmt.Println("warnings	:", pi.video[0].warnings)
+	fmt.Println("----------")
+	fmt.Println(pi.audio)
+	fmt.Println("----------")
+	fmt.Println(pi.data)
+	fmt.Println("----------")
+	fmt.Println(pi.subtitles)
+}
 
+func TestDuplicates(t *testing.T) {
+	return
+	CleanScanData()
+	//GenerateNewDataFile(list)
 }
