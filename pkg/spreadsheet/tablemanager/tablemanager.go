@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/macroblock/imed/pkg/translit"
+	"github.com/Galdoba/ffstuff/pkg/translit"
 )
 
 const (
@@ -173,10 +173,8 @@ func ProposeTargetDirectory(tl *TaskList, task TaskData) string {
 			date, err := newDate(separator.taskName)
 			folder1 = date.pathFolder() + `\`
 			if err != nil {
-				agent, err := translit.Do(task.contragent)
-				if err != nil {
-					agent = ""
-				}
+				agent := translit.Transliterate(task.contragent)
+
 				folder1 = "_" + agent + `\`
 			}
 		}
@@ -186,7 +184,7 @@ func ProposeTargetDirectory(tl *TaskList, task TaskData) string {
 }
 
 func ProposeArchiveDirectory(task TaskData) string {
-	agentFolderName, _ := translit.Do(task.contragent)
+	agentFolderName := translit.Transliterate(task.contragent)
 	nameFolderName := strings.Title(task.outputName.outBase)
 	if task.outputName.season != "" {
 		nameFolderName += "_s" + task.outputName.season
@@ -399,11 +397,8 @@ func ParseRow(data []string) (TaskData, error) {
 func defineOutputName(name string) (outName, error) {
 	on := outName{}
 	cmnts := strings.Split(name, "(")
-	trName, err := translit.Do(cmnts[0])
+	trName := translit.Transliterate(cmnts[0])
 	on.outBase = trName
-	if err != nil {
-		return on, err
-	}
 	for i, com := range cmnts {
 		if i == 0 {
 			continue

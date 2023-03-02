@@ -15,12 +15,14 @@ func CleanScanData() {
 	list := findDuplicateless(gatherInfo())
 	l := len(list)
 	fmt.Println("")
+	allData := ""
 	for i, inp := range list {
 		fmt.Printf("Adding input %v/%v\r", i+1, l)
 		//fmt.Println(inp.String())
-		AddNewDataToFile(inp)
+		allData += AddNewDataToFile(inp)
 	}
 	fmt.Println("")
+	appendTextToFile(newFile, allData)
 	fmt.Println("Creating backup...")
 	backName := strings.TrimSuffix(originalFile, ".txt") + timestamp()
 	os.Rename(originalFile, backName)
@@ -43,6 +45,7 @@ func findDuplicateless(inputs []inputdata) []inputdata {
 	fmt.Printf("Searching duplicates: \n")
 	for i1, data1 := range inputs {
 		duplicated := false
+		fmt.Printf("file %v of %v (u=%v/d=%v)                   \r", i1, total, unique, duplicates)
 		for i2, data2 := range inputs {
 			if i2 <= i1 {
 				continue
@@ -51,7 +54,7 @@ func findDuplicateless(inputs []inputdata) []inputdata {
 			if duplicated {
 				continue
 			}
-			fmt.Printf("file %v of %v (u=%v/d=%v)                   \r", i1, total, unique, duplicates)
+
 			if dataIsSame(data1, data2) {
 				duplicated = true
 
@@ -63,20 +66,32 @@ func findDuplicateless(inputs []inputdata) []inputdata {
 		} else {
 			duplicates++
 		}
+
 	}
+
 	fmt.Println("")
+	if duplicates == 0 {
+		fmt.Println("No duplicated were found")
+		os.Exit(0)
+	}
 	return newList
 }
 
-func AddNewDataToFile(input inputdata) {
-	appendTextToFile(newFile, "-START--------------------------------------------------------------------------\n")
-	appendTextToFile(newFile, input.String())
+func AddNewDataToFile(input inputdata) string {
+	data := ""
+	data += "-START--------------------------------------------------------------------------\n"
+	data += input.String()
+	data += "-END----------------------------------------------------------------------------\n"
+	data += "\n"
+	//appendTextToFile(newFile, "-START--------------------------------------------------------------------------\n")
+	//appendTextToFile(newFile, input.String())
 	// for _, line := range input.data {
 
 	// 	appendTextToFile(newFile, line)
 	// }
-	appendTextToFile(newFile, "-END----------------------------------------------------------------------------\n")
-	appendTextToFile(newFile, " \n")
+	//appendTextToFile(newFile, "-END----------------------------------------------------------------------------\n")
+	//appendTextToFile(newFile, " \n")
+	return data
 }
 
 func appendTextToFile(filename, text string) {
@@ -114,9 +129,9 @@ func dataIsSame(input1, input2 inputdata) bool {
 var originalFile = `\\nas\buffer\IN\ScanData\input\ffmpeg\data.txt`
 var newFile = `\\nas\buffer\IN\ScanData\input\ffmpeg\data_new.txt`
 
-func originalFileLines() int {
-	return len(utils.LinesFromTXT(originalFile))
-}
+// func originalFileLines() int {
+// 	return len(utils.LinesFromTXT(originalFile))
+// }
 
 func gatherInfo() []inputdata {
 	allData := []inputdata{}
@@ -140,7 +155,9 @@ func gatherInfo() []inputdata {
 		}
 		if line == `-END----------------------------------------------------------------------------` {
 			data = skipTrashData(data)
-			allData = append(allData, data)
+			if data.valid() {
+				allData = append(allData, data)
+			}
 
 			continue
 		}
@@ -170,4 +187,19 @@ func skipTrashData(original inputdata) inputdata {
 		fixed.data = append(fixed.data, line)
 	}
 	return fixed
+}
+
+func (data inputdata) valid() bool {
+	for _, line := range data.data {
+		switch {
+		default:
+		case strings.Contains(line, "No such file or directory"):
+			return false
+		case strings.Contains(line, "Invalid data found when processing input"):
+			return false
+		case strings.Contains(line, "Permission denied"):
+			return false
+		}
+	}
+	return true
 }

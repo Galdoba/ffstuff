@@ -6,7 +6,7 @@ import (
 )
 
 func TestInputReading(t *testing.T) {
-
+	return
 	remember := []videostream{}
 	examples := gatherInfo()
 	darMap := make(map[string]int)
@@ -29,9 +29,7 @@ func TestInputReading(t *testing.T) {
 			if pi.comment == "---" {
 				panic(pi.filename)
 			}
-			for _, stream := range pi.video {
-				remember = append(remember, stream)
-			}
+			remember = append(remember, pi.video...)
 			// if i == 1400 {
 			// 	fmt.Println(pi)
 			// 	fmt.Println(pi.video)
@@ -94,7 +92,7 @@ func (pi *parseInfo) String() string {
 	str += fmt.Sprintf("Streams: %v\n", len(pi.streams))
 	str += "Video:\n"
 	for _, v := range pi.video {
-		fmt.Sprintf("%v++\n", v.fps)
+		str += fmt.Sprintf("%v++\n", v.fps)
 	}
 	// for i, s := range pi.streams {
 	// 	str += s.data + "||"
@@ -121,42 +119,17 @@ func (pi *parseInfo) String() string {
 }
 
 func TestParseFile(t *testing.T) {
-	return
-	file := `\\nas\buffer\IN\_DONE\Gorodskie_legendy_s04e02_PRT230208141911_SER_00385_18.mp4`
+
+	file := `\\192.168.31.4\buffer\IN\_REJECTED\Пустая_Церковь_Ростелеком_R2.mp4`
 	pi, err := ParseFile(file)
-	fmt.Println(pi)
-	fmt.Println("----------")
-	//fmt.Println(pi.String())
-	fmt.Println("----------")
 	fmt.Println(err)
 	if err != nil {
 		fmt.Println(err.Error())
 	}
+	for _, w := range pi.warnings {
+		fmt.Println(w)
+	}
 
-	fmt.Println("----------")
-	//fmt.Println(pi.video)
-	fmt.Println("data		:", pi.video[0].data)
-	//parseVideoLine(pi.video[0].data)
-	//fmt.Println("codecinfo	:", pi.video[0].codecinfo)
-	//fmt.Println("pix_fmt	:", pi.video[0].pix_fmt)
-	//fmt.Println("width		:", pi.video[0].width)
-	//fmt.Println("height		:", pi.video[0].height)
-	//fmt.Println("bitrate	:", pi.video[0].bitrate)
-	//fmt.Println("sardar		:", pi.video[0].sardar)
-	//fmt.Println("fps		:", pi.video[0].fps)
-	//fmt.Println("tbr		:", pi.video[0].tbr)
-	//fmt.Println("tbn		:", pi.video[0].tbn)
-	//fmt.Println("tbc		:", pi.video[0].tbc)
-	//fmt.Println("lang		:", pi.video[0].lang)
-	//fmt.Println("metadata	:", pi.video[0].metadata)
-	//fmt.Println("sidedata	:", pi.video[0].sidedata)
-	//fmt.Println("warnings	:", pi.video[0].warnings)
-	fmt.Println("----------")
-	fmt.Println(pi.audio)
-	fmt.Println("----------")
-	fmt.Println(pi.data)
-	fmt.Println("----------")
-	fmt.Println(pi.subtitles)
 }
 
 func TestDuplicates(t *testing.T) {

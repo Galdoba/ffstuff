@@ -23,11 +23,15 @@ func ParseFile(path string) (*parseInfo, error) {
 	}
 	com.Run()
 	buf := com.StdErr()
-	fmt.Println("buffer:", buf)
+	//fmt.Println("ffmpeg output:\n", buf)
 	input := inputdata{strings.Split(buf, "\n")}
 	pi, err := parse(input)
 	if err != nil {
 		return nil, fmt.Errorf("parse(%v): %v", path, err)
 	}
 	return pi, err
+}
+
+func (pi *parseInfo) NumAudio() int {
+	return len(pi.audio)
 }

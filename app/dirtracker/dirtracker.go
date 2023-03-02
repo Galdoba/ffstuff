@@ -103,7 +103,7 @@ func main() {
 				fl, _ := filelist.New(Conf.Root)
 				output := ""
 				for {
-					fmt.Printf("Updating...                                   \n")
+					//fmt.Printf("Updating...                                   \n")
 					atempt := 1
 					for atempt <= 100 {
 						if err := fl.Update(Conf.Max_threads); err != nil {
@@ -114,7 +114,7 @@ func main() {
 						}
 						atempt++
 						if atempt > 10 {
-							return fmt.Errorf("To many atempts to update list")
+							return fmt.Errorf("to many atempts to update list")
 						}
 					}
 
@@ -138,24 +138,24 @@ func main() {
 
 					switch sendToBot {
 					case true:
-						fmt.Println("Sending To Bot")
+						//fmt.Println("Sending To Bot")
 
 					case false:
-						fmt.Println("NOT Sending To Bot")
+						//fmt.Println("NOT Sending To Bot")
 					}
 
 					updCyc := Conf.UpdateCycle_seconds
 					for i := updCyc; i > -1; i-- {
 						switch i {
 						default:
-							fmt.Printf("Next update in %v seconds...             \r", i)
+							//	fmt.Printf("Next update in %v seconds...             \r", i)
 						}
 						time.Sleep(time.Second)
 					}
 
 				}
-				fmt.Println(output)
-				return nil
+				//fmt.Println(output)
+				//return nil
 			},
 		},
 		{

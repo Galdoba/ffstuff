@@ -3,6 +3,7 @@ module github.com/Galdoba/ffstuff
 go 1.15
 
 require (
+	github.com/AlexEidt/Vidio v1.4.2
 	github.com/Galdoba/devtools v0.0.0-20230206034949-073280b34304
 	github.com/Galdoba/utils v0.0.0-20211006043430-41d7b3fa4b0a
 	github.com/fatih/color v1.13.0

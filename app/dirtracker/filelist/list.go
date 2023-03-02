@@ -105,6 +105,9 @@ func sort(origin []fpath) []fpath {
  */
 func Format(list []fpath, whiteList []string, wlEnabled bool) (string, error) {
 	res := ""
+	iFl := 0
+	pFl := 0
+	dFl := 0
 	switch wlEnabled {
 	case false:
 		for _, fp := range list {
@@ -138,8 +141,10 @@ func Format(list []fpath, whiteList []string, wlEnabled bool) (string, error) {
 		}
 	case true:
 		for _, wDir := range whiteList {
+
 			res += color.WhiteString(wDir) + "\n"
 			for _, fp := range list {
+
 				lineData := make(map[string]string)
 				if fp.name == "" {
 					continue
@@ -180,13 +185,21 @@ func Format(list []fpath, whiteList []string, wlEnabled bool) (string, error) {
 					}
 
 					res += formatTerminalrow(lineData)
+					switch wDir {
+					case `\\nas\buffer\IN\`:
+						iFl++
+					case `\\nas\buffer\IN\_IN_PROGRESS\`:
+						pFl++
+					case `\\nas\buffer\IN\_DONE\`:
+						dFl++
+					}
 				}
 
 				//res += "  " + setLen(fp.name, 37) + "|" + size + "|" + moddate + "|" + perm + "|" + errFild + "\n"
 			}
 		}
 	}
-
+	res += "\n" + fmt.Sprintf("IN: %v  Progress: %v  DONE: %v\n", iFl, pFl, dFl)
 	return res, nil
 }
 

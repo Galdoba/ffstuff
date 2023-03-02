@@ -31,6 +31,10 @@ type parseInfo struct {
 	warnings    []string
 }
 
+func (pi *parseInfo) Warnings() []string {
+	return pi.warnings
+}
+
 type stream struct {
 	data     string
 	metadata map[string]string
@@ -450,7 +454,7 @@ func (as *audiostream) assessAudioStream() {
 	case strings.HasPrefix(as.channel_layout, " stereo"):
 	case strings.HasPrefix(as.channel_layout, " 1 channels"):
 	}
-	if as.bitrate < 94 {
+	if as.bitrate < 80 {
 		as.warnings = append(as.warnings, fmt.Sprintf("low bitrate: %v kb/s", as.bitrate))
 	}
 }
@@ -546,7 +550,7 @@ func (vid *videostream) assessVideoStream() {
 	case "":
 		vid.warnings = append(vid.warnings, "no fps detected")
 	}
-	if strings.TrimSpace(vid.sardar) != "SAR 1:1 DAR 16:9" {
+	if strings.TrimSpace(vid.sardar) != "SAR 1:1 DAR 16:9" && strings.TrimSpace(vid.sardar) != "" {
 		vid.warnings = append(vid.warnings, "atypical SAR/DAR: '"+vid.sardar+"'")
 	}
 	switch {

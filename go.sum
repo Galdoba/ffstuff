@@ -1,4 +1,6 @@
 github.com/AlecAivazis/survey/v2 v2.0.5/go.mod h1:WYBhg6f0y/fNYUuesWQc0PKbJcEliGcYHB9sNT3Bg74=
+github.com/AlexEidt/Vidio v1.4.2 h1:+nNaPkVEPcvtgmcJI/0u/Wu0j1IeFFbXkaQIVVewJuU=
+github.com/AlexEidt/Vidio v1.4.2/go.mod h1:djhIMnWMqPrC3X6nB6ymGX6uWWlgw+VayYGKE1bNwmI=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/Galdoba/convert v0.0.0-20190624041132-29cce9aaf367 h1:+wx3TnHWMRzfY5VjZMS5rR+L5W/kNpFmf10KjD/zKpc=
 github.com/Galdoba/convert v0.0.0-20190624041132-29cce9aaf367/go.mod h1:trgnT6xxj/VcUq2ViYhBggnxPQb7hvzosf0nICLo2fA=

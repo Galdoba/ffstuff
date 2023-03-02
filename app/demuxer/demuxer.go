@@ -68,7 +68,7 @@ func main() {
 			if err := console.Run(); err != nil {
 				return err
 			}
-			fmt.Println(" \nОбработка завершена успешно\n")
+			fmt.Println(" \nОбработка завершена успешно")
 		}
 
 		return nil
