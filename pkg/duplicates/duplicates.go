@@ -5,7 +5,7 @@ import (
 	"image"
 	"image/color"
 
-	vidio "github.com/AlexEidt/Vidio"
+	vidio "github.com/Galdoba/ffstuff/imported/Vidio"
 )
 
 /*
@@ -22,7 +22,6 @@ p.wait()
 */
 
 func main() {
-
 	video, _ := vidio.NewVideo(`d:\\tests\\duplicates\\Eve_cut.mov`)
 	options := vidio.Options{
 		FPS:     video.FPS(),
@@ -32,16 +31,16 @@ func main() {
 		options.StreamFile = video.FileName()
 	}
 	video.Width()
-	copyFound := 0
-	copyCounter := 0
-	frameCounter := 0
-	frameMap := make(map[int]int)
+	// copyFound := 0
+	// copyCounter := 0
+	// frameCounter := 0
+	// frameMap := make(map[int]int)
 	//var lastFrame []byte
 	img := image.NewRGBA(image.Rect(0, 0, video.Width(), video.Height()))
 	//lastImg := image.NewRGBA(image.Rect(0, 0, video.Width(), video.Height()))
 	video.SetFrameBuffer(img.Pix)
-	var colorSet1 []color.Color
-	var colorSet2 []color.Color
+	//var colorSet1 []color.Color
+	//var colorSet2 []color.Color
 	writer, err := vidio.NewVideoWriter("output.mp4", video.Width(), video.Height(), &options)
 	if err != nil {
 		fmt.Println(err.Error())
@@ -49,30 +48,30 @@ func main() {
 	}
 
 	defer writer.Close()
-	writer.Write(video.FrameBuffer())
+	//writer.Write(video.FrameBuffer())
 	for video.Read() {
-		frameCounter++
-		//		frameBts := video.FrameBuffer()
-		colorSet1 = memorizeColors(img, video.Width()/4, video.Height()/4)
-		switch isCopy(colorSet1, colorSet2) {
-		case true:
-			copyCounter++
-			copyFound++
-			fmt.Println(frameCounter, copyCounter)
-		case false:
-			copyCounter = 0
+		// frameCounter++
+		// //		frameBts := video.FrameBuffer()
+		// colorSet1 = memorizeColors(img, video.Width()/4, video.Height()/4)
+		// switch isCopy(colorSet1, colorSet2) {
+		// case true:
+		// 	copyCounter++
+		// 	copyFound++
+		// 	fmt.Println(frameCounter, copyCounter)
+		// case false:
+		// 	copyCounter = 0
 
+		// }
+		// frameMap[frameCounter] = copyCounter
+
+		// //fmt.Printf("unique frames: %v/%v    \r", frameCounter-copyFound, frameCounter)
+		// colorSet2 = colorSet1
+
+		err := writer.Write(video.FrameBuffer())
+		if err != nil {
+			panic(err.Error())
 		}
-		frameMap[frameCounter] = copyCounter
 
-		//fmt.Printf("unique frames: %v/%v    \r", frameCounter-copyFound, frameCounter)
-		colorSet2 = colorSet1
-		if copyCounter != 1 {
-			writer.Write(video.FrameBuffer())
-
-		} else {
-
-		}
 	}
 	fmt.Println("done")
 }
@@ -123,6 +122,23 @@ ffprobe -show_frames -select_streams v -print_format -unit json=c=1 0001.wmv
 		"-map", fmt.Sprintf("0:v:%d", video.stream),
 		"-",
 
+ffmpeg -i _HD_51.mp4 -vf select='eq(n\,100)+eq(n\,184)+eq(n\,213)' -vsync 0 frames%d.jpg
+ffmpeg -t 225 -i _HD_51.mp4 -vf select='not(eq(n\,100))+not(eq(n\,184))+not(eq(n\,213))' -vsync 0 -vcodec rawvideo out.mp4
+
+pipe = subprocess.Popen([FFMPEG_BIN, "-i", src,
+                    "-loglevel", "quiet",
+                    "-vf", "select=not(mod(n\,100))",
+                    "-vsync", "0",
+                    "-an",
+                    "-f", "image2pipe",
+                    "-pix_fmt", "bgr24",
+                    "-vcodec", "rawvideo", "-"],
+                    stdin=subprocess.PIPE,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.DEVNULL)
+
+ffmpeg -i _HD_51.mp4 -loglevel quiet -vf select=not(mod(n\,100)) -vsync 0 -an -f image2pipe -pix_fmt yuv422 -vcodec rawvideo - | ffmpeg -f rawvideo -i - -vcodec h264 test.mp4
+
 
 */
 
@@ -156,3 +172,36 @@ func copyVid() {
 }
 
 //ffmpeg -t 10 -i Eve_cut.mov -an -vcodec copy -f matroska - | ffmpeg -i - -vcodec copy  10SecC2.mov
+
+/*
+readder
+cmd := exec.Command(
+		"ffmpeg",
+		"-i", video.filename,
+		"-f", "image2pipe",
+		"-loglevel", "quiet",
+		"-pix_fmt", "rgba",
+		"-vcodec", "rawvideo",
+		"-map", fmt.Sprintf("0:v:%d", video.stream),
+		"-",
+	)
+ffmpeg -t 1 -i _HD_51.mp4 -f image2pipe -loglevel quiet -pix_fmt rgba -vcodec rawvideo -map 0:v:0 - | ffmpeg -y -loglevel quiet -f rawvideo -vcodec rawvideo -s 1920x1080 -pix_fmt rgba -r 25 -i - -vcodec libx264 -pix_fmt yuv420p outTest.mp4
+
+
+
+
+
+
+writter
+command := []string{
+		"-y", // overwrite output file if it exists.
+		"-loglevel", "quiet",
+		"-f", "rawvideo",
+		"-vcodec", "rawvideo",
+		"-s", fmt.Sprintf("%dx%d", writer.width, writer.height), // frame w x h.
+		"-pix_fmt", "rgba",
+		"-r", fmt.Sprintf("%.02f", writer.fps), // frames per second.
+		"-i", "-", // The input comes from stdin.
+	}
+
+*/
