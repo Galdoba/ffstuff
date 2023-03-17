@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/user"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -536,4 +537,69 @@ func ValidateName(name string) string {
 		newName += l
 	}
 	return strings.Join(strings.Fields(newName), "_")
+}
+
+const (
+	EDIT = "EDIT"
+)
+
+func SortFileNames(list []string, sortType string) ([]string, error) {
+	sorted := []string{}
+	switch sortType {
+	default:
+		return list, fmt.Errorf("Неизвестный тип сортировки: %v", sortType)
+	case EDIT:
+		sorted = sortAsEdit(list)
+	}
+	return sorted, nil
+}
+
+func sortAsEdit(list []string) []string {
+	sList := []string{}
+	sort.Strings(list)
+	//sList = list
+	weightMap := make(map[int]string)
+	maxW := 0
+	minW := 2000000
+	for i, fl := range list {
+		fl = strings.ToLower(fl)
+		weight := i * -1
+		if strings.Contains(fl, strings.ToLower(".srt")) {
+			weight += 1000000
+		}
+		if strings.Contains(fl, strings.ToLower("_proxy")) {
+			weight += 100000
+		}
+		if strings.Contains(fl, strings.ToLower("_audio")) {
+			weight += 10000
+		}
+		if strings.Contains(fl, strings.ToLower("_nocens")) {
+			weight += 10000
+		}
+		if strings.Contains(fl, strings.ToLower("_sd")) {
+			weight += 1000
+		}
+		if strings.Contains(fl, strings.ToLower("_hd")) {
+			weight += 1000
+		}
+		if strings.Contains(fl, strings.ToLower("_4k")) {
+			weight += 100
+		}
+		if weight > maxW {
+			maxW = weight
+		}
+		if weight < minW {
+			minW = weight
+		}
+		weightMap[weight] = list[i]
+	}
+	for i := maxW; i >= minW; i-- {
+		if fl, ok := weightMap[i]; ok {
+			sList = append(sList, fl)
+		}
+	}
+	if len(sList) != len(list) {
+		panic("sortAsEdit() failed: len(sList) != len(list)")
+	}
+	return sList
 }

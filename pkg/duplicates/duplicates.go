@@ -31,16 +31,15 @@ func main() {
 		options.StreamFile = video.FileName()
 	}
 	video.Width()
-	// copyFound := 0
-	// copyCounter := 0
-	// frameCounter := 0
-	// frameMap := make(map[int]int)
-	//var lastFrame []byte
+	copyFound := 0
+	copyCounter := 0
+	frameCounter := 0
+	frameMap := make(map[int]int)
 	img := image.NewRGBA(image.Rect(0, 0, video.Width(), video.Height()))
 	//lastImg := image.NewRGBA(image.Rect(0, 0, video.Width(), video.Height()))
 	video.SetFrameBuffer(img.Pix)
-	//var colorSet1 []color.Color
-	//var colorSet2 []color.Color
+	var colorSet1 []color.Color
+	var colorSet2 []color.Color
 	writer, err := vidio.NewVideoWriter("output.mp4", video.Width(), video.Height(), &options)
 	if err != nil {
 		fmt.Println(err.Error())
@@ -50,26 +49,27 @@ func main() {
 	defer writer.Close()
 	//writer.Write(video.FrameBuffer())
 	for video.Read() {
-		// frameCounter++
-		// //		frameBts := video.FrameBuffer()
-		// colorSet1 = memorizeColors(img, video.Width()/4, video.Height()/4)
-		// switch isCopy(colorSet1, colorSet2) {
-		// case true:
-		// 	copyCounter++
-		// 	copyFound++
-		// 	fmt.Println(frameCounter, copyCounter)
-		// case false:
-		// 	copyCounter = 0
+		frameCounter++
+		//		frameBts := video.FrameBuffer()
+		colorSet1 = memorizeColors(img, video.Width()/4, video.Height()/4)
+		switch isCopy(colorSet1, colorSet2) {
+		case true:
+			copyCounter++
+			copyFound++
+			fmt.Println(frameCounter, copyCounter)
+		case false:
+			copyCounter = 0
 
-		// }
-		// frameMap[frameCounter] = copyCounter
+		}
+		frameMap[frameCounter] = copyCounter
 
-		// //fmt.Printf("unique frames: %v/%v    \r", frameCounter-copyFound, frameCounter)
-		// colorSet2 = colorSet1
-
-		err := writer.Write(video.FrameBuffer())
-		if err != nil {
-			panic(err.Error())
+		//fmt.Printf("unique frames: %v/%v    \r", frameCounter-copyFound, frameCounter)
+		colorSet2 = colorSet1
+		if copyCounter != 1 {
+			err := writer.Write(video.FrameBuffer())
+			if err != nil {
+				panic(err.Error())
+			}
 		}
 
 	}

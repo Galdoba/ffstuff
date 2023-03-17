@@ -102,6 +102,7 @@ func main() {
 
 				fl, _ := filelist.New(Conf.Root)
 				output := ""
+			mainLoop:
 				for {
 					//fmt.Printf("Updating...                                   \n")
 					atempt := 1
@@ -110,6 +111,7 @@ func main() {
 							fmt.Print("Try ", atempt, " ", err.Error(), "\n") //на случай если будет ошибка обновления списка
 							time.Sleep(time.Second)
 						} else {
+							fmt.Printf("Update Complete\r")
 							break
 						}
 						atempt++
@@ -122,7 +124,9 @@ func main() {
 
 					res, err := filelist.Format(shortList, Conf.WhiteList, Conf.WhiteListEnabled)
 					if err != nil {
-						return err
+						if err.Error() == "no files found" && output != "" {
+							continue mainLoop
+						}
 					}
 					utils.ClearScreen()
 					//stats := fl.Stats()

@@ -11,6 +11,7 @@ import (
 	"github.com/Galdoba/ffstuff/pkg/config"
 	"github.com/Galdoba/ffstuff/pkg/glog"
 	"github.com/Galdoba/ffstuff/pkg/grabber"
+	"github.com/Galdoba/ffstuff/pkg/namedata"
 	"github.com/Galdoba/ffstuff/pkg/scanner"
 	"github.com/Galdoba/utils"
 	"github.com/urfave/cli"
@@ -70,7 +71,7 @@ func main() {
 	logger = glog.New(glog.LogPathDEFAULT, glog.LogLevelINFO)
 	destination := configMap[constant.InPath]
 	app := cli.NewApp()
-	app.Version = "v 0.0.3"
+	app.Version = "v 0.0.4"
 	app.Name = "grabber"
 	app.Usage = "dowloads files and sort it to working directories"
 	app.Flags = []cli.Flag{
@@ -81,6 +82,10 @@ func main() {
 		&cli.StringFlag{
 			Name:  "destination, dest",
 			Usage: "Путь для закачки более приоритетный чем тот, что указан в конфиге",
+		},
+		&cli.StringFlag{
+			Name:  "sort, s",
+			Usage: "Тип сортировки очереди для скачивания",
 		},
 	}
 
@@ -207,7 +212,10 @@ func main() {
 					}
 					list = append(list, path)
 				}
-
+				list, err := namedata.SortFileNames(list, namedata.EDIT)
+				if err != nil {
+					return fmt.Errorf("namedata.SortFileNames() returned: %v", err.Error())
+				}
 				for _, path := range list {
 					if isReadyfile(path) {
 						fmt.Printf("delete: %v\n", path)

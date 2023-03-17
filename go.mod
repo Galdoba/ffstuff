@@ -12,6 +12,7 @@ require (
 	github.com/malashin/ffinfo v0.0.0-20221015115919-c24e30c231df
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/urfave/cli v1.22.10
+	golang.org/x/sync v0.1.0
 	gopkg.in/AlecAivazis/survey.v1 v1.8.8
 	gopkg.in/yaml.v3 v3.0.1
 )

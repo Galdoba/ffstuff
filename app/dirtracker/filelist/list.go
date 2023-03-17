@@ -103,6 +103,21 @@ func sort(origin []fpath) []fpath {
 /*
 
  */
+func fillError(lineData map[string]string, err error) map[string]string {
+	if err != nil {
+		switch {
+		default:
+			lineData["err"] += "|" + err.Error()
+			panic(lineData["err"])
+		case strings.Contains(err.Error(), "Access is denied"):
+			lineData["err"] = color.RedString(" Доступ Ограничен")
+		case strings.Contains(err.Error(), "The system cannot find the file specified"):
+			lineData["err"] = color.HiCyanString(" Файл в процессе перемещения")
+		}
+	}
+	return lineData
+}
+
 func Format(list []fpath, whiteList []string, wlEnabled bool) (string, error) {
 	res := ""
 	iFl := 0
@@ -116,12 +131,7 @@ func Format(list []fpath, whiteList []string, wlEnabled bool) (string, error) {
 				lineData["err"] = color.YellowString(" Неформатное имя файла")
 			}
 			if fp.err != nil {
-				switch {
-				default:
-					lineData["err"] += "|" + fp.err.Error()
-				case strings.Contains(fp.err.Error(), "Access is denied"):
-					lineData["err"] = " Доступ Ограничен"
-				}
+				lineData = fillError(lineData, fp.err)
 			}
 			lineData["name"] = formatName(fp)
 			if strings.HasSuffix(lineData["name"], "]") {
@@ -154,14 +164,7 @@ func Format(list []fpath, whiteList []string, wlEnabled bool) (string, error) {
 					lineData["err"] = color.YellowString(" Неформатное имя файла")
 				}
 				if fp.err != nil {
-					switch {
-					default:
-						lineData["err"] += "|" + fp.err.Error()
-					case strings.Contains(fp.err.Error(), "Access is denied"):
-						lineData["err"] = " Доступ Ограничен"
-					}
-
-					//return res, fp.err
+					lineData = fillError(lineData, fp.err)
 				}
 
 				if fp.dir == wDir {
@@ -172,12 +175,7 @@ func Format(list []fpath, whiteList []string, wlEnabled bool) (string, error) {
 					}
 					f, err := os.Stat(fp.dir + fp.name)
 					if err != nil {
-						switch {
-						default:
-							lineData["err"] += "|" + err.Error()
-						case strings.Contains(err.Error(), "Access is denied"):
-							lineData["err"] = " Доступ Ограничен"
-						}
+						lineData = fillError(lineData, fp.err)
 					} else {
 						lineData["size"] = formatSize(f.Size())
 						lineData["date"] = formatFileDate(f.ModTime())
@@ -200,6 +198,9 @@ func Format(list []fpath, whiteList []string, wlEnabled bool) (string, error) {
 		}
 	}
 	res += "\n" + fmt.Sprintf("IN: %v  Progress: %v  DONE: %v\n", iFl, pFl, dFl)
+	if iFl+pFl+dFl == 0 {
+		return res, fmt.Errorf("no files found")
+	}
 	return res, nil
 }
 
@@ -229,6 +230,9 @@ func formatName(fp fpath) string {
 }
 
 func formatTerminalrow(data map[string]string) string {
+	if data["err"] != "" {
+		return data["name"] + "|" + data["err"] + "\n"
+	}
 	return data["name"] + "|" + data["size"] + "|" + data["date"] + "|" + data["perm"] + "|" + data["err"] + "\n"
 }
 
@@ -318,7 +322,9 @@ func (fl *FileList) FullList() []fpath {
 
 func (fl *FileList) Update(maxTreads int) error {
 	fl.paths = []fpath{}
-	fl.protoUpdate(maxTreads)
+	if err := fl.protoUpdate(maxTreads); err != nil {
+		panic("proto: " + err.Error())
+	}
 	fl.paths = sort(fl.paths)
 	fl.stats = make(map[string]int)
 	for _, f := range fl.paths {

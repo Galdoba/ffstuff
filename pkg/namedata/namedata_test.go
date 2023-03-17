@@ -24,11 +24,11 @@ func emulatedNames0() []testData {
 
 func emulatedNames() []string {
 	var emulatedNames []string
-	base := []string{"film_name_0000", "serial_name_s00_00_0000"}
+	base := []string{"serial_name_s01_01", "serial_name_s01_02", "serial_name_s01_03"}
 	vidTag := []string{"sd", "hd", "4k"}
 	audTag := []string{"rus20", "rus51", "eng20", "eng51", "qqq20", "qqq51"}
 	eburTag := []string{"-ebur128", "-ebur128-stereo", ""}
-	resolutions := []string{".ac3", ".aac", ".m4a", ".txt", ".mp4"}
+	resolutions := []string{".ac3", ".aac", ".m4a", ".txt", ".mp4", ".ready"}
 	for _, name := range base {
 		for _, vt := range vidTag {
 			for _, at := range audTag {
@@ -42,6 +42,64 @@ func emulatedNames() []string {
 	}
 	emulatedNames = append(emulatedNames, "film_name_0000__sd.mp4")
 	return emulatedNames
+}
+
+func emulateEditAmediaNames() []string {
+	var emulatedNames []string
+	base := []string{"serial_name_s01_01", "serial_name_s01_02", "serial_name_s01_03"}
+	vidTag := []string{"_SD", "_HD", "_4K", ""}
+	audTag := []string{"_AUDIORUS20", "_AUDIOENG51", ""}
+	proxyTag := []string{"_proxy", ""}
+	resolutions := []string{".m4a", ".mp4", ".srt", ".ready"}
+	for _, name := range base {
+		for _, vt := range vidTag {
+			for _, at := range audTag {
+				for _, pt := range proxyTag {
+					for _, rt := range resolutions {
+						switch rt {
+						case ".ready", ".srt":
+							if vt+at+pt != "" {
+								continue
+							}
+						case ".mp4":
+							if at != "" {
+								continue
+							}
+							if vt == "" {
+								continue
+							}
+						case ".m4a":
+							if at == "" {
+								continue
+							}
+							if vt != "" {
+								continue
+							}
+						}
+
+						emulatedNames = append(emulatedNames, name+vt+at+pt+rt)
+					}
+				}
+			}
+		}
+	}
+	return emulatedNames
+}
+
+func TestSort(t *testing.T) {
+	list := emulateEditAmediaNames()
+	for i := range list {
+		fmt.Println(i, list[i])
+	}
+	sorted, err := SortFileNames(list, EDIT)
+	if err != nil {
+		t.Errorf("SortFileNames() вернула ошибку: %v", err.Error())
+		panic(0)
+	}
+	fmt.Println("sorted:")
+	for i := range sorted {
+		fmt.Println(sorted[i])
+	}
 }
 
 func TestEburTrimmer(t *testing.T) {
@@ -135,34 +193,35 @@ func testNames() []string {
 		//`Chumon_s01_02_HD.mp4`,
 		//`Chumon_s01_02_HD_proxy.mp4`,
 		//"VRfighter_feature_ProRes422HQ_1080p24_RU20_RU51.mov",
-		//`Bortprovodnica_s02e01_SER_12143.mp4`,
-		//`Bortprovodnica_s02e01_SER_12143.RUS.srt`,
-		//`Bortprovodnica_s02e02_SER_12144.mp4`,
-		//`Bortprovodnica_s02e02_SER_12144.RUS.srt`,
-		//`Bortprovodnica_s02e03_SER_12145.mp4`,
-		//`Bortprovodnica_s02e03_SER_12145.RUS.srt`,
-		//`Bortprovodnica_s02e04_SER_12146.mp4`,
-		//`Bortprovodnica_s02e04_SER_12146.RUS.srt`,
-		//`Bortprovodnica_s02e05_SER_12147.mp4`,
-		//`Bortprovodnica_s02e05_SER_12147.RUS.srt`,
-		//`Bortprovodnica_s02e06_SER_12148.mp4`,
-		//`Bortprovodnica_s02e06_SER_12148.RUS.srt`,
-		//`Bortprovodnica_s02e07_SER_12149.mp4`,
-		//`Bortprovodnica_s02e07_SER_12149.RUS.srt`,
-		//`Bortprovodnica_s02e08_SER_12150.mp4`,
-		//`Bortprovodnica_s02e08_SER_12150.RUS.srt`,
+		`Bortprovodnica_s02e01_SER_12143.mp4`,
+		`Bortprovodnica_s02e01_SER_12143.RUS.srt`,
+		`Bortprovodnica_s02e02_SER_12144.mp4`,
+		`Bortprovodnica_s02e02_SER_12144.RUS.srt`,
+		`Bortprovodnica_s02e03_SER_12145.mp4`,
+		`Bortprovodnica_s02e03_SER_12145.RUS.srt`,
+		`Bortprovodnica_s02e04_SER_12146.mp4`,
+		`Bortprovodnica_s02e04_SER_12146.RUS.srt`,
+		`Bortprovodnica_s02e05_SER_12147.mp4`,
+		`Bortprovodnica_s02e05_SER_12147.RUS.srt`,
+		`Bortprovodnica_s02e06_SER_12148.mp4`,
+		`Bortprovodnica_s02e06_SER_12148.RUS.srt`,
+		`Bortprovodnica_s02e07_SER_12149.mp4`,
+		`Bortprovodnica_s02e07_SER_12149.RUS.srt`,
+		`Bortprovodnica_s02e08_SER_12150.mp4`,
+		`Bortprovodnica_s02e08_SER_12150.RUS.srt`,
 		//`Zalozhniki_s01_01.srt`,
 		//`Zalozhniki_s01_01.ready`,
 		//`Zalozhniki_s01_01_AUDIOENG20.m4a`,
 		//`Zalozhniki_s01_01_AUDIOENG20_proxy.ac3`,
 		//`Zalozhniki_s01_01_AUDIORUS51.m4a`,
 		//`Zalozhniki_s01_01_AUDIORUS51_proxy.ac3`,
-		`\\nas\ROOT\EDIT\_amedia\Zalozhniki_s01\Zalozhniki_s01_01_AUDIOENG20.m4a`,
-		`\\nas\ROOT\EDIT\_amedia\Zalozhniki_s01\Zalozhniki_s01_01.ready`,
+		//		`\\nas\ROOT\EDIT\_amedia\Zalozhniki_s01\Zalozhniki_s01_01_AUDIOENG20.m4a`,
+		//		`\\nas\ROOT\EDIT\_amedia\Zalozhniki_s01\Zalozhniki_s01_01.ready`,
 	}
 }
 
 func Test_SearchNameMask(t *testing.T) {
+	fmt.Println("start Test_SearchNameMask")
 	mask, err := SearchMask(testNames())
 	for _, name := range testNames() {
 		fmt.Printf("%v\n", name)
