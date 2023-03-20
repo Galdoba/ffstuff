@@ -108,10 +108,9 @@ func main() {
 					atempt := 1
 					for atempt <= 100 {
 						if err := fl.Update(Conf.Max_threads); err != nil {
-							fmt.Print("Try ", atempt, " ", err.Error(), "\n") //на случай если будет ошибка обновления списка
+							fmt.Print("\rTry ", atempt, " ", err.Error()) //на случай если будет ошибка обновления списка
 							time.Sleep(time.Second)
 						} else {
-							fmt.Printf("Update Complete\r")
 							break
 						}
 						atempt++
@@ -124,7 +123,10 @@ func main() {
 
 					res, err := filelist.Format(shortList, Conf.WhiteList, Conf.WhiteListEnabled)
 					if err != nil {
-						if err.Error() == "no files found" && output != "" {
+						if err.Error() == "no files found" {
+							utils.ClearScreen()
+							fmt.Println("NO FILES FOUND            ")
+							time.Sleep(time.Second * 5)
 							continue mainLoop
 						}
 					}

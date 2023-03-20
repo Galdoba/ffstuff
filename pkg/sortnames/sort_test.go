@@ -6,16 +6,22 @@ import (
 	"testing"
 )
 
+func TestBumpToTopIndex(t *testing.T) {
+	slInt := []int{0, 1, 2, 3, 4}
+	ind := -5
+	newSl := BumpToTopIndex(slInt, ind)
+	fmt.Println(slInt)
+	fmt.Println(newSl)
+}
+
 func TestNoDuplicates(t *testing.T) {
-	test1 := []string{"aa", "bb", "cc", "bb", "dd"}
-	res1 := NoDuplicates(test1)
+	test1 := []string{"aa", "aa", "bb", "cc", "bb", "dd", "dd"}
+	res1 := OmitDuplicates(test1)
 	if strings.Join(res1, "") != "aabbccdd" {
 		t.Errorf("test 1 fail")
 	}
-	printSliceLn(emulatedNames())
+	//printSliceLn(emulatedNames())
 }
-
-//name = base + sTag + epTag + revTag + vtag + atag + censtag  + extn
 
 func printSliceLn(sl []string) {
 	for _, s := range sl {
@@ -27,10 +33,10 @@ func emulatedNames() []string {
 	var emulatedNames []string
 	base := []string{"serial_AAA", "serial_BBB", "film_AA", "film_BB"}
 	sTag := []string{"_s01", "_s02", ""}
-	epTag := []string{"01", "02", ""}
+	epTag := []string{"03", "06", ""}
 	revTag := []string{"", "_R1", "_R2"}
 	vidTag := []string{"_sd", "_hd", "_4k"}
-	audTag := []string{"_AUDIORUS20", "_AUDIORUSRUS51", "_AUDIOENG20", "_AUDIOENG51", ""}
+	audTag := []string{"_AUDIORUS20", "_AUDIORUS51", "_AUDIOENG20", "_AUDIOENG51", ""}
 	extn := []string{".txt", ".m4a", ".srt", ".mp4", ".ready"}
 	total := len(base) * len(sTag) * len(epTag) * len(revTag) * len(vidTag) * len(audTag) * len(extn)
 	i := 0
@@ -54,3 +60,15 @@ func emulatedNames() []string {
 	fmt.Println("")
 	return emulatedNames
 }
+
+/*
+[PROGRESS][SPEED____][SIZE____][FILENAME____________________]
+01234567890123456789012345678901234567890123456789012345678901234567890123456789
+
+name1_s01_02_hd.mp4            Complete  124.7 Gb
+name1_s01_03_hd.mp4              56 %    158.3 Gb
+name1_s01_03_hd.mp4              23 %    258.3 Gb
+
+
+
+*/

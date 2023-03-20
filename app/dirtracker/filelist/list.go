@@ -199,6 +199,7 @@ func Format(list []fpath, whiteList []string, wlEnabled bool) (string, error) {
 	}
 	res += "\n" + fmt.Sprintf("IN: %v  Progress: %v  DONE: %v\n", iFl, pFl, dFl)
 	if iFl+pFl+dFl == 0 {
+		res = ""
 		return res, fmt.Errorf("no files found")
 	}
 	return res, nil
