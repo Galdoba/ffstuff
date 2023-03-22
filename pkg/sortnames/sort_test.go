@@ -12,6 +12,10 @@ func TestBumpToTopIndex(t *testing.T) {
 	newSl := BumpToTopIndex(slInt, ind)
 	fmt.Println(slInt)
 	fmt.Println(newSl)
+	ind2 := 3
+	newSl2 := BumpIndexUpByOne(slInt, ind2)
+	fmt.Println(slInt)
+	fmt.Println(newSl2)
 }
 
 func TestNoDuplicates(t *testing.T) {

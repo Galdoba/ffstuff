@@ -48,3 +48,11 @@ func BumpToTopIndex(slInt []int, index int) []int {
 	}
 	return newSl
 }
+
+func BumpIndexUpByOne(slInt []int, index int) []int {
+	if index < 1 || index > len(slInt)-1 {
+		return slInt
+	}
+	slInt[index-1], slInt[index] = slInt[index], slInt[index-1]
+	return slInt
+}
