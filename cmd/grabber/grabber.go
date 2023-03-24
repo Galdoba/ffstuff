@@ -4,10 +4,9 @@ import (
 	"fmt"
 	"os"
 	"os/user"
-	"strconv"
 	"strings"
 
-	"github.com/Galdoba/ffstuff/constant"
+	"github.com/Galdoba/ffstuff/cmd/grabber/ui"
 	"github.com/Galdoba/ffstuff/pkg/config"
 	"github.com/Galdoba/ffstuff/pkg/glog"
 	"github.com/Galdoba/ffstuff/pkg/grabber"
@@ -37,150 +36,96 @@ TZ:
 */
 
 var configMap map[string]string
-var logger glog.Logger
+
+//var logger glog.Logger
 var username string
+var programName string
 
 func init() {
+	programName = "grabber"
+	fmt.Println("Initialisation...")
 	//err := errors.New("Initial obstract error")
-	conf, err := config.ReadProgramConfig("ffstuff")
-	if err != nil {
-		fmt.Println(err)
-	}
+	fmt.Println("Reading config file...")
+	conf, err := config.ReadProgramConfig(programName)
 	configMap = conf.Field
 	if err != nil {
 		switch err.Error() {
 		case "Config file not found":
-			fmt.Print("Expecting config file in:\n", conf.Path)
-			os.Exit(1)
+			cDir, cFile := config.ConfigPathManual(programName)
+			fmt.Printf("Expecting config file in: %v\n", cDir+"\\"+cFile)
+			answer, err := askSelection("Create default config file?", []string{"YES", "NO"})
+			panicIfErr(err)
+			switch answer {
+			case "YES":
+				_, err := config.ConstructManual(programName)
+				panicIfErr(err)
+				conf, err = config.ReadProgramConfig(programName)
+				//генерируем поля для автоконфига
+				config.AddCommentManual(programName, "Logging:")
+				config.SetFieldManual(programName, "External log", "TODO")
+				config.SetFieldManual(programName, "local log", "TODO")
+				config.AddCommentManual(programName, "Actions:")
+				config.SetFieldManual(programName, "MOVE_CURSOR_UP", "UP")
+				config.SetFieldManual(programName, "MOVE_CURSOR_DOWN", "DOWN")
+				config.SetFieldManual(programName, "TOGGLE_SELECTION_STATE", "SPACE")
+				fmt.Println("Restart the program")
+				os.Exit(1)
+			case "NO":
+				fmt.Println("Can not run program without config")
+				os.Exit(0)
+			}
 		}
 	}
+	configMap = conf.Field
+	fmt.Println("Config file reading complete...")
 	currentUser, userErr := user.Current()
-	if err != nil {
+	if userErr != nil {
 		fmt.Printf("Initialisation failed: %v", userErr.Error())
 	}
+	fmt.Print("Username: ")
 	username = currentUser.Name
+	fmt.Print(username + "\n")
+	fmt.Println("Initialisation complete.")
 }
 
 func main() {
-	searchRoot := configMap[constant.SearchRoot]
-	searchMarker := configMap[constant.SearchMarker]
+	//searchRoot := configMap[constant.SearchRoot]
+	//searchMarker := configMap[constant.SearchMarker]
 	//dest := configMap[constant.InPath] + "IN_" + utils.DateStamp() + "\\"
 	//logPath := configMap[constant.MuxPath] + "MUX_" + utils.DateStamp() + "\\logfile.txt"
 	//logger = glog.New(logPath, glog.LogLevelINFO)
-	logger = glog.New(glog.LogPathDEFAULT, glog.LogLevelINFO)
-	destination := configMap[constant.InPath]
+	//logPath := configMap["EXTERNAL_LOG"]
+	//logger = glog.New(logPath, glog.LogLevelINFO)
+	destination := ""
 	app := cli.NewApp()
 	app.Version = "v 0.0.3"
 	app.Name = "grabber"
 	app.Usage = "dowloads files and sort it to working directories"
 	app.Flags = []cli.Flag{
-		&cli.BoolFlag{
-			Name:  "vocal",
-			Usage: "If flag is active grabber set logLevel to TRACE (level INFO is set by default)",
-		},
+
 		&cli.StringFlag{
-			Name:  "destination, dest",
-			Usage: "Путь для закачки более приоритетный чем тот, что указан в конфиге",
+			Name:        "destination, dest",
+			Usage:       "folder where grabber will drop files to",
+			Required:    true,
+			Destination: new(string),
 		},
 	}
 
 	app.Commands = []cli.Command{
-		//////////////////////////////////////
-		{
-			Name:  "takeonly",
-			Usage: "Download only those files, that was received as arguments",
-			Action: func(c *cli.Context) error {
-				//paths := c.Args().Slice() //	path := c.String("path") //*cli.Context.String(key) - вызывает флаг с именем key и возвращает значение Value
-				paths := c.Args()
-				if len(paths) == 0 {
-					fmt.Println("No arguments provided")
-					return nil
-				}
-				dest := ""
-				switch c.GlobalString("destination") {
-				default:
-					dest = c.GlobalString("destination")
-					fmt.Println("destination set as: " + c.GlobalString("destination"))
-				case "":
-					dest = destination
-				}
-
-				for _, path := range paths {
-					fmt.Printf("GRABBER COPYING FILE: %v\n", path)
-					err := grabber.CopyFile(path, dest, true)
-					if err != nil {
-						switch err.Error() {
-						case "Copy exists at destination":
-							continue
-						}
-						return err
-					}
-					fmt.Println("Complete...", path)
-				}
-				return nil
-			},
-		},
-		////////////////////////////////////
-		{
-			Name:  "takenew",
-			Usage: "Call Scanner to get list of new and ready files",
-			Action: func(c *cli.Context) error {
-				invalidErrors := 0
-				if c.GlobalBool("vocal") {
-					logger.ShoutWhen(glog.LogLevelALL)
-				}
-				takeFile, err := scanner.Scan(searchRoot, searchMarker)
-				if err != nil {
-					logger.ERROR(err.Error())
-					return err
-				}
-				fileList := scanner.ListReady(takeFile)
-				logger.TRACE(strconv.Itoa(len(fileList)) + " files detected")
-				for _, path := range fileList {
-					dest := destination
-					if strings.Contains(path, "_Proxy_") {
-						dest = dest + "proxy\\"
-					}
-					//grabber.CopyFile(path, dest, c.GlobalBool("vocal"))
-					logger.TRACE("Start downloading:")
-					if err := grabber.Download(logger, path, dest); err != nil {
-						switch err.Error() {
-						default:
-							invalidErrors++
-						case "valid copy exists":
-						}
-					}
-
-				}
-				if invalidErrors == 0 {
-					for _, val := range takeFile {
-						if !strings.Contains(val, ".ready") {
-							continue
-						}
-						body := strings.TrimSuffix(val, ".ready")
-						logger.TRACE("rename: " + val + " >> " + body + "." + username)
-						if err := os.Rename(val, body+"."+username); err != nil {
-							logger.ERROR(err.Error())
-						}
-					}
-				}
-				logger.INFO(strconv.Itoa(len(fileList)) + " files downloaded")
-				return nil
-			},
-		},
 		////////////////////////////////////
 		{
 			Name:        "take",
 			ShortName:   "",
 			Aliases:     []string{},
-			Usage:       "Grabs files to destination folder",
-			UsageText:   "TODO:Usage",
+			Usage:       "grabs files to destination folder",
+			UsageText:   "grabber --dest [FOLDER] take [FILE_1] [FILE_2] ... [FILE_N]",
 			Description: "TODO:Descr",
 			ArgsUsage:   "TODO:ArgsUsage",
-			Category:    "TODO:Category",
+			Category:    "Operation",
 
 			Action: func(c *cli.Context) error {
 				paths := c.Args()
+
 				if len(paths) == 0 {
 					fmt.Println("No arguments provided")
 					return nil
@@ -190,14 +135,16 @@ func main() {
 				switch c.GlobalString("destination") {
 				default:
 					dest = c.GlobalString("destination")
+					configMap["dest"] = dest
 					fmt.Println("destination set as: " + c.GlobalString("destination"))
 					//TODO: отучить от необходимости ставить слэшь для аргумента
 				case "":
 					dest = destination
 				}
 				list := []string{}
-				for _, path := range paths {
-
+				for i, path := range paths {
+					fmt.Printf("%v	argument: %v\n", i, path)
+					continue
 					if isReadyfile(path) {
 						assosiated, err := scanner.ListAssosiated(path)
 						if err != nil {
@@ -207,7 +154,16 @@ func main() {
 					}
 					list = append(list, path)
 				}
+				fmt.Printf("simulating sorting...\n")
+				fmt.Printf("simulating drawing of ui...\n")
+				if err := ui.StartMainloop(configMap, paths); err != nil {
+					return err
+				}
+				fmt.Printf("simulating passing of control data to ui...\n")
+				fmt.Printf("simulating download process...\n")
+				fmt.Printf("simulating report making...\n")
 
+				return nil
 				for _, path := range list {
 					if isReadyfile(path) {
 						fmt.Printf("delete: %v\n", path)
@@ -235,9 +191,12 @@ func main() {
 	if len(args) < 2 {
 		args = append(args, "help") //Принудительно зовем помощь если нет других аргументов
 	}
-	if err := app.Run(args); err != nil {
+	err := app.Run(args)
+	fmt.Printf("simulating errors processing...\n")
+	if err != nil {
 		fmt.Println(err.Error())
 	}
+	fmt.Printf("simulating graceful exit...\n")
 }
 
 func checkMediaFile(path string, keys ...string) error {
@@ -269,9 +228,9 @@ func downloadAssociatedWith(l glog.Logger, paths []string, destination string) e
 			}
 			continue
 		}
-		if err := grabber.Download(logger, path, destination); err != nil {
-			return err
-		}
+		// if err := grabber.Download(logger, path, destination); err != nil {
+		// 	return err
+		// }
 	}
 
 	return nil
@@ -297,23 +256,3 @@ func ensureValidOrder(sl []string) []string {
 	}
 	return valid
 }
-
-/*
-
-1 2 3 4 5 6
-6 5 4 3 2 1 = 7 * (6/2) = 21
-
-1 2 3 4 5 6 7
-7 6 5 4 3 2 1 = 28
-
-X1 + Xn = 8
-X2 + Xn-1 = 8 + y - y
-X3 + Xn-2 = 8 + 2y - 2y
-X4 + Xn-3 = 8 + 3y - 3y
-28/(8/2) = 7
-
-
-
-
-
-*/

@@ -63,7 +63,7 @@ func Construct() (File, error) {
 }
 
 func Exists(program string) bool {
-	confDir, file := configPathManual(program)
+	confDir, file := ConfigPathManual(program)
 	_, err := os.Stat(confDir + "\\" + file)
 	if err != nil {
 		fmt.Println(err)
@@ -74,7 +74,7 @@ func Exists(program string) bool {
 }
 
 func Path(program string) bool {
-	confDir, file := configPathManual(program)
+	confDir, file := ConfigPathManual(program)
 	_, err := os.Stat(confDir + "\\" + file)
 	if err != nil {
 		fmt.Println(err)
@@ -85,9 +85,9 @@ func Path(program string) bool {
 }
 
 func ConstructManual(program string) (File, error) {
-	confDir, file := configPathManual(program)
+	confDir, file := ConfigPathManual(program)
 	os.MkdirAll(confDir, os.ModePerm)
-	dir, file := configPathManual(program)
+	dir, file := ConfigPathManual(program)
 	f, err := os.OpenFile(dir+"\\"+file, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
 	if err != nil {
 		return File{}, err
@@ -125,11 +125,11 @@ func configPath() (string, string) {
 
 func Filepath(program string) string {
 	pathSep := string(filepath.Separator)
-	dir, name := configPathManual(program)
+	dir, name := ConfigPathManual(program)
 	return dir + pathSep + name
 }
 
-func configPathManual(program string) (string, string) {
+func ConfigPathManual(program string) (string, string) {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		fmt.Println(err)
@@ -189,7 +189,7 @@ func Read() (configMap map[string]string, err error) {
 
 //Read - reads config file for this specific program and returns [string]string map
 func ReadFrom(program string) ([]byte, error) {
-	confDir, confFile := configPathManual(program)
+	confDir, confFile := ConfigPathManual(program)
 	f, err := os.OpenFile(confDir+"\\"+confFile, os.O_RDONLY, 0600)
 
 	if err != nil {
@@ -275,6 +275,45 @@ func SetField(key, val string) error {
 		}
 	}
 	if _, err = f.WriteString(key + "=" + val + "\n"); err != nil {
+		return err
+	}
+	return nil
+}
+
+func SetFieldManual(program, key, val string) error {
+	confDir, file := ConfigPathManual(program)
+	f, err := os.OpenFile(confDir+"\\"+file, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+	key = strings.ToUpper(key)
+	key = strings.ReplaceAll(key, " ", "_")
+	key = strings.TrimSuffix(key, "_")
+	// val = strings.ToUpper(val)
+	// val = strings.ReplaceAll(val, " ", "_")
+	// val = strings.TrimSuffix(val, "_")
+	lines := utils.LinesFromTXT(confDir + "\\" + file)
+	for n, line := range lines {
+		if strings.Contains(line, key+"=") {
+			utils.EditLineInFile(confDir+"\\"+file, n, key+"="+val)
+			return nil
+		}
+	}
+	if _, err = f.WriteString(key + ": " + val + "\n"); err != nil {
+		return err
+	}
+	return nil
+}
+
+func AddCommentManual(program, comment string) error {
+	confDir, file := ConfigPathManual(program)
+	f, err := os.OpenFile(confDir+"\\"+file, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+	if _, err = f.WriteString("#" + comment + "\n"); err != nil {
 		return err
 	}
 	return nil
