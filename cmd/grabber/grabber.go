@@ -44,39 +44,64 @@ var programName string
 func init() {
 	programName = "grabber"
 	fmt.Println("Initialisation...")
-	//err := errors.New("Initial obstract error")
+
 	fmt.Println("Reading config file...")
-	conf, err := config.ReadProgramConfig(programName)
-	configMap = conf.Field
+	cDir, cFile := config.ConfigPathManual(programName)
+	gc, err := ReadConfig(cDir + "\\" + cFile)
 	if err != nil {
-		switch err.Error() {
-		case "Config file not found":
-			cDir, cFile := config.ConfigPathManual(programName)
-			fmt.Printf("Expecting config file in: %v\n", cDir+"\\"+cFile)
-			answer, err := askSelection("Create default config file?", []string{"YES", "NO"})
-			panicIfErr(err)
-			switch answer {
-			case "YES":
-				_, err := config.ConstructManual(programName)
-				panicIfErr(err)
-				conf, err = config.ReadProgramConfig(programName)
-				//генерируем поля для автоконфига
-				config.AddCommentManual(programName, "Logging:")
-				config.SetFieldManual(programName, "External log", "TODO")
-				config.SetFieldManual(programName, "local log", "TODO")
-				config.AddCommentManual(programName, "Actions:")
-				config.SetFieldManual(programName, "MOVE_CURSOR_UP", "UP")
-				config.SetFieldManual(programName, "MOVE_CURSOR_DOWN", "DOWN")
-				config.SetFieldManual(programName, "TOGGLE_SELECTION_STATE", "SPACE")
-				fmt.Println("Restart the program")
-				os.Exit(1)
-			case "NO":
-				fmt.Println("Can not run program without config")
-				os.Exit(0)
-			}
+		fmt.Println("Error:", err.Error())
+		offerToCreateDefaultConfig(cDir)
+		err = CreateDefaultConfig()
+		if err != nil {
+			fmt.Println("Error:", err.Error())
+		} else {
+			fmt.Println("Default config file created")
+			fmt.Println("Restart the program")
+			os.Exit(0)
 		}
 	}
-	configMap = conf.Field
+
+	//conf, err := config.ReadProgramConfig(programName)
+	//configMap = conf.Field
+	// if err != nil {
+	// 	switch err.Error() {
+	// 	case "Config file not found":
+	// 		cDir, cFile := config.ConfigPathManual(programName)
+	// 		fmt.Printf("Expecting config file in: %v\n", cDir+"\\"+cFile)
+	// 		answer, err := askSelection("Create default config file?", []string{"YES", "NO"})
+	// 		panicIfErr(err)
+	// 		switch answer {
+	// 		case "YES":
+	// 			_, err := config.ConstructManual(programName)
+	// 			panicIfErr(err)
+	// 			conf, err = config.ReadProgramConfig(programName)
+	// 			//генерируем поля для автоконфига
+	// 			config.AddCommentManual(programName, "Logging:")
+	// 			config.SetFieldManual(programName, "External log", "TODO")
+	// 			config.SetFieldManual(programName, "local log", "TODO")
+	// 			config.AddCommentManual(programName, "Actions:")
+	// 			config.SetFieldManual(programName, "MOVE_CURSOR_UP", "UP")
+	// 			config.SetFieldManual(programName, "MOVE_CURSOR_DOWN", "DOWN")
+	// 			config.SetFieldManual(programName, "TOGGLE_SELECTION_STATE", "SPACE")
+	// 			fmt.Println("Restart the program")
+	// 			os.Exit(1)
+	// 		case "NO":
+	// 			fmt.Println("Can not run program without config")
+	// 			os.Exit(0)
+	// 		}
+	// 	}
+	// }
+	configMap = make(map[string]string)
+	configMap["External_Log_path"] = gc.External_Log_path
+	for _, action := range gc.Actions {
+		for index, key := range action.Triggers {
+			indexedKey := fmt.Sprintf("%v_%v", action.ActionName, index)
+			configMap[indexedKey] = key
+		}
+	}
+	for k, v := range configMap {
+		fmt.Println(k, v)
+	}
 	fmt.Println("Config file reading complete...")
 	currentUser, userErr := user.Current()
 	if userErr != nil {
@@ -86,6 +111,17 @@ func init() {
 	username = currentUser.Name
 	fmt.Print(username + "\n")
 	fmt.Println("Initialisation complete.")
+}
+
+func offerToCreateDefaultConfig(cDir string) {
+	answ, err := askSelection(fmt.Sprintf("Create/overwrite config at %v\\ ?", cDir), []string{"YES", "NO"})
+	if err != nil {
+		panic(err.Error())
+	}
+	if answ == "NO" {
+		fmt.Println("Program can not run without config")
+		os.Exit(0)
+	}
 }
 
 func main() {
@@ -144,7 +180,7 @@ func main() {
 				list := []string{}
 				for i, path := range paths {
 					fmt.Printf("%v	argument: %v\n", i, path)
-					continue
+					//continue
 					if isReadyfile(path) {
 						assosiated, err := scanner.ListAssosiated(path)
 						if err != nil {
@@ -156,7 +192,9 @@ func main() {
 				}
 				fmt.Printf("simulating sorting...\n")
 				fmt.Printf("simulating drawing of ui...\n")
-				if err := ui.StartMainloop(configMap, paths); err != nil {
+
+				//panic(1)
+				if err := ui.StartMainloop(configMap, list); err != nil {
 					return err
 				}
 				fmt.Printf("simulating passing of control data to ui...\n")
