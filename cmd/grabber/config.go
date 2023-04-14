@@ -38,8 +38,16 @@ func CreateDefaultConfig() error {
 			Triggers:   []string{"DOWN"},
 		},
 		{
+			ActionName: "MOVE_CURSOR_DOWN_AND_TOGGLE_SELECTION",
+			Triggers:   []string{"Insert"},
+		},
+		{
 			ActionName: "TOGGLE_SELECTION_STATE",
 			Triggers:   []string{"SPACE"},
+		},
+		{
+			ActionName: "SELECT_ALL_WITH_SAME_EXTENTION",
+			Triggers:   []string{"Ctrl+SPACE"},
 		},
 		{
 			ActionName: "DROP_SELECTIONS",
@@ -48,6 +56,10 @@ func CreateDefaultConfig() error {
 		{
 			ActionName: "MOVE_SELECTED_TOP",
 			Triggers:   []string{"ENTER", "Ctrl+T"},
+		},
+		{
+			ActionName: "MOVE_SELECTED_BOTTOM",
+			Triggers:   []string{"Ctrl+B"},
 		},
 		{
 			ActionName: "MOVE_SELECTED_UP",
@@ -62,12 +74,20 @@ func CreateDefaultConfig() error {
 			Triggers:   []string{"ENTER"},
 		},
 		{
+			ActionName: "DELETE_SELECTED",
+			Triggers:   []string{"Delete"},
+		},
+		{
 			ActionName: "DECIDION_DENY",
 			Triggers:   []string{"ESC"},
 		},
 		{
 			ActionName: "DOWNLOAD_PAUSE",
 			Triggers:   []string{"P"},
+		},
+		{
+			ActionName: "UNDO_MOVEMENT",
+			Triggers:   []string{"Ctrl+Z"},
 		},
 	}
 	fileBts, err := yaml.Marshal(gc)

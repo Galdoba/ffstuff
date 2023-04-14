@@ -40,9 +40,9 @@ func commandSequanceToTBKey(s string) (termbox.Key, error) {
 		tk = termbox.KeyF11
 	case "F12":
 		tk = termbox.KeyF12
-	case "INS":
+	case "INSERT":
 		tk = termbox.KeyInsert
-	case "DEL":
+	case "DELETE":
 		tk = termbox.KeyDelete
 	case "HOME":
 		tk = termbox.KeyHome
@@ -84,90 +84,76 @@ func commandSequanceToTBKey(s string) (termbox.Key, error) {
 		tk = termbox.KeyCtrlSpace
 	case "CTRL+A":
 		tk = termbox.KeyCtrlA
-	// case "":
-	// tk = termbox.KeyCtrlB
-	// case "":
-	// tk = termbox.KeyCtrlC
-	// case "":
-	// tk = termbox.KeyCtrlD
-	// case "":
-	// tk = termbox.KeyCtrlE
-	// case "":
-	// tk = termbox.KeyCtrlF
-	// case "":
-	// tk = termbox.KeyCtrlG
+	case "CTRL+B":
+		tk = termbox.KeyCtrlB
+	case "CTRL+C":
+		tk = termbox.KeyCtrlC
+	case "CTRL+D":
+		tk = termbox.KeyCtrlD
+	case "CTRL+E":
+		tk = termbox.KeyCtrlE
+	case "CTRL+F":
+		tk = termbox.KeyCtrlF
+	case "CTRL+G":
+		tk = termbox.KeyCtrlG
 	case "BACKSPACE":
 		tk = termbox.KeyBackspace
-		// case "":
-		// tk = termbox.KeyCtrlH
-		// case "":
-		// tk = termbox.KeyTab
-		// case "":
-		// tk = termbox.KeyCtrlI
-		// case "":
-		// tk = termbox.KeyCtrlJ
-		// case "":
-		// tk = termbox.KeyCtrlK
-		// case "":
-		// tk = termbox.KeyCtrlL
-		// case "":
-		// tk = termbox.KeyEnter
-		// case "":
-		// tk = termbox.KeyCtrlM
-		// case "":
-		// tk = termbox.KeyCtrlN
-		// case "":
-		// tk = termbox.KeyCtrlO
-		// case "":
-		// tk = termbox.KeyCtrlP
-		// case "":
-		// tk = termbox.KeyCtrlQ
-		// case "":
-		// tk = termbox.KeyCtrlR
-		// case "":
-		// tk = termbox.KeyCtrlS
+	case "CTRL+H":
+		tk = termbox.KeyCtrlH
+	case "TAB":
+		tk = termbox.KeyTab
+	case "CTRL+I":
+		tk = termbox.KeyCtrlI
+	case "CTRL+J":
+		tk = termbox.KeyCtrlJ
+	case "CTRL+K":
+		tk = termbox.KeyCtrlK
+	case "CTRL+L":
+		tk = termbox.KeyCtrlL
+	case "CTRL+M":
+		tk = termbox.KeyCtrlM
+	case "CTRL+N":
+		tk = termbox.KeyCtrlN
+	case "CTRL+O":
+		tk = termbox.KeyCtrlO
+	case "CTRL+P":
+		tk = termbox.KeyCtrlP
+	case "CTRL+Q":
+		tk = termbox.KeyCtrlQ
+	case "CTRL+R":
+		tk = termbox.KeyCtrlR
+	case "CTRL+S":
+		tk = termbox.KeyCtrlS
 	case "CTRL+T":
 		tk = termbox.KeyCtrlT
-		// case "":
-		// tk = termbox.KeyCtrlU
-		// case "":
-		// tk = termbox.KeyCtrlV
-		// case "":
-		// tk = termbox.KeyCtrlW
-		// case "":
-		// tk = termbox.KeyCtrlX
-		// case "":
-		// tk = termbox.KeyCtrlY
-		// case "":
-		// tk = termbox.KeyCtrlZ
+	case "CTRL+U":
+		tk = termbox.KeyCtrlU
+	case "CTRL+V":
+		tk = termbox.KeyCtrlV
+	case "CTRL+W":
+		tk = termbox.KeyCtrlW
+	case "CTRL+X":
+		tk = termbox.KeyCtrlX
+	case "CTRL+Y":
+		tk = termbox.KeyCtrlY
+	case "CTRL+Z":
+		tk = termbox.KeyCtrlZ
 	case "ESC":
 		tk = termbox.KeyEsc
 		// case "":
 		// tk = termbox.KeyCtrlLsqBracket
-		// case "":
-		// tk = termbox.KeyCtrl3
-		// case "":
-		// tk = termbox.KeyCtrl4
-		// case "":
-		// tk = termbox.KeyCtrlBackslash
-		// case "":
-		// tk = termbox.KeyCtrl5
-		// case "":
-		// tk = termbox.KeyCtrlRsqBracket
-		// case "":
-		// tk = termbox.KeyCtrl6
-		// case "":
-		// tk = termbox.KeyCtrl7
-		// case "":
-		// tk = termbox.KeyCtrlSlash
-		// case "":
-		// tk = termbox.KeyCtrlUnderscore
-		// case "":
-		// tk = termbox.KeySpace
-		// case "":
-		// tk = termbox.KeyBackspace2
-		// case "":
-		// tk = termbox.KeyCtrl8
+	case "CTRL+3":
+		tk = termbox.KeyCtrl3
+	case "CTRL+4":
+		tk = termbox.KeyCtrl4
+	case "CTRL+5":
+		tk = termbox.KeyCtrl5
+	case "CTRL+6":
+		tk = termbox.KeyCtrl6
+	case "CTRL+7":
+		tk = termbox.KeyCtrl7
+	case "CTRL+8":
+		tk = termbox.KeyCtrl8
 	}
 	if err.Error() != "no err" {
 		return tk, err

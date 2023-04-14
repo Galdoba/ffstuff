@@ -3,6 +3,7 @@ package sorting
 import "fmt"
 
 type index struct {
+	//source    string
 	possition int
 	selected  bool
 }

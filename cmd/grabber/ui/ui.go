@@ -2,46 +2,60 @@ package ui
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/Galdoba/ffstuff/cmd/grabber/download"
-	"github.com/Galdoba/ffstuff/cmd/grabber/sorting"
 	"github.com/mattn/go-runewidth"
 	"github.com/nsf/termbox-go"
 )
 
 const (
-	commandPAUSE                  = "pause"
-	commandCONTINUE               = "continue"
-	commandNONE                   = "NONE"
-	ACTION_MOVE_CURSOR_UP         = "MOVE_CURSOR_UP"
-	ACTION_MOVE_CURSOR_DOWN       = "MOVE_CURSOR_DOWN"
-	ACTION_TOGGLE_SELECTION_STATE = "TOGGLE_SELECTION_STATE"
-	ACTION_DROP_SELECTIONS        = "DROP_SELECTIONS"
-	ACTION_MOVE_SELECTED_TOP      = "MOVE_SELECTED_TOP"
-	ACTION_MOVE_SELECTED_BOTTOM   = "MOVE_SELECTED_BOTTOM"
-	ACTION_MOVE_SELECTED_UP       = "MOVE_SELECTED_UP"
-	ACTION_MOVE_SELECTED_DOWN     = "MOVE_SELECTED_DOWN"
-	DECIDION_CONFIRM              = "DECIDION_CONFIRM"
-	DECIDION_DENY                 = "DECIDION_DENY"
-	DOWNLOAD_PAUSE                = "DOWNLOAD_PAUSE"
-	input_mode_NORMAL             = 1000
-	input_mode_WAIT_CONFIRM       = 1001
+	commandPAUSE                                 = "pause"
+	commandCONTINUE                              = "continue"
+	commandNONE                                  = "NONE"
+	ACTION_MOVE_CURSOR_UP                        = "MOVE_CURSOR_UP"
+	ACTION_MOVE_CURSOR_DOWN                      = "MOVE_CURSOR_DOWN"
+	ACTION_MOVE_CURSOR_DOWN_AND_TOGGLE_SELECTION = "MOVE_CURSOR_DOWN_AND_TOGGLE_SELECTION"
+	ACTION_TOGGLE_SELECTION_STATE                = "TOGGLE_SELECTION_STATE"
+	ACTION_SELECT_ALL_WITH_SAME_EXTENTION        = "SELECT_ALL_WITH_SAME_EXTENTION"
+	ACTION_DROP_SELECTIONS                       = "DROP_SELECTIONS"
+	ACTION_MOVE_SELECTED_TOP                     = "MOVE_SELECTED_TOP"
+	ACTION_MOVE_SELECTED_BOTTOM                  = "MOVE_SELECTED_BOTTOM"
+	ACTION_MOVE_SELECTED_UP                      = "MOVE_SELECTED_UP"
+	ACTION_MOVE_SELECTED_DOWN                    = "MOVE_SELECTED_DOWN"
+	DECIDION_CONFIRM                             = "DECIDION_CONFIRM"
+	DECIDION_DENY                                = "DECIDION_DENY"
+	DELETE_SELECTED                              = "DELETE_SELECTED"
+	DOWNLOAD_PAUSE                               = "DOWNLOAD_PAUSE"
+	UNDO_MOVEMENT                                = "UNDO_MOVEMENT"
+	input_mode_NORMAL                            = 1000
+	input_mode_WAIT_CONFIRM                      = 1001
+	input_mode_CONFIRM_RECEIVED                  = 1002
+	input_mode_DENIAL_RECEIVED                   = 1003
 )
 
-func actionMap() map[string]func(*allProc, *InfoBox) {
-	mp := make(map[string]func(*allProc, *InfoBox))
+func actionMap() map[string]func(*allProc, *InfoBox) error {
+	mp := make(map[string]func(*allProc, *InfoBox) error)
 
 	mp[ACTION_MOVE_CURSOR_UP] = Action_MoveCursorUP
 	mp[ACTION_MOVE_CURSOR_DOWN] = Action_MoveCursorDOWN
+	mp[ACTION_MOVE_CURSOR_DOWN_AND_TOGGLE_SELECTION] = Action_MoveCursorDOWNandSELECT
 	mp[ACTION_TOGGLE_SELECTION_STATE] = Action_ToggleSelection
+	mp[ACTION_SELECT_ALL_WITH_SAME_EXTENTION] = Action_SelectAllWithSameExtention
 	mp[ACTION_DROP_SELECTIONS] = Action_DropSelection
 	mp[ACTION_MOVE_SELECTED_TOP] = Action_MoveSelectedTop
+	mp[ACTION_MOVE_SELECTED_BOTTOM] = Action_MoveSelectedBottom
+	mp[ACTION_MOVE_SELECTED_UP] = Action_MoveSelectedUp
+	mp[ACTION_MOVE_SELECTED_DOWN] = Action_MoveSelectedDown
 	mp[DECIDION_CONFIRM] = DesidionConfirm
 	mp[DECIDION_DENY] = DesidionDeny
 	mp[DOWNLOAD_PAUSE] = Action_TogglePause
+	mp[UNDO_MOVEMENT] = Action_UndoMovement
+	mp[DELETE_SELECTED] = Action_DeleteSelected
+
 	//mp[ACTION_MOVE_SELECTED_BOTTOM] = Action_MoveSelectedBottom
 	//mp[ACTION_MOVE_SELECTED_UP] = Action_MoveSelectedUp
 	//mp[ACTION_MOVE_SELECTED_DOWN] = Action_MoveSelectedDown
@@ -54,18 +68,21 @@ func actionMap() map[string]func(*allProc, *InfoBox) {
 
 type allProc struct {
 	//procs  []*proc
-	stream                []*stream
-	globalStop            bool
-	activeHandlerChan     chan download.Response
-	streamDataBak         sorting.IndexList
-	streamDataProposition sorting.IndexList
+	stream            []*stream
+	globalStop        bool
+	activeHandlerChan chan download.Response
+	//streamDataBak     sorting.IndexList
+	indexBuf *IndexBuffer
 	//endEvent bool
 	//cursorSelection int
+
 }
 
 type stream struct {
 	source       string
+	temp         string
 	dest         string
+	baseName     string
 	progress     int64
 	expected     int64
 	handler      download.Handler
@@ -74,12 +91,28 @@ type stream struct {
 	isSelected   bool
 }
 
-func (ap *allProc) newStream(source, dest string) {
-	ap.stream = append(ap.stream, &stream{source, dest, 0, 0, nil, "NONE", "NONE", false})
+func (ap *allProc) newStream(source, dest, baseName string) {
+	ap.stream = append(ap.stream, &stream{source, dest + "temp\\", dest, baseName, 0, 0, nil, "NONE", "NONE", false})
 }
 
 func (st *stream) start() error {
-	h, e := download.StartNew(st.source, st.dest)
+	time.Sleep(time.Millisecond * 200)
+	if _, err := os.Stat(st.temp); os.IsNotExist(err) {
+		err := os.Mkdir(st.temp, 0777)
+		if err != nil {
+			panic(err.Error())
+		}
+		// TODO: handle error
+	}
+	// if err := os.Mkdir(st.temp, 0777); err != nil {
+	// 	switch {
+	// 	default:
+	// 		return fmt.Errorf("stream start: %v", err.Error())
+	// 	case strings.Contains(err.Error(), "Cannot create a file when that file already exists"):
+	// 	}
+
+	// }
+	h, e := download.StartNew(st.source, st.temp+"\\"+st.baseName)
 	if e != nil {
 		return e
 	}
@@ -95,7 +128,7 @@ func (st *stream) String() string {
 	case false:
 		str += " ]"
 	}
-	str += " " + st.source + "|" + st.lastCommand + "|" + st.lastResponse
+	str += " " + st.source + "|" + st.lastCommand + "|" + st.lastResponse + "|"
 	return str
 }
 
@@ -169,7 +202,7 @@ func (ib *InfoBox) Draw(ap *allProc) {
 	fg := termbox.ColorWhite
 	bg := termbox.ColorBlack
 	tkr := tickerImage(ib.ticker / 5)
-	tbprint(0, 0, fg, bg, "Last Key Pressed:"+ib.lastKeysPressed)
+	tbprint(0, 0, fg, bg, "Last Key Pressed:"+ib.lastKeysPressed+"__: "+fmt.Sprintf("%v", len(ap.indexBuf.Set)))
 	tbprint(0, 1, fg, bg, "Tiker:"+tkr)
 	tbprint(0, 2, fg, bg, "Grabber Dowloading:")
 	for i, data := range ib.data {
@@ -195,13 +228,13 @@ func tbprint(x, y int, fg, bg termbox.Attribute, msg string) {
 }
 
 func (ib *InfoBox) Update(ap *allProc) error {
-	match, err := sorting.Check(ap.streamDataProposition, ap.streamDataBak)
-	if err != nil {
-		return fmt.Errorf("func (ib *InfoBox) Update(ap *allProc): %v", err.Error()) //DEBUG
-	}
-	if !match && ib.inputMode == input_mode_NORMAL {
-		switchToWaitConfirmMode(ap, ib)
-	}
+	// match, err := sorting.Check(ap.streamDataProposition, ap.streamDataBak)
+	// if err != nil {
+	// 	return fmt.Errorf("func (ib *InfoBox) Update(ap *allProc): %v", err.Error()) //DEBUG
+	// }
+	// if !match && ib.inputMode == input_mode_NORMAL {
+	// 	//switchToWaitConfirmMode(ap, ib)
+	// }
 	newData := []string{}
 	switch ib.inputMode {
 	default:
@@ -211,11 +244,18 @@ func (ib *InfoBox) Update(ap *allProc) error {
 			newData = append(newData, pr.String())
 		}
 	case input_mode_WAIT_CONFIRM:
-		pos, sel := ap.streamDataProposition.Export()
-		for i, _ := range sel {
-			pr := ap.stream[pos[i]].String()
-			newData = append(newData, pr)
+		newData = append(newData, "Press Enter to confirm or Esc to deny")
+		for _, pr := range ap.stream {
+			newData = append(newData, pr.String())
 		}
+		//panic("not expecting confirm mode")
+		//pos, sel := ap.streamDataProposition.Export()
+		// for i, _ := range sel {
+		// 	pr := ap.stream[pos[i]].String()
+		// 	newData = append(newData, pr)
+		// }
+		// case input_mode_CONFIRM_RECEIVED, input_mode_DENIAL_RECEIVED:
+		// 	switchToNORMALMode(ap, ib)
 	}
 	ib.data = newData
 	return nil
@@ -226,7 +266,7 @@ func SetupProcesses(dest string, paths ...string) *allProc {
 
 	for _, path := range paths {
 		file := filepath.Base(path)
-		ap.newStream(path, dest+file)
+		ap.newStream(path, dest, file)
 	}
 	return &ap
 }
@@ -240,7 +280,7 @@ type action struct {
 	key            string
 	termbxKey      []termbox.Key
 	termbxRunes    []rune
-	function       func(*allProc, *InfoBox)
+	function       func(*allProc, *InfoBox) error
 	validInputMode int
 }
 
@@ -249,9 +289,12 @@ func (act *action) setValidInputMode() {
 	if strings.Contains(act.eventName, "DECIDION") {
 		act.validInputMode = input_mode_WAIT_CONFIRM
 	}
+	// if strings.Contains(act.eventName, "DELETE") {
+	// 	act.validInputMode = input_mode_CONFIRM_RECEIVED
+	// }
 }
 
-func setupAction(key string, configMap map[string]string, function func(*allProc, *InfoBox)) ([]action, error) {
+func setupAction(key string, configMap map[string]string, function func(*allProc, *InfoBox) error) ([]action, error) {
 	indexList := []string{}
 	for k := range configMap {
 		if strings.Contains(k, key) {
@@ -305,15 +348,7 @@ func (actpl *ActionPool) fillCommandActionMap(configMap map[string]string) error
 	}
 
 	/*TODO: Прописать действия
-	переместить выделенное по списку вверх на 1 позицию
-	переместить выделенное по списку вниз на 1 позицию
-	переместить выделенное по списку вверх до предела . . . ok
-	переместить выделенное по списку вниз до предела
-	удаление из очереди
-	активная пауза (для всех процессов)
 	включить/выключить ограниченную скорость закачки
-	сброс всех выделений . . .  . .  . .  . .  .  . .  .  . .  ok
-	инсерт (переключение выделение со сдвигом курсора вниз на 1 позицию)
 	*/
 
 	for k, actions := range actpl.acmap {
@@ -379,8 +414,12 @@ func StartMainloop(configMap map[string]string, paths []string) error {
 	}()
 
 	draw_tick := time.NewTicker(200 * time.Millisecond)
-	handlerEvents := make(chan download.Response)
+	//handlerEvents := make(chan download.Response)
+	ap.activeHandlerChan = make(chan download.Response)
 	//Tick := 0
+	ap.indexBuf = CreateIndexBuffer()
+	//ap.indexBuf.Set = []IndexState{ap.IndexStateCurrent()}
+	ap.SaveState()
 
 loop:
 	for {
@@ -392,8 +431,10 @@ loop:
 			if err != nil {
 				panic("start dowload stream: " + err.Error())
 			}
-			handlerEvents = ap.stream[0].handler.Listen()
-			//Action_StartNext(ap, ib)
+			//handlerEvents = ap.stream[0].handler.Listen()
+			ap.stream[0].lastCommand = commandCONTINUE
+			ap.activeHandlerChan = ap.stream[0].handler.Listen()
+			// 	//Action_StartNext(ap, ib)
 		}
 
 		select {
@@ -410,6 +451,10 @@ loop:
 							if action.validInputMode == ib.inputMode {
 								ib.lastKeysPressed += " do action" + " " + action.eventName
 								action.function(ap, ib)
+								switch action.eventName {
+								case ACTION_MOVE_SELECTED_UP, ACTION_MOVE_SELECTED_TOP, ACTION_MOVE_SELECTED_DOWN, ACTION_MOVE_SELECTED_BOTTOM:
+									ap.SaveState()
+								}
 								break
 							} else {
 								ib.lastKeysPressed += " skip action" + " " + action.eventName
@@ -417,9 +462,6 @@ loop:
 						}
 
 					}
-					// if ap.stream[0].lastCommand == commandPAUSE && ap.stream[0].handler != nil {
-					// 	ap.stream[0].handler.Continue()
-					// }
 				case 'q', 'й':
 					break loop
 				default:
@@ -429,29 +471,42 @@ loop:
 						if action.validInputMode != ib.inputMode {
 							continue
 						}
-						//if action, ok := actionPool.byKBKey[key]; ok {
 						action.function(ap, ib)
-						ib.lastKeysPressed += "  " + action.eventName
-						//}
+						switch action.eventName {
+						case ACTION_MOVE_SELECTED_UP, ACTION_MOVE_SELECTED_TOP, ACTION_MOVE_SELECTED_DOWN, ACTION_MOVE_SELECTED_BOTTOM:
+							ap.SaveState()
+						}
+						ib.lastKeysPressed = key + " do action  " + action.eventName
+
 					}
-					ib.lastKeysPressed = key //fmt.Sprintf("%v", string(ev.Ch))
-					//ib.lastKeysPressed = string(ev.Ch)
+					//ib.lastKeysPressed = key //fmt.Sprintf("%v", string(ev.Ch))
 				}
 				ib.ticker = 1
 			}
 		case <-draw_tick.C:
 			ib.ticker++
+			if len(ap.stream) == 0 {
+				break loop
+			}
 			if ap.stream[0].handler != nil && ap.stream[0].lastCommand == commandCONTINUE {
 
 				//	ap.stream[0].handler.Continue()
-				handlerEvents = ap.stream[0].handler.Listen()
+				//handlerEvents = ap.stream[0].handler.Listen()
+				ap.activeHandlerChan = ap.stream[0].handler.Listen()
 			}
-		case ev := <-handlerEvents:
+		//		case ev := <-handlerEvents:
+		case ev := <-ap.activeHandlerChan:
 			ap.stream[0].lastResponse = ev.String()
 			if ev.String() == "completed" {
+
 				ib.ticker = 0
+				if err := ap.CloseStream(); err != nil {
+					panic("CLOSE STREAM: " + err.Error())
+				}
 				Action_StartNext(ap, ib)
-				handlerEvents = make(chan download.Response)
+				//Action_Continue(ap, ib)
+				//handlerEvents = make(chan download.Response)
+				ap.activeHandlerChan = make(chan download.Response)
 			}
 
 		}
@@ -460,248 +515,13 @@ loop:
 		ib.Draw(ap)
 
 	}
+
 	fmt.Println("END")
+
 	return nil
 }
 
 ////////////////////
-
-func Action_ToggleSelection(ap *allProc, ib *InfoBox) {
-	ap.stream[ib.cursor].isSelected = !ap.stream[ib.cursor].isSelected
-}
-
-func Action_MoveCursorUP(ap *allProc, ib *InfoBox) {
-	ib.cursor--
-	if ib.cursor < 0 {
-		ib.cursor = 0
-	}
-}
-
-func Action_MoveCursorDOWN(ap *allProc, ib *InfoBox) {
-	ib.cursor++
-	for ib.cursor >= len(ap.stream) {
-		ib.cursor--
-	}
-}
-
-// func Action_MoveSelectionTO(ap *allProc, ib *InfoBox, pos int) {
-// 	ib.cursor = pos
-// 	if ib.cursor < 0 {
-// 		ib.cursor = 0
-// 	}
-// 	for ib.cursor >= len(ap.stream) {
-// 		ib.cursor--
-// 	}
-// }
-
-func saveCursor(ap *allProc, ib *InfoBox) string {
-	return ap.stream[ib.cursor].source
-}
-
-func restoreCursor(ap []*stream, src string) int {
-	for i, stream := range ap {
-		if src != stream.source {
-			continue
-		}
-		return i
-	}
-	return 0
-}
-
-func nothingSelected(bArray []bool) bool {
-	for _, b := range bArray {
-		if b {
-			return false
-		}
-	}
-	return true
-}
-
-func Action_MoveSelectedTop(ap *allProc, ib *InfoBox) {
-	if nothingSelected(ap.ExportSelected()) {
-		return
-	}
-	Action_Pause(ap, ib)
-
-	selected := ap.ExportSelected()
-	il := sorting.Import(selected)
-	ap.streamDataBak = *il
-	il.MoveTop()
-	ap.streamDataProposition = *il
-	//switchToWaitConfirmMode(ap, ib)
-
-	// newIndex, newSelected := il.Export()
-	// newStreamOrder := []*stream{}
-	// for i, newInd := range newIndex {
-	// 	newStreamOrder = append(newStreamOrder, ap.stream[newInd])
-	// 	newStreamOrder[i].isSelected = newSelected[i]
-	// }
-	//cursorName := saveCursor(ap, ib)
-	//termbox.Clear(termbox.ColorBlack, termbox.ColorBlack)
-
-	// pseudoAP := copyAP(ap)
-	// pseudoAP.stream = newStreamOrder
-	// ib.Update(pseudoAP)
-	// ib.Draw(pseudoAP)
-	// time.Sleep(time.Second * 5)
-	// pseudoAP = &allProc{}
-	//ap.stream = newStreamOrder
-	//ib.cursor = restoreCursor(ap.stream, cursorName)
-}
-
-func copyAP(ap *allProc) *allProc {
-	newAP := allProc{
-		stream:     ap.stream,
-		globalStop: true,
-	}
-	return &newAP
-}
-
-func Action_MoveSelectedUp(ap *allProc, ib *InfoBox) {
-	globalStop(ap)
-	cursorName := saveCursor(ap, ib)
-	sel := []int{}
-	unsel := []int{}
-	for i, str := range ap.stream {
-		switch str.isSelected {
-		case true:
-			sel = append(sel, i)
-		case false:
-			unsel = append(unsel, i)
-		}
-	}
-	newStreamOrder := []*stream{}
-	for _, s := range sel {
-		newStreamOrder = append(newStreamOrder, ap.stream[s])
-	}
-	for _, uns := range unsel {
-		newStreamOrder = append(newStreamOrder, ap.stream[uns])
-	}
-	ap.stream = newStreamOrder
-	ib.cursor = restoreCursor(ap.stream, cursorName)
-}
-
-func globalStop(ap *allProc) {
-	for i := range ap.stream {
-		if ap.stream[i].handler == nil {
-			continue
-		}
-		ap.stream[i].handler.Pause()
-		ap.stream[i].lastCommand = commandPAUSE
-	}
-	time.Sleep(time.Millisecond * 200)
-}
-
-func Action_MoveSelectedBottom(ap *allProc, ib *InfoBox) {
-	switch ib.inputMode {
-	case input_mode_NORMAL:
-		cursorName := saveCursor(ap, ib)
-		ap.reverseStreamOrder()
-		Action_MoveSelectedTop(ap, ib)
-		ap.reverseStreamOrder()
-		ib.cursor = restoreCursor(ap.stream, cursorName)
-	}
-
-}
-
-func Action_DropSelection(ap *allProc, ib *InfoBox) {
-	for i := range ap.stream {
-		ap.stream[i].isSelected = false
-	}
-}
-
-func Action_TogglePause(ap *allProc, ib *InfoBox) {
-
-	if ap.stream[0].lastCommand == commandPAUSE {
-		Action_Continue(ap, ib)
-		return
-	}
-	if ap.stream[0].lastCommand == commandNONE {
-		Action_Continue(ap, ib)
-		return
-	}
-	Action_Pause(ap, ib)
-
-}
-
-func Action_Pause(ap *allProc, ib *InfoBox) {
-	if ap.stream[0].handler != nil {
-		ap.stream[0].handler.Pause()
-		ap.stream[0].lastCommand = commandPAUSE
-		time.Sleep(time.Millisecond * 200)
-	}
-}
-
-func Action_Continue(ap *allProc, ib *InfoBox) {
-	if ap.stream[0].handler != nil {
-		ap.stream[0].handler.Continue()
-		ap.stream[0].lastCommand = commandCONTINUE
-	}
-}
-
-func Action_StartNext(ap *allProc, ib *InfoBox) {
-	if ib.inputMode != input_mode_NORMAL {
-		return
-	}
-	if len(ap.stream) > 1 {
-		ap.stream = ap.stream[1:]
-		Action_MoveCursorUP(ap, ib)
-		if ap.stream[0].lastCommand == commandPAUSE {
-			Action_Continue(ap, ib)
-		}
-	} else {
-		ap.stream = nil
-		return
-	}
-}
-
-func switchToWaitConfirmMode(ap *allProc, ib *InfoBox) {
-	Action_Pause(ap, ib)
-	ib.inputMode = input_mode_WAIT_CONFIRM
-}
-
-func switchToNORMALMode(ap *allProc, ib *InfoBox) {
-	ib.inputMode = input_mode_NORMAL
-	Action_DropSelection(ap, ib)
-	if len(ap.stream) == 0 {
-		return
-	}
-	if ap.stream[0].lastCommand == commandPAUSE {
-		Action_Continue(ap, ib)
-	}
-}
-
-func DesidionConfirm(ap *allProc, ib *InfoBox) {
-	switch ib.inputMode {
-	case input_mode_WAIT_CONFIRM:
-		newIndex, newSelected := ap.streamDataProposition.Export()
-		newStreamOrder := []*stream{}
-		for i, newInd := range newIndex {
-			newStreamOrder = append(newStreamOrder, ap.stream[newInd])
-			newStreamOrder[i].isSelected = newSelected[i]
-		}
-		ap.stream = newStreamOrder
-		ap.streamDataBak = sorting.IndexList{}
-		ap.streamDataProposition = sorting.IndexList{}
-		switchToNORMALMode(ap, ib)
-	}
-}
-
-func DesidionDeny(ap *allProc, ib *InfoBox) {
-	switch ib.inputMode {
-	case input_mode_WAIT_CONFIRM:
-		newIndex, newSelected := ap.streamDataBak.Export()
-		newStreamOrder := []*stream{}
-		for i, newInd := range newIndex {
-			newStreamOrder = append(newStreamOrder, ap.stream[newInd])
-			newStreamOrder[i].isSelected = newSelected[i]
-		}
-		ap.stream = newStreamOrder
-		ap.streamDataBak = sorting.IndexList{}
-		ap.streamDataProposition = sorting.IndexList{}
-		switchToNORMALMode(ap, ib)
-	}
-}
 
 func (ap *allProc) ExportSelected() []bool {
 	sel := []bool{}
@@ -709,6 +529,46 @@ func (ap *allProc) ExportSelected() []bool {
 		sel = append(sel, stream.isSelected)
 	}
 	return sel
+}
+
+func renameFile(stream *stream) {
+	renamed := false
+	try := 0
+	for !renamed {
+		if err := os.Rename(stream.temp+stream.baseName, stream.dest+stream.baseName); err != nil {
+			try++
+			if try > 10000 {
+				panic("can move file " + stream.baseName + " to " + stream.dest)
+			}
+			time.Sleep(time.Millisecond * 100)
+		}
+	}
+}
+
+func (ap *allProc) CloseStream() error {
+	if len(ap.stream) < 1 {
+		return fmt.Errorf(" CloseStream(): no streams to close")
+	}
+	stream := ap.stream[0]
+	time.Sleep(time.Millisecond * 500)
+	if _, err := os.Stat(stream.dest + stream.baseName); os.IsNotExist(err) {
+		go renameFile(stream)
+	}
+	time.Sleep(time.Millisecond * 200)
+	ap.indexBuf.Remove(stream.source)
+	ap.activeHandlerChan = nil
+	if len(ap.stream) > 0 {
+		ap.stream = ap.stream[1:]
+	}
+	return nil
+}
+
+func (ap *allProc) StreamString() string {
+	s := ""
+	for _, str := range ap.stream {
+		s += str.lastCommand + "=" + str.lastResponse + "=" + str.source + "\n"
+	}
+	return s
 }
 
 // func qqq() {
@@ -751,3 +611,121 @@ func (ap *allProc) ExportSelected() []bool {
 // 		}
 // 	}
 // }
+
+type IndexData struct {
+	//InitialPos int
+	SavedPos int
+	Selected bool
+}
+
+type IndexState struct {
+	state map[string]IndexData
+}
+
+type IndexBuffer struct {
+	SavedStates int
+	Set         []IndexState
+}
+
+func (ap *allProc) IndexStateCurrent() IndexState {
+	is := IndexState{}
+	is.state = map[string]IndexData{}
+	for i, stream := range ap.stream {
+		is.state[stream.source] = IndexData{i, stream.isSelected}
+	}
+	return is
+}
+
+func CreateIndexBuffer() *IndexBuffer {
+	indBuf := IndexBuffer{}
+	return &indBuf
+}
+
+func (indBuf *IndexBuffer) LastState() IndexState {
+	indexLen := len(indBuf.Set)
+	if indexLen == 0 {
+		return IndexState{}
+	}
+	return indBuf.Set[len(indBuf.Set)-1]
+}
+
+func (ap *allProc) Selected() []bool {
+	sel := []bool{}
+	lastState := ap.indexBuf.LastState()
+	for _, stream := range ap.stream {
+		sel = append(sel, lastState.state[stream.source].Selected)
+	}
+	return sel
+}
+
+func statesEqual(index1, index2 IndexState) bool {
+	l1 := len(index1.state)
+	l2 := len(index2.state)
+	if l1 == 0 {
+		return false
+	}
+	if l2 == 0 {
+		return false
+	}
+
+	for k := range index1.state {
+		//if index1.state[k].SavedPos != index2.state[k].SavedPos || index1.state[k].Selected != index2.state[k].Selected {
+		if index1.state[k].SavedPos != index2.state[k].SavedPos || index1.state[k].Selected != index2.state[k].Selected {
+			//			panic(fmt.Sprintf("%v: %v = %v   %v = %v", k, index1.state[k].SavedPos, index2.state[k].SavedPos, index1.state[k].Selected, index2.state[k].Selected))
+			return false
+		}
+	}
+	return true
+}
+
+func (is *IndexState) String() string {
+	str := ""
+	for k, v := range is.state {
+		str += k + fmt.Sprintf("%v\n", v)
+	}
+	return str
+}
+
+func (ap *allProc) SaveState() {
+
+	current := ap.IndexStateCurrent()
+	last := ap.indexBuf.LastState()
+	if !statesEqual(current, last) {
+		//panic(current.String() + "===" + current.String())
+		ap.indexBuf.Set = append(ap.indexBuf.Set, ap.IndexStateCurrent())
+	}
+
+}
+
+func (indBuf *IndexBuffer) DeleteLast() {
+	if len(indBuf.Set) < 2 {
+		return
+	}
+	indBuf.Set = indBuf.Set[:len(indBuf.Set)-1]
+}
+
+func (indBuf *IndexBuffer) Remove(source string) {
+	for i, _ := range indBuf.Set {
+		positionWas := indBuf.Set[i].state[source].SavedPos
+		delete(indBuf.Set[i].state, source)
+		for k, v := range indBuf.Set[i].state {
+			if v.SavedPos > positionWas {
+				v.SavedPos--
+			}
+			indBuf.Set[i].state[k] = v
+		}
+	}
+}
+
+func (ap *allProc) arrangeStreamsBy(index IndexState) {
+	newOrder := ap.stream
+	for i, stream := range ap.stream {
+		recall := index.state[stream.source]
+		if recall.SavedPos >= len(newOrder) {
+			panic(fmt.Sprintf("DEBUG must not happen: saved=%v; len=%v", recall.SavedPos, len(newOrder)))
+		}
+		newOrder[i].isSelected = recall.Selected
+		newOrder[i], newOrder[recall.SavedPos] = newOrder[recall.SavedPos], newOrder[i]
+	}
+	ap.stream = newOrder
+}
