@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -73,26 +74,35 @@ type allProc struct {
 	activeHandlerChan chan download.Response
 	//streamDataBak     sorting.IndexList
 	indexBuf *IndexBuffer
+	warnings []warning
 	//endEvent bool
 	//cursorSelection int
 
 }
 
 type stream struct {
-	source       string
-	temp         string
-	dest         string
-	baseName     string
-	progress     int64
-	expected     int64
-	handler      download.Handler
-	lastResponse string
-	lastCommand  string
-	isSelected   bool
+	source           string
+	temp             string
+	dest             string
+	baseName         string
+	progress         int64
+	expected         int64
+	handler          download.Handler
+	lastResponse     string
+	lastResponseTime time.Time
+	lastCommand      string
+	isSelected       bool
+	size             int64
 }
 
 func (ap *allProc) newStream(source, dest, baseName string) {
-	ap.stream = append(ap.stream, &stream{source, dest + "temp\\", dest, baseName, 0, 0, nil, "NONE", "NONE", false})
+	f, err := os.Stat(source)
+
+	size := int64(1)
+	if err == nil {
+		size = f.Size()
+	}
+	ap.stream = append(ap.stream, &stream{source, dest + "temp\\", dest, baseName, 0, 0, nil, "NONE", time.Now(), "NONE", false, size})
 }
 
 func (st *stream) start() error {
@@ -128,8 +138,28 @@ func (st *stream) String() string {
 	case false:
 		str += " ]"
 	}
-	str += " " + st.source + "|" + st.lastCommand + "|" + st.lastResponse + "|"
+	str += " " + st.source + "|" + st.lastCommand + "|" + st.Progress()
 	return str
+}
+
+func (st *stream) Progress() string {
+	if strings.Contains(st.lastResponse, "error responce") {
+		return st.lastResponse
+	}
+
+	switch st.lastResponse {
+	default:
+		prog, err := strconv.ParseInt(st.lastResponse, 10, 64)
+		if err != nil {
+			return "not started"
+		}
+		proc := prog / (st.size / 100)
+		return fmt.Sprintf(" %v", proc) + "% "
+	case "completed":
+		return "completed"
+	case "terminated":
+		return "terminated"
+	}
 }
 
 // func (ap *allProc) String() string {
@@ -241,8 +271,16 @@ func (ib *InfoBox) Update(ap *allProc) error {
 		return fmt.Errorf("unknown input mode: %v", ib.inputMode)
 	case input_mode_NORMAL:
 		for _, pr := range ap.stream {
+
 			newData = append(newData, pr.String())
 		}
+		if len(ap.warnings) > 0 {
+			newData = append(newData, "==WARNINGS========")
+			for _, wrn := range ap.warnings {
+				newData = append(newData, wrn.base+": "+wrn.text)
+			}
+		}
+
 	case input_mode_WAIT_CONFIRM:
 		newData = append(newData, "Press Enter to confirm or Esc to deny")
 		for _, pr := range ap.stream {
@@ -423,10 +461,11 @@ func StartMainloop(configMap map[string]string, paths []string) error {
 
 loop:
 	for {
-		if len(ap.stream) == 0 {
+		ap.initialCheck()
+		if len(ap.stream) == 0 && len(ap.warnings) == 0 {
 			break
 		}
-		if ap.stream[0].handler == nil {
+		if len(ap.stream) > 0 && ap.stream[0].handler == nil {
 			err := ap.stream[0].start()
 			if err != nil {
 				panic("start dowload stream: " + err.Error())
@@ -485,21 +524,24 @@ loop:
 			}
 		case <-draw_tick.C:
 			ib.ticker++
-			if len(ap.stream) == 0 {
+			if len(ap.stream) == 0 && len(ap.warnings) == 0 {
 				break loop
 			}
-			if ap.stream[0].handler != nil && ap.stream[0].lastCommand == commandCONTINUE {
+			if len(ap.stream) > 0 && ap.stream[0].handler != nil && ap.stream[0].lastCommand == commandCONTINUE {
 
 				//	ap.stream[0].handler.Continue()
 				//handlerEvents = ap.stream[0].handler.Listen()
 				ap.activeHandlerChan = ap.stream[0].handler.Listen()
 			}
+			ap.confirmStreams()
 		//		case ev := <-handlerEvents:
 		case ev := <-ap.activeHandlerChan:
 			ap.stream[0].lastResponse = ev.String()
 			if ev.String() == "completed" {
 
 				ib.ticker = 0
+
+				//err := ap.CloseStream()
 				if err := ap.CloseStream(); err != nil {
 					panic("CLOSE STREAM: " + err.Error())
 				}
@@ -531,18 +573,9 @@ func (ap *allProc) ExportSelected() []bool {
 	return sel
 }
 
-func renameFile(stream *stream) {
-	renamed := false
-	try := 0
-	for !renamed {
-		if err := os.Rename(stream.temp+stream.baseName, stream.dest+stream.baseName); err != nil {
-			try++
-			if try > 10000 {
-				panic("can move file " + stream.baseName + " to " + stream.dest)
-			}
-			time.Sleep(time.Millisecond * 100)
-		}
-	}
+func renameFile(stream *stream) error {
+	//panic(stream.temp + stream.baseName + "===>" + stream.dest + stream.baseName)
+	return os.Rename(stream.temp+stream.baseName, stream.dest+stream.baseName)
 }
 
 func (ap *allProc) CloseStream() error {
@@ -550,11 +583,17 @@ func (ap *allProc) CloseStream() error {
 		return fmt.Errorf(" CloseStream(): no streams to close")
 	}
 	stream := ap.stream[0]
+	ap.addWarning(newWarning(stream.baseName, stream.temp, stream.dest, "transfert not confirmed"))
 	time.Sleep(time.Millisecond * 500)
-	if _, err := os.Stat(stream.dest + stream.baseName); os.IsNotExist(err) {
-		go renameFile(stream)
-	}
-	time.Sleep(time.Millisecond * 200)
+
+	// if _, err := os.Stat(stream.dest + stream.baseName); os.IsNotExist(err) {
+	// 	go renameFile(stream)
+	// }
+	// time.Sleep(time.Millisecond * 200)
+	//ap.warnings = append(ap.warnings, stream.baseName+"|"+stream.temp+"|"+stream.dest)
+	/*
+		The process cannot access the file because it is being used by an  tobot_s01_12_2010__hd_rus20.m4a: rename d:\IN\IN_2022-05-11\proxy\temp\tobot_s01_12_2010__hd_rus20.m4a d:\IN\IN_2022-05-11\proxy\tobot_s01_12_2010__hd_rus20.m4a: The system cannot find the file specified.
+	*/
 	ap.indexBuf.Remove(stream.source)
 	ap.activeHandlerChan = nil
 	if len(ap.stream) > 0 {
@@ -728,4 +767,98 @@ func (ap *allProc) arrangeStreamsBy(index IndexState) {
 		newOrder[i], newOrder[recall.SavedPos] = newOrder[recall.SavedPos], newOrder[i]
 	}
 	ap.stream = newOrder
+}
+
+const (
+	stat_haveDuplicate = 10
+	stat_notConfirmed  = 11
+)
+
+type warning struct {
+	base string
+	temp string
+	dest string
+	//status int
+	text string
+}
+
+func newWarning(base, temp, dest, msg string) warning {
+	wrn := warning{}
+	wrn.base = base
+	wrn.dest = dest
+	wrn.temp = temp
+	wrn.text = msg
+	return wrn
+}
+
+func (ap *allProc) addWarning(wrn warning) {
+	for i, haveW := range ap.warnings {
+		if haveW.base == wrn.base {
+			ap.warnings[i] = wrn
+			return
+		}
+	}
+	ap.warnings = append(ap.warnings, wrn)
+}
+
+func (ap *allProc) removeWarning(wrnBase string) {
+	newW := []warning{}
+	for _, w := range ap.warnings {
+		if wrnBase == w.base {
+			continue
+		}
+		newW = append(newW, w)
+	}
+	ap.warnings = newW
+}
+
+func (ap *allProc) confirmStreams() {
+	for _, wrn := range ap.warnings {
+		if err := renameFileName(wrn.temp+wrn.base, wrn.dest+wrn.base); err != nil {
+			if strings.Contains(err.Error(), "The system cannot find the file specified") {
+				ap.addWarning(newWarning(wrn.base, wrn.temp, wrn.dest, "The system cannot find the file specified"))
+			}
+			if strings.Contains(err.Error(), "The process cannot access the file") {
+				ap.addWarning(newWarning(wrn.base, wrn.temp, wrn.dest, "The process cannot access the file"))
+			}
+			ap.addWarning(newWarning(wrn.base, wrn.temp, wrn.dest, err.Error()))
+		} else {
+			ap.removeWarning(wrn.base)
+		}
+	}
+}
+
+func (ap *allProc) initialCheck() {
+	for _, stream := range ap.stream {
+		exist, err := exists(stream.dest + stream.baseName)
+		if err != nil {
+			ap.addWarning(newWarning(stream.baseName, stream.temp, stream.dest, err.Error()))
+			continue
+		}
+		if exist {
+			ap.addWarning(newWarning(stream.baseName, stream.temp, stream.dest, "duplicate found"))
+		}
+	}
+}
+
+func renameFileName(file1, file2 string) error {
+	exist, err := exists(file2)
+	if err != nil {
+		return err
+	}
+	if exist {
+		return fmt.Errorf("duplicate found") //./IN/@SCRIPTS
+	}
+	return os.Rename(file1, file2)
+}
+
+func exists(path string) (bool, error) {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true, nil
+	}
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	return false, err
 }

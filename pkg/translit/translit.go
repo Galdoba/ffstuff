@@ -17,7 +17,8 @@ func Transliterate(origin string) string {
 		result += w + "_"
 	}
 	result = strings.TrimSuffix(result, "_")
-	result = strings.ToTitle(result)
+	result = strings.Title(result)
+
 	return result
 }
 
@@ -63,7 +64,7 @@ func change(a string) string {
 			"ю": "yu",
 			"я": "ya"}
 		return lMap[a]
-	case "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", ".", `/`, `\`:
+	case "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", `/`, `\`:
 		return a
 	}
 }

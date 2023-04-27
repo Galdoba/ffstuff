@@ -195,13 +195,18 @@ func Action_StartNext(ap *allProc, ib *InfoBox) error {
 	if ap.stream == nil {
 		return fmt.Errorf(" Action_StartNext(): no streams to start")
 	}
-	if ap.activeHandlerChan == nil && len(ap.stream) > 0 {
+	if len(ap.stream) == 0 {
+		return fmt.Errorf("no streams")
+	}
+	if ap.activeHandlerChan == nil {
 		ap.stream[0].start()
 		ap.activeHandlerChan = ap.stream[0].handler.Listen()
 		switch ap.stream[0].lastCommand {
 		case commandPAUSE, commandNONE:
 			Action_Continue(ap, ib)
 		}
+	} else {
+		panic("hand")
 	}
 	return Action_MoveCursorUP(ap, ib)
 }

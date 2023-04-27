@@ -236,8 +236,6 @@ func (si *silence) String() string {
 	if silDet > 0 {
 		rep = "[" + strings.Join(glph, "") + "]"
 		rep += fmt.Sprintf("\nSilence detected: %v", silDet) + "%"
-	} else {
-		rep += "No silence detected"
 	}
 	return rep
 }

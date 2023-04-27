@@ -67,7 +67,7 @@ func (r *Response) String() string {
 	if r.err != nil {
 		return fmt.Sprintf("error responce:  %v", r.err.Error())
 	}
-	return fmt.Sprintf("progress  %v", r.progress)
+	return fmt.Sprintf("%v", r.progress)
 }
 
 type downloadHandler struct {

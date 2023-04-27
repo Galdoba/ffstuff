@@ -8,7 +8,6 @@ import (
 
 	"github.com/urfave/cli"
 
-	"github.com/Galdoba/ffstuff/pkg/config"
 	"github.com/Galdoba/ffstuff/pkg/silence"
 )
 
@@ -17,20 +16,20 @@ var configMap map[string]string
 //var logger glog.Logger
 var logLocation string
 
-func init() {
-	conf, err := config.ReadProgramConfig("ffstuff")
-	if err != nil {
-		fmt.Println(err)
-	}
-	configMap = conf.Field
-	if err != nil {
-		switch err.Error() {
-		case "Config file not found":
-			fmt.Print("Expecting config file in:\n", conf.Path)
-			os.Exit(1)
-		}
-	}
-}
+// func init() {
+// 	conf, err := config.ReadProgramConfig("ffstuff")
+// 	if err != nil {
+// 		fmt.Println(err)
+// 	}
+// 	configMap = conf.Field
+// 	if err != nil {
+// 		switch err.Error() {
+// 		case "Config file not found":
+// 			fmt.Print("Expecting config file in:\n", conf.Path)
+// 			os.Exit(1)
+// 		}
+// 	}
+// }
 
 func main() {
 	//root := configMap[constant.SearchRoot]
