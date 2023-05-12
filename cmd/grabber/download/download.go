@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sync"
 )
 
 const (
@@ -53,10 +54,6 @@ func NewResponseTerminated() Response {
 	}
 }
 
-func (dj *downloadHandler) Listen() chan Response {
-	return dj.resp_chan
-}
-
 func (r *Response) String() string {
 	if r.completed {
 		return "completed"
@@ -71,67 +68,158 @@ func (r *Response) String() string {
 }
 
 type downloadHandler struct {
-	com_chan  chan Command
-	resp_chan chan Response
+	mutex        sync.Mutex
+	com_chan     chan Command
+	status       Status
+	progress     int64
+	fileSize     int64
+	speedLimit   int64
+	speedCurrent int64
+	err          error
 }
+
+type Status int
+
+const (
+	STATUS_NIL Status = iota
+	STATUS_TRANSFERING
+	STATUS_PAUSED
+	STATUS_ERR
+	STATUS_TERMINATED
+	STATUS_COMPLETED
+)
 
 type Handler interface {
-	Listen() chan Response
+	//send command
 	Continue()
 	Pause()
-	Kill()
+	Close()
+	//getter
+	Status() Status
+	Error() error
+	Progress() int64
+	FileSize() int64
 }
 
-/*
+var _ Handler = (*downloadHandler)(nil)
 
-
-handler, err := download.NewHandler(source, dest string)
-handler.Listen()
-handler.Pause()
-handler.Kill()
-
-stream, err := download.StartNew(source, dest string)
-stream.Listen()
-stream.Pause()
-stream.Kill()
-
-*/
-
-func StartNew(source, dest string) (*downloadHandler, error) {
+func StartNew(source, dest string) *downloadHandler {
 	dj := downloadHandler{}
 	in, err := os.Open(source)
 	if err != nil {
-		return &dj, err
+		dj.setError(err)
+		return &dj
 	}
-	out, err := os.Create(dest)
-	if err != nil {
-		in.Close()
-		return &dj, err
-	}
+
 	dj.com_chan = make(chan Command)
-	dj.resp_chan = make(chan Response)
+
 	go func() {
-		transferData(out, in, dj.com_chan, dj.resp_chan)
-		in.Close()
-		out.Close()
+		defer func() {
+			close(dj.com_chan)
+			for range dj.com_chan {
+			}
+		}()
+		defer in.Close()
+
+		out, err := os.Create(dest)
+		defer out.Close()
+		if err != nil {
+			dj.setError(err)
+			return
+		}
+
+		//assert(!dj.isReady(), "MUST NOT BE HAPPENED")
+
+		dj.transferData(out, in)
+
+		//assert(!dj.isReady(), "MUST NOT BE HAPPENED")
+
+		// close(dj.com_chan)
+		// for range dj.com_chan {
+		// }
 	}()
-	return &dj, nil
+
+	fi, err := in.Stat()
+	if err != nil {
+		dj.setError(err)
+		return &dj
+	}
+	dj.fileSize = fi.Size()
+	return &dj
 }
 
-func (ds *downloadHandler) Pause() {
-	ds.com_chan <- com_Pause
+func assert(ok bool, msg string) {
+	if !ok {
+		panic(msg)
+	}
 }
 
-func (ds *downloadHandler) Continue() {
-	ds.com_chan <- com_Continue
+func (dj *downloadHandler) isReady() bool {
+	status := dj.Status()
+	if status < STATUS_ERR {
+		return true
+	}
+	return false
 }
 
-func (ds *downloadHandler) Kill() {
-	ds.com_chan <- com_Stop
+func (dj *downloadHandler) Pause() {
+
+	if dj.isReady() {
+		dj.com_chan <- com_Pause
+	}
 }
 
-//func transferData(out io.Writer, in io.Reader, com_chan <-chan Command, resp_chan chan<- Response) {
-func transferData(out io.Writer, in io.Reader, com_chan <-chan Command, resp_chan chan<- Response) {
+func (dj *downloadHandler) Continue() {
+	if dj.isReady() {
+		dj.com_chan <- com_Continue
+	}
+
+}
+
+func (dj *downloadHandler) Close() {
+	if dj.isReady() {
+		dj.com_chan <- com_Stop
+	}
+}
+
+func (dj *downloadHandler) Status() Status {
+	dj.mutex.Lock()
+	defer dj.mutex.Unlock()
+	return dj.status
+}
+
+func (dj *downloadHandler) Error() error {
+	dj.mutex.Lock()
+	defer dj.mutex.Unlock()
+	return dj.err
+}
+
+func (dj *downloadHandler) Progress() int64 {
+	dj.mutex.Lock()
+	defer dj.mutex.Unlock()
+	return dj.progress
+}
+
+func (dj *downloadHandler) FileSize() int64 {
+	dj.mutex.Lock()
+	defer dj.mutex.Unlock()
+	return dj.fileSize
+}
+
+func (dj *downloadHandler) setStatus(s Status) {
+	dj.mutex.Lock()
+	dj.status = s
+	dj.mutex.Unlock()
+}
+
+func (dj *downloadHandler) setError(e error) {
+	dj.mutex.Lock()
+	dj.err = e
+	dj.status = STATUS_ERR
+	dj.mutex.Unlock()
+}
+
+func (dj *downloadHandler) transferData(out io.Writer, in io.Reader) {
 	const (
 		minSize = 1024
 		bufSize = 1024 * 1024
@@ -151,7 +239,7 @@ func transferData(out io.Writer, in io.Reader, com_chan <-chan Command, resp_cha
 	for range [numBufs]struct{}{} {
 		reusech <- &Chunk{}
 	}
-
+	dj.setStatus(STATUS_TRANSFERING)
 	go func() {
 		defer close(datach)
 		for {
@@ -186,22 +274,25 @@ func transferData(out io.Writer, in io.Reader, com_chan <-chan Command, resp_cha
 			}
 		} // for
 	}() //go func
-	var total int64
+	//var total int64
 	var err error
 	//blockwriteLoop:
 	for b := range datach {
 		var n int
 		select {
 		default: //не блокирует если не получает команды
-		case cmd := <-com_chan:
+		case cmd := <-dj.com_chan:
 			switch cmd {
 			case com_Pause:
+				dj.setStatus(STATUS_PAUSED)
 			blockwriteLoop:
-				for com := range com_chan { //блокирующее ожидание
+				for com := range dj.com_chan { //блокирующее ожидание
 					switch com {
 					case com_Pause:
+						dj.setStatus(STATUS_PAUSED)
 						continue
 					case com_Continue:
+						dj.setStatus(STATUS_TRANSFERING)
 						break blockwriteLoop
 					case com_Stop:
 						//закрываем лавочку
@@ -228,11 +319,14 @@ func transferData(out io.Writer, in io.Reader, com_chan <-chan Command, resp_cha
 		b.len = 0
 		reusech <- b
 		if n != 0 {
-			total += int64(n)
-			select {
-			case resp_chan <- NewResponseProgress(total, 0):
-			default:
-			}
+			//total += int64(n)
+			// select {
+			// case resp_chan <- NewResponseProgress(total, 0):
+			// default:
+			// }
+			dj.mutex.Lock()
+			dj.progress += int64(n)
+			dj.mutex.Unlock()
 		}
 	} // for b := range datach {
 	close(reusech)
@@ -254,17 +348,15 @@ func transferData(out io.Writer, in io.Reader, com_chan <-chan Command, resp_cha
 	// }
 	if e != nil {
 		if e.Error() == MSG_abortedByUser {
-			resp_chan <- NewResponseTerminated()
+			//resp_chan <- NewResponseTerminated()
+			dj.setStatus(STATUS_TERMINATED)
 		} else {
-			resp_chan <- NewResponseError(err)
+			//resp_chan <- NewResponseError(err)
+			dj.setError(e)
+			dj.setStatus(STATUS_ERR)
 		}
 	} else {
-		resp_chan <- NewResponseCompleted()
+		//resp_chan <- NewResponseCompleted()
+		dj.setStatus(STATUS_COMPLETED)
 	}
-	close(resp_chan)
 }
-
-/*
-
-
- */

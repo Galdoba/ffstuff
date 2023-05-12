@@ -23,6 +23,12 @@ func Action_MoveCursorUP(ap *allProc, ib *InfoBox) error {
 	if ib.cursor < 0 {
 		ib.cursor = 0
 	}
+	// for ib.cursor < len(ap.stream) && ap.stream[ib.cursor].handler != nil && ap.stream[ib.cursor].handler.Status() == download.STATUS_COMPLETED {
+	// 	ib.cursor++
+	// }
+	for ib.cursor >= len(ap.stream) {
+		ib.cursor--
+	}
 	return nil
 }
 
@@ -30,6 +36,12 @@ func Action_MoveCursorDOWN(ap *allProc, ib *InfoBox) error {
 	ib.cursor++
 	for ib.cursor >= len(ap.stream) {
 		ib.cursor--
+	}
+	// for ib.cursor < len(ap.stream) && ap.stream[ib.cursor].handler != nil && ap.stream[ib.cursor].handler.Status() == download.STATUS_COMPLETED {
+	// 	ib.cursor++
+	// }
+	if ib.cursor < 0 {
+		ib.cursor = 0
 	}
 	return nil
 }
@@ -164,52 +176,87 @@ func Action_DropSelection(ap *allProc, ib *InfoBox) error {
 }
 
 func Action_TogglePause(ap *allProc, ib *InfoBox) error {
-	if ap.stream[0].lastCommand == commandPAUSE {
-		return Action_Continue(ap, ib)
+	if ap.globalStop {
+		Action_Continue(ap, ib)
+	} else {
+		Action_Pause(ap, ib)
 	}
-	if ap.stream[0].lastCommand == commandNONE {
-		return Action_Continue(ap, ib)
-	}
-	return Action_Pause(ap, ib)
+	return nil
 }
 
 func Action_Pause(ap *allProc, ib *InfoBox) error {
-	if ap.stream[0].handler != nil {
-		ap.stream[0].handler.Pause()
-		ap.stream[0].lastCommand = commandPAUSE
-		time.Sleep(time.Millisecond * 200)
+	ap.globalStop = true
+	for _, stream := range ap.stream {
+		if stream.handler != nil {
+			stream.handler.Pause()
+		}
 	}
+	//ap.activeStream = nil
+
+	// if ap.activeStream != nil {
+	// 	ap.activeStream.handler.Pause()
+	// }
+	// if ap.stream[0].handler != nil {
+
+	// 	ap.stream[0].handler.Pause()
+	// 	panic(fmt.Sprintf("%v", ap.stream[0].handler))
+	// 	ap.stream[0].lastCommand = commandPAUSE
+	// 	time.Sleep(time.Millisecond * 200)
+	// } else {
+	// 	panic("have not")
+	// }
 	return nil
 }
 
 func Action_Continue(ap *allProc, ib *InfoBox) error {
-	if ap.stream[0].handler != nil {
-		ap.activeHandlerChan = ap.stream[0].handler.Listen()
-		ap.stream[0].handler.Continue()
-		ap.stream[0].lastCommand = commandCONTINUE
-	}
+	ap.globalStop = false
+	// for _, stream := range ap.stream {
+	// 	if stream.handler != nil && stream.handler.Status() == download.STATUS_PAUSED {
+	// 		stream.handler.Continue()
+	// 		return nil
+	// 	}
+	// }
+	ap.activeStream = nil
+	// if ap.activeStream != nil {
+	// 	ap.activeStream.handler.Continue()
+	// }
+
+	// if ap.stream[0].handler != nil {
+	// 	ap.activeHandler = ap.stream[0].handler //.Listen()
+	// 	ap.activeHandler.Continue()
+	// 	ap.stream[0].lastCommand = commandCONTINUE
+	// }
 	return nil
 }
 
-func Action_StartNext(ap *allProc, ib *InfoBox) error {
-	if ap.stream == nil {
-		return fmt.Errorf(" Action_StartNext(): no streams to start")
-	}
-	if len(ap.stream) == 0 {
-		return fmt.Errorf("no streams")
-	}
-	if ap.activeHandlerChan == nil {
-		ap.stream[0].start()
-		ap.activeHandlerChan = ap.stream[0].handler.Listen()
-		switch ap.stream[0].lastCommand {
-		case commandPAUSE, commandNONE:
-			Action_Continue(ap, ib)
-		}
-	} else {
-		panic("hand")
-	}
-	return Action_MoveCursorUP(ap, ib)
-}
+// func Action_StartNext(ap *allProc, ib *InfoBox) error {
+// 	if ap.stream == nil {
+// 		return fmt.Errorf(" Action_StartNext(): no streams to start")
+// 	}
+// 	if len(ap.stream) == 0 {
+// 		return fmt.Errorf("no streams")
+// 	}
+
+// 	for i, stream := range ap.stream {
+// 		if stream.lastResponse == "completed" {
+// 			continue
+// 		}
+// 		if ap.stream[i].handler == nil {
+
+// 			ap.stream[i].start()
+
+// 		}
+
+// 		//ap.activeHandlerChan = ap.stream[i].handler.Listen()
+// 		// switch ap.stream[i].lastCommand {
+// 		// case commandPAUSE, commandNONE:
+// 		// 	Action_Continue(ap, ib)
+// 		// }
+// 		return nil
+// 	}
+
+// 	return nil //Action_MoveCursorUP(ap, ib)
+// }
 
 func switchToWaitConfirmMode(ap *allProc, ib *InfoBox) {
 	Action_Pause(ap, ib)

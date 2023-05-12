@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
@@ -72,6 +71,8 @@ type allProc struct {
 	stream            []*stream
 	globalStop        bool
 	activeHandlerChan chan download.Response
+	activeHandler     download.Handler
+	activeStream      *stream
 	//streamDataBak     sorting.IndexList
 	indexBuf *IndexBuffer
 	warnings []warning
@@ -81,8 +82,8 @@ type allProc struct {
 }
 
 type stream struct {
-	source           string
-	temp             string
+	source string
+	//temp             string
 	dest             string
 	baseName         string
 	progress         int64
@@ -93,44 +94,19 @@ type stream struct {
 	lastCommand      string
 	isSelected       bool
 	size             int64
+	warning          string
 }
 
-func (ap *allProc) newStream(source, dest, baseName string) {
-	f, err := os.Stat(source)
-
-	size := int64(1)
-	if err == nil {
-		size = f.Size()
-	}
-	ap.stream = append(ap.stream, &stream{source, dest + "temp\\", dest, baseName, 0, 0, nil, "NONE", time.Now(), "NONE", false, size})
+func NewStream(source, dest, baseName string) *stream {
+	st := stream{source, dest, baseName, 0, 0, nil, "NONE", time.Now(), "NONE", false, 0, ""}
+	return &st
 }
 
-func (st *stream) start() error {
-	time.Sleep(time.Millisecond * 200)
-	if _, err := os.Stat(st.temp); os.IsNotExist(err) {
-		err := os.Mkdir(st.temp, 0777)
-		if err != nil {
-			panic(err.Error())
-		}
-		// TODO: handle error
-	}
-	// if err := os.Mkdir(st.temp, 0777); err != nil {
-	// 	switch {
-	// 	default:
-	// 		return fmt.Errorf("stream start: %v", err.Error())
-	// 	case strings.Contains(err.Error(), "Cannot create a file when that file already exists"):
-	// 	}
-
-	// }
-	h, e := download.StartNew(st.source, st.temp+"\\"+st.baseName)
-	if e != nil {
-		return e
-	}
-	st.handler = h
-	return nil
+func (st *stream) Start() {
+	st.handler = download.StartNew(st.source, st.dest+"\\"+st.baseName+".gdf")
 }
 
-func (st *stream) String() string {
+func (st *stream) QueueString() string {
 	str := "["
 	switch st.isSelected {
 	case true:
@@ -138,76 +114,62 @@ func (st *stream) String() string {
 	case false:
 		str += " ]"
 	}
-	str += " " + st.source + "|" + st.lastCommand + "|" + st.Progress()
+	progr := " "
+	if st.handler != nil {
+		progr = st.Progress()
+	}
+	str += " " + st.source + "|" + st.lastCommand + "|" + progr + "|"
+	if st.handler != nil {
+		str += fmt.Sprintf("handler:%v", st.handler)
+	} else {
+		str += fmt.Sprintf("no handler")
+	}
+	return str
+}
+
+func (st *stream) CompleteString() string {
+	str := "["
+	switch st.isSelected {
+	case true:
+		str += "x]"
+	case false:
+		str += " ]"
+	}
+	progr := " "
+	str += " " + st.source + "|" + st.lastCommand + "|" + progr + "|" + "done"
+	return str
+}
+
+func (st *stream) ErrString() string {
+	str := "["
+	switch st.isSelected {
+	case true:
+		str += "x]"
+	case false:
+		str += " ]"
+	}
+	progr := " "
+	str += " " + st.source + "|" + st.lastCommand + "|" + progr + "|" + st.warning
 	return str
 }
 
 func (st *stream) Progress() string {
-	if strings.Contains(st.lastResponse, "error responce") {
-		return st.lastResponse
-	}
 
-	switch st.lastResponse {
+	switch st.handler.Status() {
 	default:
-		prog, err := strconv.ParseInt(st.lastResponse, 10, 64)
-		if err != nil {
-			return "not started"
+		proc := int64(0)
+		size := st.handler.FileSize()
+		if size != 0 {
+			proc = st.handler.Progress() / (st.handler.FileSize() / 100)
 		}
-		proc := prog / (st.size / 100)
 		return fmt.Sprintf(" %v", proc) + "% "
-	case "completed":
+	case download.STATUS_COMPLETED:
 		return "completed"
-	case "terminated":
+	case download.STATUS_TERMINATED:
 		return "terminated"
+	case download.STATUS_ERR:
+		return "error"
 	}
-}
-
-// func (ap *allProc) String() string {
-// 	str := ""
-// 	for _ := range ap.stream {
-// 		str += fmt.Sprintf("[%v] %v\n", selected, s.lastResponse)
-// 	}
-// 	return str
-// }
-
-// func (ap *allProc) update() {
-// 	if len(ap.stream) == 0 {
-// 		return
-// 	}
-// }
-
-func (ap *allProc) reverseStreamOrder() {
-	for i, j := 0, len(ap.stream)-1; i < j; i, j = i+1, j-1 {
-		ap.stream[i], ap.stream[j] = ap.stream[j], ap.stream[i]
-	}
-}
-
-func (ap *allProc) bumpToTop(i int) {
-	//func namesort.BumpToTopIndex(slInt []int, index int) []int
-	if i < 1 || i > len(ap.stream)-1 {
-		return
-	}
-	current := i
-	for current > 0 {
-		ap.bumpUpByOne(current)
-		current--
-	}
-}
-
-func (ap *allProc) bumpUpByOne(i int) {
-	//func namesort.BumpToTopIndex(slInt []int, index int) []int
-	if i < 1 || i > len(ap.stream)-1 {
-		return
-	}
-	ap.stream[i-1], ap.stream[i] = ap.stream[i], ap.stream[i-1]
-}
-
-func prc(i int) string {
-	n := fmt.Sprintf("%v ", i)
-	for len(n) < 4 {
-		n = " " + n
-	}
-	return fmt.Sprintf("[%v", n) + "%]"
 }
 
 type InfoBox struct {
@@ -227,14 +189,13 @@ func tickerImage(i int) string {
 }
 
 func (ib *InfoBox) Draw(ap *allProc) {
-	//ib.Update(ap)
 	termbox.Clear(termbox.ColorBlack, termbox.ColorBlack)
 	fg := termbox.ColorWhite
 	bg := termbox.ColorBlack
 	tkr := tickerImage(ib.ticker / 5)
 	tbprint(0, 0, fg, bg, "Last Key Pressed:"+ib.lastKeysPressed+"__: "+fmt.Sprintf("%v", len(ap.indexBuf.Set)))
 	tbprint(0, 1, fg, bg, "Tiker:"+tkr)
-	tbprint(0, 2, fg, bg, "Grabber Dowloading:")
+	tbprint(0, 2, fg, bg, "Grabber Dowloading: "+fmt.Sprintf("%v", ap.activeHandler))
 	for i, data := range ib.data {
 
 		if i == ib.cursor {
@@ -258,33 +219,46 @@ func tbprint(x, y int, fg, bg termbox.Attribute, msg string) {
 }
 
 func (ib *InfoBox) Update(ap *allProc) error {
-	// match, err := sorting.Check(ap.streamDataProposition, ap.streamDataBak)
-	// if err != nil {
-	// 	return fmt.Errorf("func (ib *InfoBox) Update(ap *allProc): %v", err.Error()) //DEBUG
-	// }
-	// if !match && ib.inputMode == input_mode_NORMAL {
-	// 	//switchToWaitConfirmMode(ap, ib)
-	// }
 	newData := []string{}
 	switch ib.inputMode {
 	default:
 		return fmt.Errorf("unknown input mode: %v", ib.inputMode)
 	case input_mode_NORMAL:
+		// completeList := []string{}
+		// queueList := []string{}
+		// errList := []string{}
 		for _, pr := range ap.stream {
-
-			newData = append(newData, pr.String())
-		}
-		if len(ap.warnings) > 0 {
-			newData = append(newData, "==WARNINGS========")
-			for _, wrn := range ap.warnings {
-				newData = append(newData, wrn.base+": "+wrn.text)
+			if pr.warning == "duplicate" {
+				newData = append(newData, pr.ErrString())
+				continue
 			}
+			if pr.handler == nil {
+				newData = append(newData, pr.QueueString())
+				continue
+			}
+			switch pr.handler.Status() {
+			default:
+				panic(pr.handler.Status()) //не должно срабатывать
+			case download.STATUS_COMPLETED:
+				newData = append(newData, pr.CompleteString())
+				// if ib.cursor <= i {
+				// 	ib.cursor++
+				// }
+			case download.STATUS_ERR:
+				newData = append(newData, pr.ErrString())
+			case download.STATUS_TRANSFERING, download.STATUS_PAUSED, download.STATUS_NIL:
+				newData = append(newData, pr.QueueString())
+			}
+
 		}
+		//newData = append(newData, completeList...)
+		//newData = append(newData, queueList...)
+		//newData = append(newData, errList...)
 
 	case input_mode_WAIT_CONFIRM:
 		newData = append(newData, "Press Enter to confirm or Esc to deny")
 		for _, pr := range ap.stream {
-			newData = append(newData, pr.String())
+			newData = append(newData, pr.QueueString())
 		}
 		//panic("not expecting confirm mode")
 		//pos, sel := ap.streamDataProposition.Export()
@@ -299,13 +273,15 @@ func (ib *InfoBox) Update(ap *allProc) error {
 	return nil
 }
 
-func SetupProcesses(dest string, paths ...string) *allProc {
+func NewAllProcesses(dest string, paths ...string) *allProc {
 	ap := allProc{}
 
-	for _, path := range paths {
+	for i, path := range paths {
 		file := filepath.Base(path)
-		ap.newStream(path, dest, file)
+		ap.stream = append(ap.stream, NewStream(path, dest, file))
+		ap.stream[i].warning = "?"
 	}
+
 	return &ap
 }
 
@@ -430,14 +406,17 @@ func (actpl *ActionPool) AddAction(key string, act action) {
 }
 
 func StartMainloop(configMap map[string]string, paths []string) error {
-	ap := SetupProcesses(configMap["dest"], paths...)
+
+	ap := NewAllProcesses(configMap["dest"], paths...)
+	//activeStream := (*stream)(nil)
+
 	ib := &InfoBox{}
 	ib.data = []string{}
 	actionPool := ActionPool{}
+	//competedFilesHash := make(map[string]bool)
 	if err := actionPool.fillCommandActionMap(configMap); err != nil {
 		return err
 	}
-
 	err := termbox.Init()
 	if err != nil {
 		panic(err)
@@ -452,29 +431,24 @@ func StartMainloop(configMap map[string]string, paths []string) error {
 	}()
 
 	draw_tick := time.NewTicker(200 * time.Millisecond)
-	//handlerEvents := make(chan download.Response)
-	ap.activeHandlerChan = make(chan download.Response)
-	//Tick := 0
 	ap.indexBuf = CreateIndexBuffer()
-	//ap.indexBuf.Set = []IndexState{ap.IndexStateCurrent()}
 	ap.SaveState()
-
+	// started := false
 loop:
 	for {
 		ap.initialCheck()
 		if len(ap.stream) == 0 && len(ap.warnings) == 0 {
 			break
 		}
-		if len(ap.stream) > 0 && ap.stream[0].handler == nil {
-			err := ap.stream[0].start()
-			if err != nil {
-				panic("start dowload stream: " + err.Error())
-			}
-			//handlerEvents = ap.stream[0].handler.Listen()
-			ap.stream[0].lastCommand = commandCONTINUE
-			ap.activeHandlerChan = ap.stream[0].handler.Listen()
-			// 	//Action_StartNext(ap, ib)
-		}
+		// if !started {
+		// 	err := ap.stream[0].start()
+		// 	if err != nil {
+		// 		panic("start dowload stream: " + err.Error())
+		// 	}
+		// 	ap.stream[0].lastCommand = commandCONTINUE
+		// 	ap.activeHandler = ap.stream[0].handler
+		// 	started = true
+		// }
 
 		select {
 		case ev := <-event_queue:
@@ -510,7 +484,11 @@ loop:
 						if action.validInputMode != ib.inputMode {
 							continue
 						}
-						action.function(ap, ib)
+
+						err := action.function(ap, ib)
+						if err != nil {
+							panic(err.Error())
+						}
 						switch action.eventName {
 						case ACTION_MOVE_SELECTED_UP, ACTION_MOVE_SELECTED_TOP, ACTION_MOVE_SELECTED_DOWN, ACTION_MOVE_SELECTED_BOTTOM:
 							ap.SaveState()
@@ -529,30 +507,61 @@ loop:
 			}
 			if len(ap.stream) > 0 && ap.stream[0].handler != nil && ap.stream[0].lastCommand == commandCONTINUE {
 
-				//	ap.stream[0].handler.Continue()
-				//handlerEvents = ap.stream[0].handler.Listen()
-				ap.activeHandlerChan = ap.stream[0].handler.Listen()
 			}
 			ap.confirmStreams()
-		//		case ev := <-handlerEvents:
-		case ev := <-ap.activeHandlerChan:
-			ap.stream[0].lastResponse = ev.String()
-			if ev.String() == "completed" {
+			//		case ev := <-handlerEvents:
+			// case ev, ok := <-ap.activeHandler.Listen():
 
-				ib.ticker = 0
+			// 	if ok {
+			// 		ap.stream[0].lastResponse = ev.String()
+			// 		if ev.String() == "completed" {
 
-				//err := ap.CloseStream()
-				if err := ap.CloseStream(); err != nil {
-					panic("CLOSE STREAM: " + err.Error())
-				}
-				Action_StartNext(ap, ib)
-				//Action_Continue(ap, ib)
-				//handlerEvents = make(chan download.Response)
-				ap.activeHandlerChan = make(chan download.Response)
-			}
+			// 			ib.ticker = 0
+
+			// 			//err := ap.CloseStream()
+			// 			// if err := ap.CloseStream(); err != nil {
+			// 			// 	panic("CLOSE STREAM: " + err.Error())
+			// 			// }
+
+			// 			// err := Action_StartNext(ap, ib)
+			// 			// if err != nil {
+			// 			// 	return err
+			// 			// }
+			// 			//Action_Continue(ap, ib)
+			// 			//handlerEvents = make(chan download.Response)
+			// 			//ap.activeHandlerChan = make(chan download.Response)
+			// 			//ap.activeHandler.Kill()
+			// 		}
+			// 	} else {
+			// 		if ap.activeHandler == nil {
+			// 			fmt.Print("chennel closed\r")
+			// 			ap.activeHandlerChan = nil
+			// 		} else {
+			// 			fmt.Print(ev.String() + "  channel closed (not realy) " + fmt.Sprintf("%v", ap.activeHandler) + "\r")
+			// 			for i, stream := range ap.stream {
+			// 				if stream.handler != nil {
+			// 					continue
+			// 				}
+			// 				ap.stream[i].start()
+			// 				ap.activeHandler = ap.stream[i].handler
+			// 			}
+
+			// 			time.Sleep(time.Second)
+			// 		}
+
+			// 	}
 
 		}
-		//ap.update()
+		if ap.activeStream == nil {
+			err := ap.ActivateStream()
+			if err == ErrAllCompleted {
+				return nil
+			}
+		}
+		if ap.activeStream != nil && ap.activeStream.handler.Status() == download.STATUS_COMPLETED {
+			ap.activeStream = nil
+		}
+
 		ib.Update(ap)
 		ib.Draw(ap)
 
@@ -560,6 +569,81 @@ loop:
 
 	fmt.Println("END")
 
+	return nil
+}
+
+var ErrAllCompleted = fmt.Errorf("All streams complete")
+
+func (ap *allProc) ActivateStream() error {
+	if ap.globalStop {
+		return nil
+	}
+	haveNIL := 0
+	statusMap := make(map[download.Status]int)
+	for i := range ap.stream {
+		if ap.stream[i].handler == nil {
+			haveNIL++
+			continue
+		}
+		statusMap[ap.stream[i].handler.Status()]++
+	}
+	if statusMap[download.STATUS_TRANSFERING] > 0 {
+		return nil
+	}
+	if len(ap.stream) == statusMap[download.STATUS_COMPLETED] {
+		return ErrAllCompleted
+	}
+
+	for i := range ap.stream {
+		if ap.stream[i].warning != "" {
+			continue
+		}
+		if ap.stream[i].handler != nil && ap.stream[i].handler.Status() == download.STATUS_PAUSED {
+			ap.stream[i].handler.Continue()
+			ap.activeStream = ap.stream[i]
+			return nil
+		}
+		if ap.stream[i].handler == nil {
+			ap.stream[i].Start()
+			ap.activeStream = ap.stream[i]
+			return nil
+		}
+	}
+	// switch {
+	// case statusMap[download.STATUS_TRANSFERING] > 0:
+	// 	return
+	// case statusMap[download.STATUS_PAUSED] > 0:
+	// 	for i := range ap.stream {
+	// 		if ap.stream[i].handler == nil {
+	// 			ap.activeStream = ap.stream[i]
+	// 			ap.activeStream.Start()
+	// 			return
+	// 		}
+	// 		if ap.stream[i].handler.Status() == download.STATUS_PAUSED {
+	// 			ap.activeStream = ap.stream[i]
+	// 			ap.activeStream.handler.Continue()
+	// 			return
+	// 		}
+	// 	}
+	// default:
+	// 	for i := range ap.stream {
+	// 		if ap.stream[i].handler == nil {
+	// 			ap.activeStream = ap.stream[i]
+	// 			ap.activeStream.Start()
+	// 			return
+	// 		}
+	// 	}
+	// }
+
+	// for i := range ap.stream {
+	// 	if ap.stream[i].handler == nil || ap.stream[i].handler.Status() == download.STATUS_PAUSED {
+	// 		ap.activeStream = ap.stream[i]
+	// 		ap.activeStream.Start()
+	// 		return
+	// 	}
+	// }
+	ap.activeStream = nil
+	//panic("Do not Know what to do")
 	return nil
 }
 
@@ -575,7 +659,7 @@ func (ap *allProc) ExportSelected() []bool {
 
 func renameFile(stream *stream) error {
 	//panic(stream.temp + stream.baseName + "===>" + stream.dest + stream.baseName)
-	return os.Rename(stream.temp+stream.baseName, stream.dest+stream.baseName)
+	return os.Rename(stream.dest+stream.baseName+".gdf", stream.dest+stream.baseName)
 }
 
 func (ap *allProc) CloseStream() error {
@@ -583,8 +667,8 @@ func (ap *allProc) CloseStream() error {
 		return fmt.Errorf(" CloseStream(): no streams to close")
 	}
 	stream := ap.stream[0]
-	ap.addWarning(newWarning(stream.baseName, stream.temp, stream.dest, "transfert not confirmed"))
-	time.Sleep(time.Millisecond * 500)
+	ap.addWarning(newWarning(stream.baseName, stream.dest, "transfert not confirmed"))
+	//time.Sleep(time.Millisecond * 500)
 
 	// if _, err := os.Stat(stream.dest + stream.baseName); os.IsNotExist(err) {
 	// 	go renameFile(stream)
@@ -594,11 +678,11 @@ func (ap *allProc) CloseStream() error {
 	/*
 		The process cannot access the file because it is being used by an  tobot_s01_12_2010__hd_rus20.m4a: rename d:\IN\IN_2022-05-11\proxy\temp\tobot_s01_12_2010__hd_rus20.m4a d:\IN\IN_2022-05-11\proxy\tobot_s01_12_2010__hd_rus20.m4a: The system cannot find the file specified.
 	*/
-	ap.indexBuf.Remove(stream.source)
+	//ap.indexBuf.Remove(stream.source)
 	ap.activeHandlerChan = nil
-	if len(ap.stream) > 0 {
-		ap.stream = ap.stream[1:]
-	}
+	// if len(ap.stream) > 0 {
+	// 	ap.stream = ap.stream[1:]
+	// }
 	return nil
 }
 
@@ -782,11 +866,10 @@ type warning struct {
 	text string
 }
 
-func newWarning(base, temp, dest, msg string) warning {
+func newWarning(base, dest, msg string) warning {
 	wrn := warning{}
 	wrn.base = base
 	wrn.dest = dest
-	wrn.temp = temp
 	wrn.text = msg
 	return wrn
 }
@@ -813,17 +896,36 @@ func (ap *allProc) removeWarning(wrnBase string) {
 }
 
 func (ap *allProc) confirmStreams() {
-	for _, wrn := range ap.warnings {
-		if err := renameFileName(wrn.temp+wrn.base, wrn.dest+wrn.base); err != nil {
-			if strings.Contains(err.Error(), "The system cannot find the file specified") {
-				ap.addWarning(newWarning(wrn.base, wrn.temp, wrn.dest, "The system cannot find the file specified"))
+	// for _, wrn := range ap.warnings {
+	// 	if err := renameFileName(wrn.temp+wrn.base, wrn.dest+wrn.base); err != nil {
+	// 		if strings.Contains(err.Error(), "The system cannot find the file specified") {
+	// 			ap.addWarning(newWarning(wrn.base, wrn.dest, "The system cannot find the file specified"))
+	// 		}
+	// 		if strings.Contains(err.Error(), "The process cannot access the file") {
+	// 			ap.addWarning(newWarning(wrn.base, wrn.dest, "The process cannot access the file"))
+	// 		}
+	// 		ap.addWarning(newWarning(wrn.base, wrn.dest, err.Error()))
+	// 	} else {
+	// 		ap.removeWarning(wrn.base)
+	// 	}
+	// }
+	for _, stream := range ap.stream {
+		if stream.warning == "done" {
+			continue
+		}
+		if stream.handler == nil {
+			exist, _ := exists(stream.dest + stream.baseName)
+			if exist {
+				stream.warning = "duplicate"
+			} else {
+				stream.warning = ""
 			}
-			if strings.Contains(err.Error(), "The process cannot access the file") {
-				ap.addWarning(newWarning(wrn.base, wrn.temp, wrn.dest, "The process cannot access the file"))
-			}
-			ap.addWarning(newWarning(wrn.base, wrn.temp, wrn.dest, err.Error()))
-		} else {
-			ap.removeWarning(wrn.base)
+
+			//if exist {}
+		}
+		if stream.handler != nil && stream.handler.Status() == download.STATUS_COMPLETED {
+			renameFileName(stream.dest+stream.baseName+".gdf", stream.dest+stream.baseName)
+			stream.warning = "done"
 		}
 	}
 }
@@ -832,11 +934,11 @@ func (ap *allProc) initialCheck() {
 	for _, stream := range ap.stream {
 		exist, err := exists(stream.dest + stream.baseName)
 		if err != nil {
-			ap.addWarning(newWarning(stream.baseName, stream.temp, stream.dest, err.Error()))
+			ap.addWarning(newWarning(stream.baseName, stream.dest, err.Error()))
 			continue
 		}
 		if exist {
-			ap.addWarning(newWarning(stream.baseName, stream.temp, stream.dest, "duplicate found"))
+			ap.addWarning(newWarning(stream.baseName, stream.dest, "duplicate found"))
 		}
 	}
 }
