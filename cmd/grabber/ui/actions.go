@@ -23,26 +23,37 @@ func Action_MoveCursorUP(ap *allProc, ib *InfoBox) error {
 	if ib.cursor < 0 {
 		ib.cursor = 0
 	}
+	// //проскакиваем вверх все готовые
+	// for ib.cursor > 0 && ap.stream[ib.cursor].handler != nil && ap.stream[ib.cursor].handler.Status() == download.STATUS_COMPLETED {
+	// 	ib.cursor--
+	// }
+	// //проскакиваем вниз все готовые
 	// for ib.cursor < len(ap.stream) && ap.stream[ib.cursor].handler != nil && ap.stream[ib.cursor].handler.Status() == download.STATUS_COMPLETED {
 	// 	ib.cursor++
 	// }
-	for ib.cursor >= len(ap.stream) {
-		ib.cursor--
-	}
+	// for ib.cursor < len(ap.stream) && ap.stream[ib.cursor].handler != nil && ap.stream[ib.cursor].handler.Status() == download.STATUS_COMPLETED {
+	// 	ib.cursor++
+	// }
+	// for ib.cursor >= len(ap.stream) {
+	// 	ib.cursor--
+	// }
 	return nil
 }
 
 func Action_MoveCursorDOWN(ap *allProc, ib *InfoBox) error {
 	ib.cursor++
-	for ib.cursor >= len(ap.stream) {
-		ib.cursor--
+	if ib.cursor >= len(ap.stream) {
+		ib.cursor = len(ap.stream) - 1
 	}
+	// //проскакиваем вниз все готовые
 	// for ib.cursor < len(ap.stream) && ap.stream[ib.cursor].handler != nil && ap.stream[ib.cursor].handler.Status() == download.STATUS_COMPLETED {
 	// 	ib.cursor++
 	// }
-	if ib.cursor < 0 {
-		ib.cursor = 0
-	}
+	// //проскакиваем вверх все готовые
+	// for ib.cursor > 0 && ib.cursor < len(ap.stream) && ap.stream[ib.cursor].handler != nil && ap.stream[ib.cursor].handler.Status() == download.STATUS_COMPLETED {
+	// 	ib.cursor--
+	// }
+
 	return nil
 }
 

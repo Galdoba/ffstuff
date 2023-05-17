@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/Galdoba/ffstuff/cmd/grabber/download"
+	"github.com/Galdoba/utils"
 	"github.com/mattn/go-runewidth"
 	"github.com/nsf/termbox-go"
 )
@@ -175,6 +176,7 @@ func (st *stream) Progress() string {
 type InfoBox struct {
 	data            []string
 	cursor          int
+	cOffset         int
 	ticker          int
 	lastKeysPressed string
 	inputMode       int
@@ -193,16 +195,47 @@ func (ib *InfoBox) Draw(ap *allProc) {
 	fg := termbox.ColorWhite
 	bg := termbox.ColorBlack
 	tkr := tickerImage(ib.ticker / 5)
-	tbprint(0, 0, fg, bg, "Last Key Pressed:"+ib.lastKeysPressed+"__: "+fmt.Sprintf("%v", len(ap.indexBuf.Set)))
+	tbprint(0, 0, fg, bg, "Last Key Pressed:"+ib.lastKeysPressed+"__: "+fmt.Sprintf("%v", len(ap.indexBuf.Set))+" ccl:"+fmt.Sprintf("%v", ib.cursor))
 	tbprint(0, 1, fg, bg, "Tiker:"+tkr)
 	tbprint(0, 2, fg, bg, "Grabber Dowloading: "+fmt.Sprintf("%v", ap.activeHandler))
-	for i, data := range ib.data {
 
+	lowBorder := utils.Max(0, ib.cursor-14)
+	highBorder := utils.Min(len(ap.stream)-1, lowBorder+29)
+	if highBorder-lowBorder < 29 {
+		lowBorder = utils.Max(0, highBorder-29)
+	}
+	// if ib.cursor > 25 {
+	// 	lowBorder = ib.cursor - 25
+	// }
+	// if ib.cursor-15 < lowBorder {
+	// 	lowBorder = ib.cursor - 15
+	// 	if lowBorder < 0 {
+	// 		lowBorder = 0
+	// 	}
+	// 	highBorder = lowBorder + 30
+	// }
+
+	// if ib.cursor+15 > highBorder {
+	// 	highBorder = ib.cursor + 15
+	// 	lowBorder = ib.cursor - 15
+	// }
+	// if highBorder > len(ap.stream)-1 {
+	// 	highBorder = len(ap.stream) - 1
+	// 	lowBorder = utils.Min(highBorder-5, ib.cursor-5)
+	// }
+
+	for i, data := range ib.data {
+		if i < lowBorder {
+			continue
+		}
+		if i > highBorder {
+			continue
+		}
 		if i == ib.cursor {
 			fg = termbox.ColorBlack
 			bg = termbox.ColorWhite
 		}
-		tbprint(2, i+3, fg, bg, data)
+		tbprint(2, i+3-lowBorder, fg, bg, data)
 		fg = termbox.ColorWhite
 		bg = termbox.ColorBlack
 	}
@@ -557,6 +590,7 @@ loop:
 			if err == ErrAllCompleted {
 				return nil
 			}
+
 		}
 		if ap.activeStream != nil && ap.activeStream.handler.Status() == download.STATUS_COMPLETED {
 			ap.activeStream = nil
@@ -606,6 +640,7 @@ func (ap *allProc) ActivateStream() error {
 		if ap.stream[i].handler == nil {
 			ap.stream[i].Start()
 			ap.activeStream = ap.stream[i]
+
 			return nil
 		}
 	}
@@ -964,3 +999,40 @@ func exists(path string) (bool, error) {
 	}
 	return false, err
 }
+
+/*
+
+Pravila_moey_kuhni_s11_01.srt
+Pravila_moey_kuhni_s11_01_AUDIORUS20_proxy.ac3
+Pravila_moey_kuhni_s11_01_AUDIOENG20_proxy.ac3
+Pravila_moey_kuhni_s11_01_AUDIORUS51_proxy.ac3
+Pravila_moey_kuhni_s11_01_AUDIOENG51_proxy.ac3
+Pravila_moey_kuhni_s11_01_SD_proxy.mp4
+Pravila_moey_kuhni_s11_01_HD_proxy.mp4
+Pravila_moey_kuhni_s11_01_4K_proxy.mp4
+Pravila_moey_kuhni_s11_01_AUDIORUS20.m4a
+Pravila_moey_kuhni_s11_01_AUDIOENG20.m4a
+Pravila_moey_kuhni_s11_01_AUDIORUS51.m4a
+Pravila_moey_kuhni_s11_01_AUDIOENG51.m4a
+Pravila_moey_kuhni_s11_01_SD.mp4
+Pravila_moey_kuhni_s11_01_HD.mp4
+Pravila_moey_kuhni_s11_01_4K.mp4
+Pravila_moey_kuhni_s11_04.srt
+Pravila_moey_kuhni_s11_04_AUDIORUS20_proxy.ac3
+Pravila_moey_kuhni_s11_04_AUDIOENG20_proxy.ac3
+Pravila_moey_kuhni_s11_04_AUDIORUS51_proxy.ac3
+Pravila_moey_kuhni_s11_04_AUDIOENG51_proxy.ac3
+Pravila_moey_kuhni_s11_04_SD_proxy.mp4
+Pravila_moey_kuhni_s11_04_HD_proxy.mp4
+Pravila_moey_kuhni_s11_04_4K_proxy.mp4
+Pravila_moey_kuhni_s11_04_AUDIORUS20.m4a
+Pravila_moey_kuhni_s11_04_AUDIOENG20.m4a
+Pravila_moey_kuhni_s11_04_AUDIORUS51.m4a
+Pravila_moey_kuhni_s11_04_AUDIOENG51.m4a
+Pravila_moey_kuhni_s11_04_SD.mp4
+Pravila_moey_kuhni_s11_04_HD.mp4
+Pravila_moey_kuhni_s11_04_4K.mp4
+
+
+
+*/

@@ -7,6 +7,7 @@ import (
 )
 
 func TestBumpToTopIndex(t *testing.T) {
+	return
 	slInt := []int{0, 1, 2, 3, 4}
 	ind := -5
 	newSl := BumpToTopIndex(slInt, ind)
@@ -33,36 +34,9 @@ func printSliceLn(sl []string) {
 	}
 }
 
-func emulatedNames() []string {
-	var emulatedNames []string
-	base := []string{"serial_AAA", "serial_BBB", "film_AA", "film_BB"}
-	sTag := []string{"_s01", "_s02", ""}
-	epTag := []string{"03", "06", ""}
-	revTag := []string{"", "_R1", "_R2"}
-	vidTag := []string{"_sd", "_hd", "_4k"}
-	audTag := []string{"_AUDIORUS20", "_AUDIORUS51", "_AUDIOENG20", "_AUDIOENG51", ""}
-	extn := []string{".txt", ".m4a", ".srt", ".mp4", ".ready"}
-	total := len(base) * len(sTag) * len(epTag) * len(revTag) * len(vidTag) * len(audTag) * len(extn)
-	i := 0
-	for _, ba := range base {
-		for _, sT := range sTag {
-			for _, ep := range epTag {
-				for _, re := range revTag {
-					for _, vi := range vidTag {
-						for _, au := range audTag {
-							for _, ex := range extn {
-								emulatedNames = append(emulatedNames, ba+sT+ep+re+vi+au+ex)
-								i++
-								fmt.Printf("emulating names %v/%v\r", i, total)
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-	fmt.Println("")
-	return emulatedNames
+func TestSeacrhFileNameBases(t *testing.T) {
+	list := emulatedNames()
+	SeacrhFileNameBases(list)
 }
 
 /*

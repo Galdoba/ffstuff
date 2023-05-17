@@ -191,6 +191,7 @@ func main() {
 					list = append(list, path)
 				}
 				fmt.Printf("simulating sorting...\n")
+				//sort.GrabberWay()
 				fmt.Printf("simulating drawing of ui...\n")
 
 				//panic(1)
