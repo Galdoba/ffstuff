@@ -38,7 +38,7 @@ func CreateDefaultConfig() error {
 			Triggers:   []string{"DOWN"},
 		},
 		{
-			ActionName: "MOVE_CURSOR_DOWN_AND_TOGGLE_SELECTION",
+			ActionName: "CURSOR_DOWN_AND_TOGGLE_SELECTION",
 			Triggers:   []string{"Insert"},
 		},
 		{

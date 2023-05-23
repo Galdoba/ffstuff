@@ -17,30 +17,30 @@ import (
 )
 
 const (
-	commandPAUSE                                 = "pause"
-	commandCONTINUE                              = "continue"
-	commandNONE                                  = "NONE"
-	ACTION_MOVE_CURSOR_UP                        = "MOVE_CURSOR_UP"
-	ACTION_MOVE_CURSOR_DOWN                      = "MOVE_CURSOR_DOWN"
-	ACTION_MOVE_CURSOR_DOWN_AND_TOGGLE_SELECTION = "CURSOR_DOWN_AND_TOGGLE_SELECTION"
-	ACTION_TOGGLE_SELECTION_STATE                = "TOGGLE_SELECTION_STATE"
-	ACTION_SELECT_ALL_WITH_SAME_EXTENTION        = "SELECT_ALL_WITH_SAME_EXTENTION"
-	ACTION_DROP_SELECTIONS                       = "DROP_SELECTIONS"
-	ACTION_MOVE_SELECTED_TOP                     = "MOVE_SELECTED_TOP"
-	ACTION_MOVE_SELECTED_BOTTOM                  = "MOVE_SELECTED_BOTTOM"
-	ACTION_MOVE_SELECTED_UP                      = "MOVE_SELECTED_UP"
-	ACTION_MOVE_SELECTED_DOWN                    = "MOVE_SELECTED_DOWN"
-	DECIDION_CONFIRM                             = "DECIDION_CONFIRM"
-	DECIDION_DENY                                = "DECIDION_DENY"
-	DELETE_SELECTED                              = "DELETE_SELECTED"
-	DOWNLOAD_PAUSE                               = "DOWNLOAD_PAUSE"
-	UNDO_MOVEMENT                                = "UNDO_MOVEMENT"
-	ADD_NEW_SOURCE_FROM_CLIPBOARD                = "ADD_NEW_SOURCE_FROM_CLIPBOARD"
-	ACTION_QUIT_PROGRAM                          = "ACTION_QUIT_PROGRAM"
-	input_mode_NORMAL                            = 1000
-	input_mode_WAIT_CONFIRM                      = 1001
-	input_mode_CONFIRM_RECEIVED                  = 1002
-	input_mode_DENIAL_RECEIVED                   = 1003
+	commandPAUSE                          = "pause"
+	commandCONTINUE                       = "continue"
+	commandNONE                           = "NONE"
+	ACTION_MOVE_CURSOR_UP                 = "MOVE_CURSOR_UP"
+	ACTION_MOVE_CURSOR_DOWN               = "MOVE_CURSOR_DOWN"
+	CURSOR_DOWN_AND_TOGGLE_SELECTION      = "CURSOR_DOWN_AND_TOGGLE_SELECTION"
+	ACTION_TOGGLE_SELECTION_STATE         = "TOGGLE_SELECTION_STATE"
+	ACTION_SELECT_ALL_WITH_SAME_EXTENTION = "SELECT_ALL_WITH_SAME_EXTENTION"
+	ACTION_DROP_SELECTIONS                = "DROP_SELECTIONS"
+	ACTION_MOVE_SELECTED_TOP              = "MOVE_SELECTED_TOP"
+	ACTION_MOVE_SELECTED_BOTTOM           = "MOVE_SELECTED_BOTTOM"
+	ACTION_MOVE_SELECTED_UP               = "MOVE_SELECTED_UP"
+	ACTION_MOVE_SELECTED_DOWN             = "MOVE_SELECTED_DOWN"
+	DECIDION_CONFIRM                      = "DECIDION_CONFIRM"
+	DECIDION_DENY                         = "DECIDION_DENY"
+	DELETE_SELECTED                       = "DELETE_SELECTED"
+	DOWNLOAD_PAUSE                        = "DOWNLOAD_PAUSE"
+	UNDO_MOVEMENT                         = "UNDO_MOVEMENT"
+	ADD_NEW_SOURCE_FROM_CLIPBOARD         = "ADD_NEW_SOURCE_FROM_CLIPBOARD"
+	ACTION_QUIT_PROGRAM                   = "ACTION_QUIT_PROGRAM"
+	input_mode_NORMAL                     = 1000
+	input_mode_WAIT_CONFIRM               = 1001
+	input_mode_CONFIRM_RECEIVED           = 1002
+	input_mode_DENIAL_RECEIVED            = 1003
 )
 
 func actionMap() map[string]func(*allProc, *InfoBox) error {
@@ -48,7 +48,7 @@ func actionMap() map[string]func(*allProc, *InfoBox) error {
 
 	mp[ACTION_MOVE_CURSOR_UP] = Action_MoveCursorUP
 	mp[ACTION_MOVE_CURSOR_DOWN] = Action_MoveCursorDOWN
-	mp[ACTION_MOVE_CURSOR_DOWN_AND_TOGGLE_SELECTION] = Action_MoveCursorDOWNandSELECT
+	mp[CURSOR_DOWN_AND_TOGGLE_SELECTION] = Action_MoveCursorDOWNandSELECT
 	mp[ACTION_TOGGLE_SELECTION_STATE] = Action_ToggleSelection
 	mp[ACTION_SELECT_ALL_WITH_SAME_EXTENTION] = Action_SelectAllWithSameExtention
 	mp[ACTION_DROP_SELECTIONS] = Action_DropSelection
@@ -94,7 +94,7 @@ func setupHelpBlock(configMap map[string]string) {
 	searchKeys := []string{
 		ACTION_MOVE_CURSOR_UP,
 		ACTION_MOVE_CURSOR_DOWN,
-		ACTION_MOVE_CURSOR_DOWN_AND_TOGGLE_SELECTION,
+		CURSOR_DOWN_AND_TOGGLE_SELECTION,
 		ACTION_TOGGLE_SELECTION_STATE,
 		ACTION_SELECT_ALL_WITH_SAME_EXTENTION,
 		ACTION_DROP_SELECTIONS,

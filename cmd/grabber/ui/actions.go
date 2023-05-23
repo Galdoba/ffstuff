@@ -61,15 +61,17 @@ func Action_MoveCursorDOWN(ap *allProc, ib *InfoBox) error {
 }
 
 func Action_MoveCursorDOWNandSELECT(ap *allProc, ib *InfoBox) error {
-	if ap.stream[ib.cursor].isSelected {
-		ap.stream[ib.cursor].isSelected = false
-	} else {
-		ap.stream[ib.cursor].isSelected = true
-	}
-	ib.cursor++
-	for ib.cursor >= len(ap.stream) {
-		ib.cursor--
-	}
+	ap.stream[ib.cursor].isSelected = !ap.stream[ib.cursor].isSelected
+	return Action_MoveCursorDOWN(ap, ib)
+	// if ap.stream[ib.cursor].isSelected {
+	// 	ap.stream[ib.cursor].isSelected = false
+	// } else {
+	// 	ap.stream[ib.cursor].isSelected = true
+	// }
+	// ib.cursor++
+	// for ib.cursor >= len(ap.stream) {
+	// 	ib.cursor--
+	// }
 	return nil
 }
 
