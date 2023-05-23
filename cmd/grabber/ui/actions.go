@@ -7,6 +7,7 @@ import (
 
 	"github.com/Galdoba/ffstuff/cmd/grabber/sorting"
 	"github.com/Galdoba/ffstuff/pkg/namedata"
+	"golang.design/x/clipboard"
 )
 
 func Action_ToggleSelection(ap *allProc, ib *InfoBox) error {
@@ -23,6 +24,7 @@ func Action_MoveCursorUP(ap *allProc, ib *InfoBox) error {
 	if ib.cursor < 0 {
 		ib.cursor = 0
 	}
+	ib.lastScroll = 1
 	// //проскакиваем вверх все готовые
 	// for ib.cursor > 0 && ap.stream[ib.cursor].handler != nil && ap.stream[ib.cursor].handler.Status() == download.STATUS_COMPLETED {
 	// 	ib.cursor--
@@ -45,6 +47,7 @@ func Action_MoveCursorDOWN(ap *allProc, ib *InfoBox) error {
 	if ib.cursor >= len(ap.stream) {
 		ib.cursor = len(ap.stream) - 1
 	}
+	ib.lastScroll = 0
 	// //проскакиваем вниз все готовые
 	// for ib.cursor < len(ap.stream) && ap.stream[ib.cursor].handler != nil && ap.stream[ib.cursor].handler.Status() == download.STATUS_COMPLETED {
 	// 	ib.cursor++
@@ -383,3 +386,54 @@ func (ap *allProc) DeleteStream(i int) error {
 	ap.activeHandlerChan = nil
 	return nil
 }
+
+func Action_AddNewProcess(ap *allProc, ib *InfoBox) error {
+	cb := string(clipboard.Read(clipboard.FmtText))
+
+	paths := strings.Split(cb, "\r\n")
+	if strings.Join(paths, "") == cb {
+		paths = strings.Split(cb, "\n")
+	}
+
+	for _, path := range paths {
+		exists, err := exists(path)
+		if err != nil {
+			return err
+		}
+		if exists {
+			ap.NewProcesses(dest_gl, paths...)
+		}
+	}
+	ib.drawLen = 0
+	return nil
+}
+
+func Action_QUIT_PROGRAM(ap *allProc, ib *InfoBox) error {
+	return fmt.Errorf("Quit action called by user")
+}
+
+/*
+\\nas\ROOT\EDIT\_amedia\Barri_s01\Barri_s01_03_PRT230421102814_AUDIOENG20_proxy.ac3
+\\nas\ROOT\EDIT\_amedia\Barri_s01\Barri_s01_03_PRT230421102814_AUDIORUS51.m4a
+\\nas\ROOT\EDIT\_amedia\Barri_s01\Barri_s01_03_PRT230421102814_AUDIORUS51_proxy.ac3
+\\nas\ROOT\EDIT\_amedia\Barri_s01\Barri_s01_03_PRT230421102814_HD.mp4
+\\nas\ROOT\EDIT\_amedia\Barri_s01\Barri_s01_03_PRT230421102814_HD_proxy.mp4
+\\nas\ROOT\EDIT\_amedia\Barri_s01\Barri_s01_04_PRT230421104337.srt
+\\nas\ROOT\EDIT\_amedia\Barri_s01\Barri_s01_04_PRT230421104337_AUDIOENG20.m4a
+\\nas\ROOT\EDIT\_amedia\Barri_s01\Barri_s01_04_PRT230421104337_AUDIOENG20_proxy.ac3
+\\nas\ROOT\EDIT\_amedia\Barri_s01\Barri_s01_04_PRT230421104337_AUDIORUS51.m4a
+\\nas\ROOT\EDIT\_amedia\Barri_s01\Barri_s01_04_PRT230421104337_AUDIORUS51_proxy.ac3
+\\nas\ROOT\EDIT\_amedia\Barri_s01\Barri_s01_04_PRT230421104337_HD.mp4
+
+\\nas\ROOT\EDIT\_amedia\Barri_s01\Barri_s01_03_PRT230421102814_AUDIOENG20.m4a
+\\nas\ROOT\EDIT\_amedia\Barri_s01\Barri_s01_03_PRT230421102814_AUDIOENG20_proxy.ac3
+\\nas\ROOT\EDIT\_amedia\Barri_s01\Barri_s01_03_PRT230421102814_AUDIORUS51.m4a
+\\nas\ROOT\EDIT\_amedia\Barri_s01\Barri_s01_03_PRT230421102814_AUDIORUS51_proxy.ac3
+\\nas\ROOT\EDIT\_amedia\Barri_s01\Barri_s01_03_PRT230421102814_HD.mp4
+\\nas\ROOT\EDIT\_amedia\Barri_s01\Barri_s01_07_PRT230421103310_AUDIOENG20.m4a
+\\nas\ROOT\EDIT\_amedia\Barri_s01\Barri_s01_07_PRT230421103310_AUDIOENG20_proxy.ac3
+\\nas\ROOT\EDIT\_amedia\Barri_s01\Barri_s01_07_PRT230421103310_AUDIORUS51.m4a
+\\nas\ROOT\EDIT\_amedia\Barri_s01\Barri_s01_07_PRT230421103310_AUDIORUS51_proxy.ac3
+\\nas\ROOT\EDIT\_amedia\Barri_s01\Barri_s01_07_PRT230421103310_HD.mp4
+
+*/

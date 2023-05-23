@@ -1,8 +1,11 @@
 package sortnames
 
 import (
-	"fmt"
+	"regexp"
+	"sort"
 	"strings"
+
+	"github.com/Galdoba/ffstuff/pkg/namedata"
 )
 
 func OmitDuplicates(sl []string) []string {
@@ -14,6 +17,24 @@ func OmitDuplicates(sl []string) []string {
 		newSl = append(newSl, val)
 	}
 	return newSl
+}
+
+func ExpelDuplicates(sl []string, words ...string) []string {
+	sl2 := []string{}
+	for _, sample := range sl {
+		met := false
+		for _, word := range words {
+			if sample == word && !met {
+				met = true
+				break
+			}
+		}
+		if met {
+			continue
+		}
+		sl2 = append(sl2, sample)
+	}
+	return sl2
 }
 
 func Prepend(elem string, sl []string) []string {
@@ -97,41 +118,18 @@ func emulatedNames() []string {
 	return emulatedNames
 }
 
-func SeacrhFileNameBases(list []string) []string {
-	words := searchWords(list)
-	startWords := []string{}
-	for _, w := range words {
-		fmt.Println(w)
-		wLow := strings.ToLower(w)
-		wTitle := strings.Title(wLow)
-		if wTitle == w {
-			startWords = append(startWords, w)
-		}
+func serialData(name string) (string, string, string) {
+	re := regexp.MustCompile(`_(s[0-9]{1,}_[0-9]{1,})`)
+	tag := re.FindString(name)
+	data := strings.Split(tag, "_")
+	if tag != "" {
+		re2 := regexp.MustCompile(`(PRT[0-9]{1,})`)
+		data = append(data, re2.FindString(name))
 	}
-	fmt.Println(startWords)
-	otherWords := otherWords(words, startWords)
-	fmt.Println(otherWords)
-	baseMap := make(map[string]int)
-	bases := []string{}
-	//words = append(words, "")
-	for _, sw := range startWords {
-		for _, second := range words {
-			bases = append(bases, strings.TrimSuffix(sw+"_"+second, "_"))
-		}
-
+	for len(data) < 4 {
+		data = append(data, "")
 	}
-	bases = OmitDuplicates(bases)
-
-	for _, name := range list {
-		for _, base := range bases {
-			if strings.HasPrefix(name, base) {
-				baseMap[base]++
-			}
-		}
-	}
-
-	fmt.Println(baseMap)
-	return []string{}
+	return data[1], data[2], data[3]
 }
 
 func otherWords(words, startWords []string) []string {
@@ -159,6 +157,8 @@ func searchWords(phrases []string) []string {
 			phrase = strings.ReplaceAll(phrase, s, "_")
 		}
 		words := strings.Split(phrase, "_")
+		ssn, ep, prt := serialData(phrase)
+		words = ExpelDuplicates(words, ssn, ep, prt)
 		allWords = append(allWords, words...)
 	}
 	allWords = OmitDuplicates(allWords)
@@ -179,5 +179,114 @@ func glyphType(s string) string {
 		return `w`
 	case `!`, `@`, `#`, `$`, `%`, `^`, `&`, `*`, `(`, `)`, `_`, `+`, ` `, `"`, `№`, `;`, `:`, `?`, `-`, `=`, `/`, `\`, `|`, `,`, `.`, ``:
 		return `_`
+	}
+}
+
+func names() []string {
+	return []string{
+		`\\nas\ROOT\EDIT\_amedia\Ne_ostavlyay_menya_s01\Ne_ostavlyay_menya_s01_01_PRT230516135638.srt`,
+		`\\nas\ROOT\EDIT\_amedia\Ne_ostavlyay_menya_s01\Ne_ostavlyay_menya_s01_01_PRT230516135638_AUDIORUS51.m4a`,
+		`\\nas\ROOT\EDIT\_amedia\Ne_ostavlyay_menya_s01\Ne_ostavlyay_menya_s01_01_PRT230516135638_AUDIORUS51_proxy.ac3`,
+		`\\nas\ROOT\EDIT\_amedia\Ne_ostavlyay_menya_s01\Ne_ostavlyay_menya_s01_01_PRT230516135638_HD.mp4`,
+		`\\nas\ROOT\EDIT\_amedia\Ne_ostavlyay_menya_s01\Ne_ostavlyay_menya_s01_01_PRT230516135638_HD_proxy.mp4`,
+		`\\nas\ROOT\EDIT\_amedia\Ne_ostavlyay_menya_s01\Ne_ostavlyay_menya_s01_01_PRT230519162218.srt`,
+		`\\nas\ROOT\EDIT\_amedia\Ne_ostavlyay_menya_s01\Ne_ostavlyay_menya_s01_01_PRT230519162218_AUDIOENG20.m4a`,
+		`\\nas\ROOT\EDIT\_amedia\Ne_ostavlyay_menya_s01\Ne_ostavlyay_menya_s01_01_PRT230519162218_AUDIOENG20_proxy.ac3`,
+		`\\nas\ROOT\EDIT\_amedia\Ne_ostavlyay_menya_s01\Ne_ostavlyay_menya_s01_01_PRT230519162218_AUDIORUS51.m4a`,
+		`\\nas\ROOT\EDIT\_amedia\Ne_ostavlyay_menya_s01\Ne_ostavlyay_menya_s01_01_PRT230519162218_AUDIORUS51_proxy.ac3`,
+		`\\nas\ROOT\EDIT\_amedia\Ne_ostavlyay_menya_s01\Ne_ostavlyay_menya_s01_01_PRT230519162218_HD.mp4`,
+		`\\nas\ROOT\EDIT\_amedia\Ne_ostavlyay_menya_s01\Ne_ostavlyay_menya_s01_01_PRT230519162218_HD_proxy.mp4`,
+		`\\nas\ROOT\EDIT\_amedia\Ne_ostavlyay_menya_s01\Ne_ostavlyay_menya_s01_02_PRT230516135330.srt`,
+		`\\nas\ROOT\EDIT\_amedia\Ne_ostavlyay_menya_s01\Ne_ostavlyay_menya_s01_02_PRT230516135330_AUDIORUS51.m4a`,
+		`\\nas\ROOT\EDIT\_amedia\Ne_ostavlyay_menya_s01\Ne_ostavlyay_menya_s01_02_PRT230516135330_AUDIORUS51_proxy.ac3`,
+		`\\nas\ROOT\EDIT\_amedia\Ne_ostavlyay_menya_s01\Ne_ostavlyay_menya_s01_02_PRT230516135330_HD.mp4`,
+		`\\nas\ROOT\EDIT\_amedia\Ne_ostavlyay_menya_s01\Ne_ostavlyay_menya_s01_02_PRT230516135330_HD_proxy.mp4`,
+		`\\nas\ROOT\EDIT\_amedia\Ne_ostavlyay_menya_s01\Ne_ostavlyay_menya_s01_04_PRT230516134753.srt`,
+		`\\nas\ROOT\EDIT\_amedia\Ne_ostavlyay_menya_s01\Ne_ostavlyay_menya_s01_04_PRT230516134753_AUDIORUS51.m4a`,
+		`\\nas\ROOT\EDIT\_amedia\Ne_ostavlyay_menya_s01\Ne_ostavlyay_menya_s01_04_PRT230516134753_AUDIORUS51_proxy.ac3`,
+		`\\nas\ROOT\EDIT\_amedia\Ne_ostavlyay_menya_s01\Ne_ostavlyay_menya_s01_04_PRT230516134753_HD.mp4`,
+		`\\nas\ROOT\EDIT\_amedia\Ne_ostavlyay_menya_s01\Ne_ostavlyay_menya_s01_04_PRT230516134753_HD_proxy.mp4`,
+		`\\nas\ROOT\EDIT\_amedia\Ne_ostavlyay_menya_s01\Ne_ostavlyay_menya_s01_04_PRT230519165811.srt`,
+		`\\nas\ROOT\EDIT\_amedia\Ne_ostavlyay_menya_s01\Ne_ostavlyay_menya_s01_04_PRT230519165811_AUDIOENG20.m4a`,
+		`\\nas\ROOT\EDIT\_amedia\Ne_ostavlyay_menya_s01\Ne_ostavlyay_menya_s01_04_PRT230519165811_AUDIOENG20_proxy.ac3`,
+		`\\nas\ROOT\EDIT\_amedia\Ne_ostavlyay_menya_s01\Ne_ostavlyay_menya_s01_04_PRT230519165811_AUDIORUS51.m4a`,
+		`\\nas\ROOT\EDIT\_amedia\Ne_ostavlyay_menya_s01\Ne_ostavlyay_menya_s01_04_PRT230519165811_AUDIORUS51_proxy.ac3`,
+		`\\nas\ROOT\EDIT\_amedia\Ne_ostavlyay_menya_s01\Ne_ostavlyay_menya_s01_04_PRT230519165811_HD.mp4`,
+		`\\nas\ROOT\EDIT\_amedia\Ne_ostavlyay_menya_s01\Ne_ostavlyay_menya_s01_04_PRT230519165811_HD_proxy.mp4`,
+		`\\nas\ROOT\EDIT\_amedia\Ne_ostavlyay_menya_s01\Ne_ostavlyay_menya_s01_07_PRT230516135929.srt`,
+		`\\nas\ROOT\EDIT\_amedia\Ne_ostavlyay_menya_s01\Ne_ostavlyay_menya_s01_07_PRT230516135929_AUDIORUS51.m4a`,
+		`\\nas\ROOT\EDIT\_amedia\Ne_ostavlyay_menya_s01\Ne_ostavlyay_menya_s01_07_PRT230516135929_AUDIORUS51_proxy.ac3`,
+		`\\nas\ROOT\EDIT\_amedia\Ne_ostavlyay_menya_s01\Ne_ostavlyay_menya_s01_07_PRT230516135929_HD.mp4`,
+		`\\nas\ROOT\EDIT\_amedia\Ne_ostavlyay_menya_s01\Ne_ostavlyay_menya_s01_07_PRT230516135929_HD_proxy.mp4`,
+		`\\nas\ROOT\EDIT\_amedia\Ne_ostavlyay_menya_s01\Ne_ostavlyay_menya_s01_07_PRT230519161740.srt`,
+		`\\nas\ROOT\EDIT\_amedia\Ne_ostavlyay_menya_s01\Ne_ostavlyay_menya_s01_07_PRT230519161740_AUDIOENG20.m4a`,
+		`\\nas\ROOT\EDIT\_amedia\Ne_ostavlyay_menya_s01\Ne_ostavlyay_menya_s01_07_PRT230519161740_AUDIOENG20_proxy.ac3`,
+		`\\nas\ROOT\EDIT\_amedia\Ne_ostavlyay_menya_s01\Ne_ostavlyay_menya_s01_07_PRT230519161740_AUDIORUS51.m4a`,
+		`\\nas\ROOT\EDIT\_amedia\Ne_ostavlyay_menya_s01\Ne_ostavlyay_menya_s01_07_PRT230519161740_AUDIORUS51_proxy.ac3`,
+		`\\nas\ROOT\EDIT\_amedia\Ne_ostavlyay_menya_s01\Ne_ostavlyay_menya_s01_07_PRT230519161740_HD.mp4`,
+		`\\nas\ROOT\EDIT\_amedia\Ne_ostavlyay_menya_s01\Ne_ostavlyay_menya_s01_07_PRT230519161740_HD_proxy.mp4`,
+	}
+}
+
+func GrabberOrder(list []string) []string {
+	edNam := []*namedata.EditNameForm{}
+	for _, name := range list {
+		edNam = append(edNam, namedata.EditForm(name))
+	}
+	baseMap := make(map[string]string)
+	baseList := []string{}
+	for _, edit := range edNam {
+		base := edit.Base()
+		baseList = append(baseList, base)
+		baseMap[edit.Source()] = base
+	}
+	sort.Strings(baseList)
+	baseList = OmitDuplicates(baseList)
+	sorted := [][]string{}
+	for _, base := range baseList {
+		sources := []string{}
+		for k, v := range baseMap {
+			if v == base {
+				sources = append(sources, k)
+			}
+		}
+		sorted = append(sorted, sources)
+	}
+	return editOrder(sorted)
+}
+
+func editOrder(list [][]string) []string {
+	grabbed := []string{}
+	for _, base := range list {
+		editOrderTags := editOrderTags()
+		for _, tags := range editOrderTags {
+			for _, inBase := range base {
+				ef := namedata.EditForm(inBase)
+				switch {
+				case ef.HasExtention(tags[0]):
+					grabbed = append(grabbed, ef.Source())
+				case ef.HasTags(tags...):
+					grabbed = append(grabbed, ef.Source())
+
+				}
+			}
+
+		}
+
+	}
+	return grabbed
+}
+
+func editOrderTags() [][]string {
+	return [][]string{
+		{"srt"},
+		{"AUDIO", "proxy"},
+		{"SD", "proxy"},
+		{"HD", "proxy"},
+		{"4K", "proxy"},
+		{"AUDIO"},
+		{"SD"},
+		{"HD"},
+		{"4K"},
 	}
 }

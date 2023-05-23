@@ -79,7 +79,7 @@ func CreateDefaultConfig() error {
 		},
 		{
 			ActionName: "DECIDION_DENY",
-			Triggers:   []string{"ESC"},
+			Triggers:   []string{"~", "BACKSPACE"},
 		},
 		{
 			ActionName: "DOWNLOAD_PAUSE",
@@ -88,6 +88,14 @@ func CreateDefaultConfig() error {
 		{
 			ActionName: "UNDO_MOVEMENT",
 			Triggers:   []string{"Ctrl+Z"},
+		},
+		{
+			ActionName: "ADD_NEW_SOURCE_FROM_CLIPBOARD",
+			Triggers:   []string{"Ctrl+V"},
+		},
+		{
+			ActionName: "ACTION_QUIT_PROGRAM",
+			Triggers:   []string{"Ctrl+Q"},
 		},
 	}
 	fileBts, err := yaml.Marshal(gc)

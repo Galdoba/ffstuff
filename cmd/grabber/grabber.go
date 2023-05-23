@@ -11,6 +11,7 @@ import (
 	"github.com/Galdoba/ffstuff/pkg/glog"
 	"github.com/Galdoba/ffstuff/pkg/grabber"
 	"github.com/Galdoba/ffstuff/pkg/scanner"
+	"github.com/Galdoba/ffstuff/pkg/sortnames"
 	"github.com/Galdoba/utils"
 	"github.com/urfave/cli"
 )
@@ -191,6 +192,14 @@ func main() {
 					list = append(list, path)
 				}
 				fmt.Printf("simulating sorting...\n")
+				for _, name := range list {
+					fmt.Println(name)
+				}
+				list = sortnames.GrabberOrder(list)
+				fmt.Println("")
+				for _, name := range list {
+					fmt.Println(name)
+				}
 				//sort.GrabberWay()
 				fmt.Printf("simulating drawing of ui...\n")
 

@@ -4,13 +4,16 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
 	"github.com/Galdoba/ffstuff/cmd/grabber/download"
+	"github.com/Galdoba/ffstuff/pkg/namedata"
 	"github.com/Galdoba/utils"
 	"github.com/mattn/go-runewidth"
 	"github.com/nsf/termbox-go"
+	"golang.design/x/clipboard"
 )
 
 const (
@@ -19,7 +22,7 @@ const (
 	commandNONE                                  = "NONE"
 	ACTION_MOVE_CURSOR_UP                        = "MOVE_CURSOR_UP"
 	ACTION_MOVE_CURSOR_DOWN                      = "MOVE_CURSOR_DOWN"
-	ACTION_MOVE_CURSOR_DOWN_AND_TOGGLE_SELECTION = "MOVE_CURSOR_DOWN_AND_TOGGLE_SELECTION"
+	ACTION_MOVE_CURSOR_DOWN_AND_TOGGLE_SELECTION = "CURSOR_DOWN_AND_TOGGLE_SELECTION"
 	ACTION_TOGGLE_SELECTION_STATE                = "TOGGLE_SELECTION_STATE"
 	ACTION_SELECT_ALL_WITH_SAME_EXTENTION        = "SELECT_ALL_WITH_SAME_EXTENTION"
 	ACTION_DROP_SELECTIONS                       = "DROP_SELECTIONS"
@@ -32,6 +35,8 @@ const (
 	DELETE_SELECTED                              = "DELETE_SELECTED"
 	DOWNLOAD_PAUSE                               = "DOWNLOAD_PAUSE"
 	UNDO_MOVEMENT                                = "UNDO_MOVEMENT"
+	ADD_NEW_SOURCE_FROM_CLIPBOARD                = "ADD_NEW_SOURCE_FROM_CLIPBOARD"
+	ACTION_QUIT_PROGRAM                          = "ACTION_QUIT_PROGRAM"
 	input_mode_NORMAL                            = 1000
 	input_mode_WAIT_CONFIRM                      = 1001
 	input_mode_CONFIRM_RECEIVED                  = 1002
@@ -56,7 +61,8 @@ func actionMap() map[string]func(*allProc, *InfoBox) error {
 	mp[DOWNLOAD_PAUSE] = Action_TogglePause
 	mp[UNDO_MOVEMENT] = Action_UndoMovement
 	mp[DELETE_SELECTED] = Action_DeleteSelected
-
+	mp[ADD_NEW_SOURCE_FROM_CLIPBOARD] = Action_AddNewProcess
+	mp[ACTION_QUIT_PROGRAM] = Action_QUIT_PROGRAM
 	//mp[ACTION_MOVE_SELECTED_BOTTOM] = Action_MoveSelectedBottom
 	//mp[ACTION_MOVE_SELECTED_UP] = Action_MoveSelectedUp
 	//mp[ACTION_MOVE_SELECTED_DOWN] = Action_MoveSelectedDown
@@ -79,6 +85,49 @@ type allProc struct {
 	warnings []warning
 	//endEvent bool
 	//cursorSelection int
+
+}
+
+var helpBlock []string
+
+func setupHelpBlock(configMap map[string]string) {
+	searchKeys := []string{
+		ACTION_MOVE_CURSOR_UP,
+		ACTION_MOVE_CURSOR_DOWN,
+		ACTION_MOVE_CURSOR_DOWN_AND_TOGGLE_SELECTION,
+		ACTION_TOGGLE_SELECTION_STATE,
+		ACTION_SELECT_ALL_WITH_SAME_EXTENTION,
+		ACTION_DROP_SELECTIONS,
+		ACTION_MOVE_SELECTED_TOP,
+		ACTION_MOVE_SELECTED_BOTTOM,
+		ACTION_MOVE_SELECTED_UP,
+		ACTION_MOVE_SELECTED_DOWN,
+		DECIDION_CONFIRM,
+		DECIDION_DENY,
+		DELETE_SELECTED,
+		DOWNLOAD_PAUSE,
+		UNDO_MOVEMENT,
+		ADD_NEW_SOURCE_FROM_CLIPBOARD,
+		ACTION_QUIT_PROGRAM,
+	}
+	for _, sKey := range searchKeys {
+		keys := []string{}
+		for k, v := range configMap {
+			fmt.Println(k, v)
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		foundVal := []string{}
+		for _, k := range keys {
+			if strings.Contains(k, sKey) {
+				foundVal = append(foundVal, configMap[k])
+			}
+		}
+		for len(sKey) < 33 {
+			sKey += " "
+		}
+		helpBlock = append(helpBlock, "  "+sKey+": "+strings.Join(foundVal, " || "))
+	}
 
 }
 
@@ -115,16 +164,19 @@ func (st *stream) QueueString() string {
 	case false:
 		str += " ]"
 	}
-	progr := " "
-	if st.handler != nil {
-		progr = st.Progress()
-	}
-	str += " " + st.source + "|" + st.lastCommand + "|" + progr + "|"
-	if st.handler != nil {
-		str += fmt.Sprintf("handler:%v", st.handler)
-	} else {
-		str += fmt.Sprintf("no handler")
-	}
+	//progr := " "
+	//if st.handler != nil {
+	progr := "[ " + st.Progress()
+	progr += " ] "
+	//}
+	source := namedata.RetrieveShortName(st.source)
+	str += " " + progr + source
+
+	// if st.handler != nil {
+	// 	str += fmt.Sprintf("handler:%v", st.handler)
+	// } else {
+	// 	str += fmt.Sprintf("no handler")
+	// }
 	return str
 }
 
@@ -136,8 +188,9 @@ func (st *stream) CompleteString() string {
 	case false:
 		str += " ]"
 	}
-	progr := " "
-	str += " " + st.source + "|" + st.lastCommand + "|" + progr + "|" + "done"
+	progr := " [ done ]"
+	source := namedata.RetrieveShortName(st.source)
+	str += progr + " " + source
 	return str
 }
 
@@ -149,23 +202,29 @@ func (st *stream) ErrString() string {
 	case false:
 		str += " ]"
 	}
-	progr := " "
-	str += " " + st.source + "|" + st.lastCommand + "|" + progr + "|" + st.warning
+	progr := " [ warn ]"
+	source := namedata.RetrieveShortName(st.source)
+	str += progr + " [" + st.warning + "] " + source
 	return str
 }
 
 func (st *stream) Progress() string {
-
+	if st.handler == nil {
+		return "wait"
+	}
 	switch st.handler.Status() {
 	default:
-		proc := int64(0)
+		proc := "int64(0)"
 		size := st.handler.FileSize()
 		if size != 0 {
-			proc = st.handler.Progress() / (st.handler.FileSize() / 100)
+			proc = fmt.Sprintf("%v", st.handler.Progress()/(st.handler.FileSize()/100))
 		}
-		return fmt.Sprintf(" %v", proc) + "% "
+		for len(proc) < 3 {
+			proc = " " + proc
+		}
+		return fmt.Sprintf("%v", proc) + "%"
 	case download.STATUS_COMPLETED:
-		return "completed"
+		return "Done"
 	case download.STATUS_TERMINATED:
 		return "terminated"
 	case download.STATUS_ERR:
@@ -180,6 +239,10 @@ type InfoBox struct {
 	ticker          int
 	lastKeysPressed string
 	inputMode       int
+	lastScroll      int //0 = down/ 1 = up
+	lowBorder       int
+	highBorder      int
+	drawLen         int
 }
 
 func tickerImage(i int) string {
@@ -190,56 +253,135 @@ func tickerImage(i int) string {
 	return s
 }
 
+func maxLenData(ib *InfoBox) int {
+	mld := 0
+	for _, d := range ib.data {
+		if len(d) > mld {
+			mld = len(d)
+		}
+	}
+	return mld
+}
+
+func (st *stream) ProgressData() string {
+	if st.handler == nil {
+		return ""
+	}
+	s := ""
+	sz := utils.RoundFloat64(float64(st.handler.Progress())/1000000000.0, 1)
+
+	tsz := utils.RoundFloat64(float64(st.handler.FileSize())/1000000000.0, 1)
+	s = fmt.Sprintf(" 	(%v/%v Gb)", sz, tsz)
+
+	return s
+}
+
 func (ib *InfoBox) Draw(ap *allProc) {
 	termbox.Clear(termbox.ColorBlack, termbox.ColorBlack)
+	w, h := termbox.Size()
 	fg := termbox.ColorWhite
 	bg := termbox.ColorBlack
-	tkr := tickerImage(ib.ticker / 5)
-	tbprint(0, 0, fg, bg, "Last Key Pressed:"+ib.lastKeysPressed+"__: "+fmt.Sprintf("%v", len(ap.indexBuf.Set))+" ccl:"+fmt.Sprintf("%v", ib.cursor))
-	tbprint(0, 1, fg, bg, "Tiker:"+tkr)
-	tbprint(0, 2, fg, bg, "Grabber Dowloading: "+fmt.Sprintf("%v", ap.activeHandler))
 
-	lowBorder := utils.Max(0, ib.cursor-14)
-	highBorder := utils.Min(len(ap.stream)-1, lowBorder+29)
-	if highBorder-lowBorder < 29 {
-		lowBorder = utils.Max(0, highBorder-29)
+	ib.drawLen = h - len(helpBlock) - 6
+	//tkr := tickerImage(ib.ticker / 5)
+	prog := ""
+	dest := ""
+	if ap.activeStream != nil {
+		szStr := ""
+		if ap.activeStream.handler != nil {
+
+			szStr = ap.activeStream.ProgressData()
+		}
+		prog = ap.activeStream.Progress() + szStr
+		dest = namedata.RetrieveShortName(ap.activeStream.source) + "  ----->  " + ap.activeStream.dest
 	}
-	// if ib.cursor > 25 {
-	// 	lowBorder = ib.cursor - 25
-	// }
-	// if ib.cursor-15 < lowBorder {
-	// 	lowBorder = ib.cursor - 15
-	// 	if lowBorder < 0 {
-	// 		lowBorder = 0
-	// 	}
-	// 	highBorder = lowBorder + 30
-	// }
+	tbprint(0, 0, fg, bg, "Last Key Pressed:"+ib.lastKeysPressed+"__: "+fmt.Sprintf("%v", len(ap.indexBuf.Set))+" ccl:"+fmt.Sprintf("%v", ib.cursor))
 
-	// if ib.cursor+15 > highBorder {
-	// 	highBorder = ib.cursor + 15
-	// 	lowBorder = ib.cursor - 15
-	// }
-	// if highBorder > len(ap.stream)-1 {
-	// 	highBorder = len(ap.stream) - 1
-	// 	lowBorder = utils.Min(highBorder-5, ib.cursor-5)
-	// }
+	tbprint(0, 1, fg, bg, "Active Transfert: "+prog)
+	tbprint(0, 2, fg, bg, dest)
 
+	if ib.lowBorder == 0 && ib.highBorder == 0 {
+		ib.lowBorder = utils.Max(0, ib.cursor-ib.drawLen)
+		ib.highBorder = utils.Min(len(ap.stream)-1, ib.lowBorder+ib.drawLen)
+	}
+
+	switch ib.lastScroll {
+	case 0:
+		if ib.cursor > ib.highBorder {
+			ib.lowBorder = utils.Max(0, ib.cursor-ib.drawLen)
+			ib.highBorder = utils.Min(len(ap.stream)-1, ib.lowBorder+ib.drawLen)
+		}
+	case 1:
+		if ib.cursor < ib.lowBorder {
+			ib.lowBorder--
+			ib.highBorder--
+		}
+	default:
+		panic("Этого не должно случиться:\nib.lastScroll")
+	}
+
+	uptag := ""
+	downtag := ""
+	if ib.lowBorder > 0 {
+		uptag = fmt.Sprintf("%v files up", ib.lowBorder)
+	}
+	uptag = "+---" + uptag
+	if ib.highBorder < len(ap.stream)-1 {
+		downtag = fmt.Sprintf("%v files down", len(ap.stream)-1-ib.highBorder)
+	}
+	mld := w - 5
+	for len(uptag) < mld {
+		uptag += "-"
+	}
+	downtag = "+---" + downtag
+	for len(downtag) < mld {
+		downtag += "-"
+	}
+
+	uptag += "+"
+	downtag += "+"
+	tbprint(0, 3, fg, bg, uptag)
+	lastDrowed := 0
 	for i, data := range ib.data {
-		if i < lowBorder {
+		if i < ib.lowBorder {
 			continue
 		}
-		if i > highBorder {
+		if i > ib.highBorder {
 			continue
 		}
+		fg = activeColor(data)
+		bg = termbox.ColorBlack
 		if i == ib.cursor {
 			fg = termbox.ColorBlack
-			bg = termbox.ColorWhite
+			bg = activeColor(data)
 		}
-		tbprint(2, i+3-lowBorder, fg, bg, data)
-		fg = termbox.ColorWhite
+		tbprint(0, i+4-ib.lowBorder, termbox.ColorWhite, termbox.ColorBlack, "|")
+		tbprint(2, i+4-ib.lowBorder, fg, bg, strings.TrimSuffix(data, " $"))
+		tbprint(mld, i+4-ib.lowBorder, termbox.ColorWhite, termbox.ColorBlack, "|")
+		lastDrowed = i + 4 - ib.lowBorder
+		fg = activeColor(data)
 		bg = termbox.ColorBlack
 	}
+	tbprint(0, lastDrowed+1, termbox.ColorWhite, termbox.ColorBlack, downtag)
+
+	for i, line := range helpBlock {
+		tbprint(0, h-len(helpBlock)+i, termbox.ColorWhite, termbox.ColorBlack, line)
+	}
 	termbox.Flush()
+}
+
+func activeColor(data string) termbox.Attribute {
+	if strings.Contains(data, "done") {
+		return termbox.ColorGreen
+	}
+	if strings.Contains(data, "duplicate") {
+		return termbox.ColorYellow
+	}
+	if strings.Contains(data, "Error") {
+		return termbox.ColorRed
+	}
+
+	return termbox.ColorWhite
 }
 
 // This function is often useful:
@@ -306,16 +448,23 @@ func (ib *InfoBox) Update(ap *allProc) error {
 	return nil
 }
 
-func NewAllProcesses(dest string, paths ...string) *allProc {
-	ap := allProc{}
-
+func (ap *allProc) NewProcesses(dest string, paths ...string) {
 	for i, path := range paths {
 		file := filepath.Base(path)
-		ap.stream = append(ap.stream, NewStream(path, dest, file))
-		ap.stream[i].warning = "?"
+		present := false
+		for _, proc := range ap.stream {
+			if proc.baseName == file {
+				present = true
+				break
+			}
+		}
+		if !present {
+			ap.stream = append(ap.stream, NewStream(path, dest, file))
+			ap.stream[i].warning = "?"
+		}
+
 	}
 
-	return &ap
 }
 
 func SetupInfoBox() *InfoBox {
@@ -336,9 +485,6 @@ func (act *action) setValidInputMode() {
 	if strings.Contains(act.eventName, "DECIDION") {
 		act.validInputMode = input_mode_WAIT_CONFIRM
 	}
-	// if strings.Contains(act.eventName, "DELETE") {
-	// 	act.validInputMode = input_mode_CONFIRM_RECEIVED
-	// }
 }
 
 func setupAction(key string, configMap map[string]string, function func(*allProc, *InfoBox) error) ([]action, error) {
@@ -438,9 +584,13 @@ func (actpl *ActionPool) AddAction(key string, act action) {
 	}
 }
 
-func StartMainloop(configMap map[string]string, paths []string) error {
+var dest_gl string
 
-	ap := NewAllProcesses(configMap["dest"], paths...)
+func StartMainloop(configMap map[string]string, paths []string) error {
+	dest_gl = configMap["dest"]
+	clipboard.Init()
+	ap := &allProc{}
+	ap.NewProcesses(configMap["dest"], paths...)
 	//activeStream := (*stream)(nil)
 
 	ib := &InfoBox{}
@@ -450,6 +600,7 @@ func StartMainloop(configMap map[string]string, paths []string) error {
 	if err := actionPool.fillCommandActionMap(configMap); err != nil {
 		return err
 	}
+	setupHelpBlock(configMap)
 	err := termbox.Init()
 	if err != nil {
 		panic(err)
@@ -496,10 +647,17 @@ loop:
 						for _, action := range actions {
 							if action.validInputMode == ib.inputMode {
 								ib.lastKeysPressed += " do action" + " " + action.eventName
-								action.function(ap, ib)
+								err := action.function(ap, ib)
+
 								switch action.eventName {
 								case ACTION_MOVE_SELECTED_UP, ACTION_MOVE_SELECTED_TOP, ACTION_MOVE_SELECTED_DOWN, ACTION_MOVE_SELECTED_BOTTOM:
 									ap.SaveState()
+								}
+								if err != nil {
+									if err.Error() == "Quit action called by user" {
+										return err
+									}
+									panic(action.eventName + ": " + err.Error())
 								}
 								break
 							} else {
@@ -508,8 +666,8 @@ loop:
 						}
 
 					}
-				case 'q', 'й':
-					break loop
+				// case 'q', 'й':
+				// 	break loop
 				default:
 					key := map_evCh(ev.Ch) + fmt.Sprintf("_%v", ib.inputMode)
 					actions := actionPool.byKBKey[key]
@@ -999,40 +1157,3 @@ func exists(path string) (bool, error) {
 	}
 	return false, err
 }
-
-/*
-
-Pravila_moey_kuhni_s11_01.srt
-Pravila_moey_kuhni_s11_01_AUDIORUS20_proxy.ac3
-Pravila_moey_kuhni_s11_01_AUDIOENG20_proxy.ac3
-Pravila_moey_kuhni_s11_01_AUDIORUS51_proxy.ac3
-Pravila_moey_kuhni_s11_01_AUDIOENG51_proxy.ac3
-Pravila_moey_kuhni_s11_01_SD_proxy.mp4
-Pravila_moey_kuhni_s11_01_HD_proxy.mp4
-Pravila_moey_kuhni_s11_01_4K_proxy.mp4
-Pravila_moey_kuhni_s11_01_AUDIORUS20.m4a
-Pravila_moey_kuhni_s11_01_AUDIOENG20.m4a
-Pravila_moey_kuhni_s11_01_AUDIORUS51.m4a
-Pravila_moey_kuhni_s11_01_AUDIOENG51.m4a
-Pravila_moey_kuhni_s11_01_SD.mp4
-Pravila_moey_kuhni_s11_01_HD.mp4
-Pravila_moey_kuhni_s11_01_4K.mp4
-Pravila_moey_kuhni_s11_04.srt
-Pravila_moey_kuhni_s11_04_AUDIORUS20_proxy.ac3
-Pravila_moey_kuhni_s11_04_AUDIOENG20_proxy.ac3
-Pravila_moey_kuhni_s11_04_AUDIORUS51_proxy.ac3
-Pravila_moey_kuhni_s11_04_AUDIOENG51_proxy.ac3
-Pravila_moey_kuhni_s11_04_SD_proxy.mp4
-Pravila_moey_kuhni_s11_04_HD_proxy.mp4
-Pravila_moey_kuhni_s11_04_4K_proxy.mp4
-Pravila_moey_kuhni_s11_04_AUDIORUS20.m4a
-Pravila_moey_kuhni_s11_04_AUDIOENG20.m4a
-Pravila_moey_kuhni_s11_04_AUDIORUS51.m4a
-Pravila_moey_kuhni_s11_04_AUDIOENG51.m4a
-Pravila_moey_kuhni_s11_04_SD.mp4
-Pravila_moey_kuhni_s11_04_HD.mp4
-Pravila_moey_kuhni_s11_04_4K.mp4
-
-
-
-*/

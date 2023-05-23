@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"os"
 
 	vidio "github.com/Galdoba/ffstuff/imported/Vidio"
+	"github.com/Galdoba/utils"
 )
 
 /*
@@ -22,7 +24,7 @@ p.wait()
 */
 
 func main() {
-	video, _ := vidio.NewVideo(`d:\\tests\\duplicates\\Eve_cut.mov`)
+	video, _ := vidio.NewVideo(`c:\Users\pemaltynov\go\src\github.com\Galdoba\ffstuff\pkg\duplicates\Partners_for_Justice_01.mov`)
 	options := vidio.Options{
 		FPS:     video.FPS(),
 		Bitrate: video.Bitrate(),
@@ -31,6 +33,9 @@ func main() {
 		options.StreamFile = video.FileName()
 	}
 	video.Width()
+
+	expectFrames := int(video.Duration()) * int(video.FPS())
+	fmt.Println(expectFrames)
 	copyFound := 0
 	copyCounter := 0
 	frameCounter := 0
@@ -40,30 +45,50 @@ func main() {
 	video.SetFrameBuffer(img.Pix)
 	var colorSet1 []color.Color
 	var colorSet2 []color.Color
-	writer, err := vidio.NewVideoWriter("output.mp4", video.Width(), video.Height(), &options)
+	writer, err := vidio.NewVideoWriter("output2.mp4", video.Width(), video.Height(), &options)
 	if err != nil {
 		fmt.Println(err.Error())
 		return
 	}
 
-	defer writer.Close()
+	//defer writer.Close()
 	//writer.Write(video.FrameBuffer())
+	unic := 0
 	for video.Read() {
 		frameCounter++
+
 		//		frameBts := video.FrameBuffer()
-		colorSet1 = memorizeColors(img, video.Width()/4, video.Height()/4)
+		colorSet1 = memorizeColors(img, video.Width()/192, video.Height()/8)
 		switch isCopy(colorSet1, colorSet2) {
 		case true:
 			copyCounter++
 			copyFound++
-			fmt.Println(frameCounter, copyCounter)
+
+			//fmt.Println(frameCounter, copyCounter)
+			f, err := os.OpenFile("filename.txt", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
+			if err != nil {
+				panic(err)
+			}
+
+			defer f.Close()
+
+			if _, err = f.WriteString(fmt.Sprintf("%v\n", unic)); err != nil {
+				panic(err)
+			}
+			unic = 0
 		case false:
 			copyCounter = 0
-
+			unic++
 		}
 		frameMap[frameCounter] = copyCounter
+		unFrames := frameCounter - copyFound
+		sec := frameCounter / 25
+		ratio := utils.RoundFloat64(float64(unFrames)/float64(frameCounter), 3)
+		fmt.Printf("Frame %v\r", frameCounter)
+		if frameCounter%1500 == 0 {
+			fmt.Printf("unique frames: %v/%v  s:%v    (%v)                                                                                      \n", unFrames, frameCounter, sec, ratio)
+		}
 
-		//fmt.Printf("unique frames: %v/%v    \r", frameCounter-copyFound, frameCounter)
 		colorSet2 = colorSet1
 		if copyCounter != 1 {
 			err := writer.Write(video.FrameBuffer())
@@ -92,12 +117,15 @@ func isCopy(bts1, bts2 []color.Color) bool {
 		return false
 	}
 	for i := 0; i < len(bts1); i++ {
+
 		if bts2[i] != bts1[i] {
 			//fmt.Println("not copy:", bts2[i], "!=", bts1[i], i)
 			return false
 		}
+		//i += 200
 	}
 	//fmt.Printf("full copy       \n")
+
 	return true
 }
 
@@ -142,34 +170,34 @@ ffmpeg -i _HD_51.mp4 -loglevel quiet -vf select=not(mod(n\,100)) -vsync 0 -an -f
 
 */
 
-func copyVid() {
-	video, _ := vidio.NewVideo(`d:\\tests\\duplicates\\Eve_cut.mov`)
-	options := vidio.Options{
-		FPS:     video.FPS(),
-		Bitrate: video.Bitrate(),
-	}
-	if video.HasStreams() {
-		options.StreamFile = video.FileName()
-	}
+// func copyVid() {
+// 	video, _ := vidio.NewVideo(`d:\\tests\\duplicates\\Eve_cut.mov`)
+// 	options := vidio.Options{
+// 		FPS:     video.FPS(),
+// 		Bitrate: video.Bitrate(),
+// 	}
+// 	if video.HasStreams() {
+// 		options.StreamFile = video.FileName()
+// 	}
 
-	writer, _ := vidio.NewVideoWriter("output.mp4", video.Width(), video.Height(), &options)
+// 	writer, _ := vidio.NewVideoWriter("output.mp4", video.Width(), video.Height(), &options)
 
-	writer.Close()
-	fmt.Println(writer)
-	i := 0
-	for video.Read() {
-		err := writer.Write(video.FrameBuffer())
-		fmt.Println(i, writer)
-		if err != nil {
-			fmt.Println(err.Error())
-		}
+// 	writer.Close()
+// 	fmt.Println(writer)
+// 	i := 0
+// 	for video.Read() {
+// 		err := writer.Write(video.FrameBuffer())
+// 		fmt.Println(i, writer)
+// 		if err != nil {
+// 			fmt.Println(err.Error())
+// 		}
 
-		i++
-		if i > 50 {
-			break
-		}
-	}
-}
+// 		i++
+// 		if i > 50 {
+// 			break
+// 		}
+// 	}
+// }
 
 //ffmpeg -t 10 -i Eve_cut.mov -an -vcodec copy -f matroska - | ffmpeg -i - -vcodec copy  10SecC2.mov
 

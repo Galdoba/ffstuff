@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/user"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -53,20 +54,19 @@ func RetrieveShortName(path string) string {
 	return shortFileName(path)
 }
 
-func RetrieveBase(path string) string {
-	fileName := shortFileName(path)
-	if strings.Contains(fileName, "__") {
-		return strings.Split(fileName, "__")[0]
-	}
-	tags, _ := splitName(fileName)
-	base, _ := nameBase(tags)
-	return base
-}
+// func RetrieveBase(path string) string {
+// 	fileName := shortFileName(path)
+// 	if strings.Contains(fileName, "__") {
+// 		return strings.Split(fileName, "__")[0]
+// 	}
+// 	tags, _ := splitName(fileName)
+// 	base, _ := nameBase(tags)
+// 	return base
+// }
 
 func RetrieveExtention(path string) string {
-	fileName := shortFileName(path)
-	_, ext := splitName(fileName)
-	return ext
+	p := strings.Split(path, ".")
+	return p[len(p)-1]
 }
 
 func RetrieveTags(path string) []string {
@@ -82,7 +82,8 @@ func RetrieveDrive(path string) string {
 }
 
 func shortFileName(path string) string {
-	data := strings.Split(path, "\\")
+	path = strings.ReplaceAll(path, `\`, `/`)
+	data := strings.Split(path, "/")
 	fileName := path
 	if len(data) > 1 {
 		fileName = data[len(data)-1]
@@ -256,6 +257,42 @@ type textMask struct {
 	//original     string
 	matchPattern string
 	typePattern  string
+}
+
+func (m *textMask) MatchPattern() string {
+	return m.matchPattern
+}
+
+func (m *textMask) TypePattern() string {
+	return m.typePattern
+}
+
+func (m *textMask) BasePatern() string {
+	basePatern := ""
+	base := true
+	for i, l := range strings.Split(m.matchPattern, "") {
+		if base {
+			if l == "*" {
+				base = false
+			}
+			switch base {
+			case true:
+				basePatern += l
+			case false:
+				typePat := strings.Split(m.typePattern, "")
+				switch typePat[i] {
+				case "d":
+					basePatern += "+"
+				case "_":
+					basePatern += "_"
+				default:
+					return basePatern
+				}
+			}
+
+		}
+	}
+	return basePatern
 }
 
 /*получая список имен пытаемся вывести маску из списка
@@ -603,3 +640,134 @@ func sortAsEdit(list []string) []string {
 	}
 	return sList
 }
+
+func IsEditName(name string) bool {
+	name = shortFileName(name)
+	if len(strings.Split(name, "__")) == 2 {
+		return true
+	}
+	return false
+}
+
+var EditTags = []string{
+	"SD",
+	"HD",
+	"4K",
+	"NOCENS",
+}
+
+type EditNameForm struct {
+	source    string
+	dir       string
+	short     string
+	base      string
+	season    string
+	episode   string
+	prt       string
+	extention string
+	tags      []string
+}
+
+func (enf *EditNameForm) Source() string {
+	return enf.source
+}
+
+func (enf *EditNameForm) Base() string {
+	return enf.base
+}
+
+func serialData(name string) (string, string, string) {
+	re := regexp.MustCompile(`_(s[0-9]{1,}_[0-9]{1,})`)
+	tag := re.FindString(name)
+	data := strings.Split(tag, "_")
+	if tag != "" {
+		re2 := regexp.MustCompile(`(PRT[0-9]{1,})`)
+		data = append(data, re2.FindString(name))
+	}
+	for len(data) < 4 {
+		data = append(data, "")
+	}
+	return data[1], data[2], data[3]
+}
+
+func RetrieveAudioTag(name string) string {
+	re := regexp.MustCompile(`AUDIO(.*[0-9]{2})`)
+	return re.FindString(name)
+}
+
+func EditForm(path string) *EditNameForm {
+	ef := EditNameForm{}
+	ef.source = path
+	ef.short = shortFileName(path)
+	ef.dir = RetrieveDirectory(path)
+	ef.season, ef.episode, ef.prt = serialData(path)
+	ef.extention = RetrieveExtention(path)
+	ef.base = RetrieveBase(ef.short)
+	ef.tags = tags(ef)
+	return &ef
+}
+
+func (ef *EditNameForm) HasTags(tags ...string) bool {
+	met := 0
+	for _, check := range tags {
+		for _, got := range ef.tags {
+
+			if check == got {
+				met++
+			}
+		}
+	}
+	if met == len(ef.tags)-1 && met == len(tags) {
+		return true
+	}
+	return false
+}
+
+func (ef *EditNameForm) HasExtention(ext string) bool {
+	if ef.extention == ext {
+		return true
+	}
+	return false
+}
+
+func RetrieveBase(shortName string) string {
+	words := strings.Split(shortName, "_")
+	base := ""
+	for _, w := range words {
+		for _, pref := range []string{"SD", "HD", "4K", "SD.", "HD.", "4K.", "AUDIO", "TRL", "PROXY", "proxy"} {
+			if strings.HasPrefix(w, pref) {
+				base = strings.TrimSuffix(base, "_")
+				return base
+			}
+		}
+		base += w + "_"
+	}
+	base = strings.TrimSuffix(base, "_")
+	if base == shortName {
+		baseWE := strings.Split(base, ".")
+		base = strings.Join(baseWE[:len(baseWE)-1], ".")
+	}
+	return base
+}
+
+func tags(ef EditNameForm) []string {
+	short := ef.short
+	short = strings.TrimSuffix(short, "."+ef.extention)
+	short = strings.TrimPrefix(short, ef.base)
+	tags := strings.Split(short, "_")
+	for i, tag := range tags {
+		if strings.HasPrefix(tag, "AUDIO") {
+			tags[i] = "AUDIO"
+		}
+	}
+	return tags
+}
+
+type EditFormList struct {
+	list []EditNameForm
+}
+
+// func NewEditFormList(list []string) *EditFormList {
+// 	efl := EditFormList{}
+
+// }

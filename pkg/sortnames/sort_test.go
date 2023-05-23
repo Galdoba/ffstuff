@@ -35,8 +35,15 @@ func printSliceLn(sl []string) {
 }
 
 func TestSeacrhFileNameBases(t *testing.T) {
-	list := emulatedNames()
-	SeacrhFileNameBases(list)
+	nm := names()
+	//words := searchWords(nm)
+	//fmt.Println(words)
+	// for _, n := range nm {
+	// 	//fmt.Println(namedata.EditForm(n), namedata.EditForm(n).HasTags("AUDIO", "proxy"))
+	// }
+	for _, base := range GrabberOrder(nm) {
+		fmt.Println(base)
+	}
 }
 
 /*
