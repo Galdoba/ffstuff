@@ -21,7 +21,11 @@ const (
 	commandCONTINUE                       = "continue"
 	commandNONE                           = "NONE"
 	ACTION_MOVE_CURSOR_UP                 = "MOVE_CURSOR_UP"
+	ACTION_MOVE_CURSOR_TOP                = "MOVE_CURSOR_TOP"
+	ACTION_MOVE_CURSOR_PU                 = "MOVE_CURSOR_PU"
 	ACTION_MOVE_CURSOR_DOWN               = "MOVE_CURSOR_DOWN"
+	ACTION_MOVE_CURSOR_BOTTOM             = "MOVE_CURSOR_BOTTOM"
+	ACTION_MOVE_CURSOR_PD                 = "MOVE_CURSOR_PD"
 	CURSOR_DOWN_AND_TOGGLE_SELECTION      = "CURSOR_DOWN_AND_TOGGLE_SELECTION"
 	ACTION_TOGGLE_SELECTION_STATE         = "TOGGLE_SELECTION_STATE"
 	ACTION_SELECT_ALL_WITH_SAME_EXTENTION = "SELECT_ALL_WITH_SAME_EXTENTION"
@@ -47,7 +51,11 @@ func actionMap() map[string]func(*allProc, *InfoBox) error {
 	mp := make(map[string]func(*allProc, *InfoBox) error)
 
 	mp[ACTION_MOVE_CURSOR_UP] = Action_MoveCursorUP
+	mp[ACTION_MOVE_CURSOR_TOP] = Action_MoveCursorTOP
+	mp[ACTION_MOVE_CURSOR_PU] = Action_MoveCursorPU
 	mp[ACTION_MOVE_CURSOR_DOWN] = Action_MoveCursorDOWN
+	mp[ACTION_MOVE_CURSOR_BOTTOM] = Action_MoveCursorBOTTOM
+	mp[ACTION_MOVE_CURSOR_PD] = Action_MoveCursorPD
 	mp[CURSOR_DOWN_AND_TOGGLE_SELECTION] = Action_MoveCursorDOWNandSELECT
 	mp[ACTION_TOGGLE_SELECTION_STATE] = Action_ToggleSelection
 	mp[ACTION_SELECT_ALL_WITH_SAME_EXTENTION] = Action_SelectAllWithSameExtention
@@ -93,7 +101,9 @@ var helpBlock []string
 func setupHelpBlock(configMap map[string]string) {
 	searchKeys := []string{
 		ACTION_MOVE_CURSOR_UP,
+		ACTION_MOVE_CURSOR_TOP,
 		ACTION_MOVE_CURSOR_DOWN,
+		ACTION_MOVE_CURSOR_BOTTOM,
 		CURSOR_DOWN_AND_TOGGLE_SELECTION,
 		ACTION_TOGGLE_SELECTION_STATE,
 		ACTION_SELECT_ALL_WITH_SAME_EXTENTION,
@@ -587,12 +597,12 @@ func (actpl *ActionPool) AddAction(key string, act action) {
 var dest_gl string
 
 func StartMainloop(configMap map[string]string, paths []string) error {
+
 	dest_gl = configMap["dest"]
 	clipboard.Init()
 	ap := &allProc{}
 	ap.NewProcesses(configMap["dest"], paths...)
 	//activeStream := (*stream)(nil)
-
 	ib := &InfoBox{}
 	ib.data = []string{}
 	actionPool := ActionPool{}
@@ -621,9 +631,10 @@ func StartMainloop(configMap map[string]string, paths []string) error {
 loop:
 	for {
 		ap.initialCheck()
-		if len(ap.stream) == 0 && len(ap.warnings) == 0 {
-			break
-		}
+		// if len(ap.stream) == 0 && len(ap.warnings) == 0 {
+		// 	panic("Erali")
+		// 	break
+		// }
 		// if !started {
 		// 	err := ap.stream[0].start()
 		// 	if err != nil {
@@ -700,50 +711,13 @@ loop:
 
 			}
 			ap.confirmStreams()
-			//		case ev := <-handlerEvents:
-			// case ev, ok := <-ap.activeHandler.Listen():
-
-			// 	if ok {
-			// 		ap.stream[0].lastResponse = ev.String()
-			// 		if ev.String() == "completed" {
-
-			// 			ib.ticker = 0
-
-			// 			//err := ap.CloseStream()
-			// 			// if err := ap.CloseStream(); err != nil {
-			// 			// 	panic("CLOSE STREAM: " + err.Error())
-			// 			// }
-
-			// 			// err := Action_StartNext(ap, ib)
-			// 			// if err != nil {
-			// 			// 	return err
-			// 			// }
-			// 			//Action_Continue(ap, ib)
-			// 			//handlerEvents = make(chan download.Response)
-			// 			//ap.activeHandlerChan = make(chan download.Response)
-			// 			//ap.activeHandler.Kill()
-			// 		}
-			// 	} else {
-			// 		if ap.activeHandler == nil {
-			// 			fmt.Print("chennel closed\r")
-			// 			ap.activeHandlerChan = nil
-			// 		} else {
-			// 			fmt.Print(ev.String() + "  channel closed (not realy) " + fmt.Sprintf("%v", ap.activeHandler) + "\r")
-			// 			for i, stream := range ap.stream {
-			// 				if stream.handler != nil {
-			// 					continue
-			// 				}
-			// 				ap.stream[i].start()
-			// 				ap.activeHandler = ap.stream[i].handler
-			// 			}
-
-			// 			time.Sleep(time.Second)
-			// 		}
-
-			// 	}
+			if ib.ticker > 50 && ib.ticker%5 == 0 {
+				setCursorToActiveStream(ap, ib)
+			}
 
 		}
 		if ap.activeStream == nil {
+
 			err := ap.ActivateStream()
 			if err == ErrAllCompleted {
 				return nil
@@ -758,7 +732,6 @@ loop:
 		ib.Draw(ap)
 
 	}
-
 	fmt.Println("END")
 
 	return nil
@@ -1089,19 +1062,6 @@ func (ap *allProc) removeWarning(wrnBase string) {
 }
 
 func (ap *allProc) confirmStreams() {
-	// for _, wrn := range ap.warnings {
-	// 	if err := renameFileName(wrn.temp+wrn.base, wrn.dest+wrn.base); err != nil {
-	// 		if strings.Contains(err.Error(), "The system cannot find the file specified") {
-	// 			ap.addWarning(newWarning(wrn.base, wrn.dest, "The system cannot find the file specified"))
-	// 		}
-	// 		if strings.Contains(err.Error(), "The process cannot access the file") {
-	// 			ap.addWarning(newWarning(wrn.base, wrn.dest, "The process cannot access the file"))
-	// 		}
-	// 		ap.addWarning(newWarning(wrn.base, wrn.dest, err.Error()))
-	// 	} else {
-	// 		ap.removeWarning(wrn.base)
-	// 	}
-	// }
 	for _, stream := range ap.stream {
 		if stream.warning == "done" {
 			continue
@@ -1156,4 +1116,26 @@ func exists(path string) (bool, error) {
 		return false, nil
 	}
 	return false, err
+}
+
+func setCursorToActiveStream(ap *allProc, ib *InfoBox) {
+	curs := ""
+	if ap.activeStream != nil {
+		curs = ap.activeStream.source
+	}
+	if curs == "" {
+		return
+	}
+	for i, str := range ap.stream {
+		if curs != str.source {
+			continue
+		}
+		ib.lastScroll = 1
+		ib.cursor = i
+		ib.lowBorder = 0
+		ib.highBorder = 0
+		break
+	}
+	ib.Update(ap)
+	ib.Draw(ap)
 }

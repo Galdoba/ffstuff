@@ -1,6 +1,7 @@
 package sortnames
 
 import (
+	"fmt"
 	"regexp"
 	"sort"
 	"strings"
@@ -252,7 +253,11 @@ func GrabberOrder(list []string) []string {
 		}
 		sorted = append(sorted, sources)
 	}
-	return editOrder(sorted)
+	fmt.Println(sorted)
+	editOrd := editOrder(sorted)
+	editOrd = append(editOrd, list...)
+	editOrd = OmitDuplicates(editOrd)
+	return editOrd
 }
 
 func editOrder(list [][]string) []string {
@@ -288,5 +293,6 @@ func editOrderTags() [][]string {
 		{"SD"},
 		{"HD"},
 		{"4K"},
+		{""},
 	}
 }

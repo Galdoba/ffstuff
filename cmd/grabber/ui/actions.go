@@ -25,20 +25,26 @@ func Action_MoveCursorUP(ap *allProc, ib *InfoBox) error {
 		ib.cursor = 0
 	}
 	ib.lastScroll = 1
-	// //проскакиваем вверх все готовые
-	// for ib.cursor > 0 && ap.stream[ib.cursor].handler != nil && ap.stream[ib.cursor].handler.Status() == download.STATUS_COMPLETED {
-	// 	ib.cursor--
-	// }
-	// //проскакиваем вниз все готовые
-	// for ib.cursor < len(ap.stream) && ap.stream[ib.cursor].handler != nil && ap.stream[ib.cursor].handler.Status() == download.STATUS_COMPLETED {
-	// 	ib.cursor++
-	// }
-	// for ib.cursor < len(ap.stream) && ap.stream[ib.cursor].handler != nil && ap.stream[ib.cursor].handler.Status() == download.STATUS_COMPLETED {
-	// 	ib.cursor++
-	// }
-	// for ib.cursor >= len(ap.stream) {
-	// 	ib.cursor--
-	// }
+
+	return nil
+}
+
+func Action_MoveCursorTOP(ap *allProc, ib *InfoBox) error {
+	ib.cursor = 0
+	ib.lastScroll = 1
+	ib.lowBorder = 0
+	ib.highBorder = 0
+	return nil
+}
+
+func Action_MoveCursorPU(ap *allProc, ib *InfoBox) error {
+	ib.cursor = ib.lowBorder
+	if ib.cursor < 0 {
+		ib.cursor = 0
+	}
+	ib.lastScroll = 1
+	ib.lowBorder = 0
+	ib.highBorder = 0
 	return nil
 }
 
@@ -48,31 +54,31 @@ func Action_MoveCursorDOWN(ap *allProc, ib *InfoBox) error {
 		ib.cursor = len(ap.stream) - 1
 	}
 	ib.lastScroll = 0
-	// //проскакиваем вниз все готовые
-	// for ib.cursor < len(ap.stream) && ap.stream[ib.cursor].handler != nil && ap.stream[ib.cursor].handler.Status() == download.STATUS_COMPLETED {
-	// 	ib.cursor++
-	// }
-	// //проскакиваем вверх все готовые
-	// for ib.cursor > 0 && ib.cursor < len(ap.stream) && ap.stream[ib.cursor].handler != nil && ap.stream[ib.cursor].handler.Status() == download.STATUS_COMPLETED {
-	// 	ib.cursor--
-	// }
+	return nil
+}
 
+func Action_MoveCursorPD(ap *allProc, ib *InfoBox) error {
+	ib.cursor = ib.highBorder
+	if ib.cursor >= len(ap.stream) {
+		ib.cursor = len(ap.stream) - 1
+	}
+	ib.lastScroll = 1
+	ib.lowBorder = 0
+	ib.highBorder = 0
+	return nil
+}
+
+func Action_MoveCursorBOTTOM(ap *allProc, ib *InfoBox) error {
+	ib.cursor = len(ap.stream) - 1
+	ib.lastScroll = 0
+	ib.lowBorder = 0
+	ib.highBorder = 0
 	return nil
 }
 
 func Action_MoveCursorDOWNandSELECT(ap *allProc, ib *InfoBox) error {
 	ap.stream[ib.cursor].isSelected = !ap.stream[ib.cursor].isSelected
 	return Action_MoveCursorDOWN(ap, ib)
-	// if ap.stream[ib.cursor].isSelected {
-	// 	ap.stream[ib.cursor].isSelected = false
-	// } else {
-	// 	ap.stream[ib.cursor].isSelected = true
-	// }
-	// ib.cursor++
-	// for ib.cursor >= len(ap.stream) {
-	// 	ib.cursor--
-	// }
-	return nil
 }
 
 func saveCursor(ap *allProc, ib *InfoBox) string {
@@ -207,72 +213,14 @@ func Action_Pause(ap *allProc, ib *InfoBox) error {
 			stream.handler.Pause()
 		}
 	}
-	//ap.activeStream = nil
-
-	// if ap.activeStream != nil {
-	// 	ap.activeStream.handler.Pause()
-	// }
-	// if ap.stream[0].handler != nil {
-
-	// 	ap.stream[0].handler.Pause()
-	// 	panic(fmt.Sprintf("%v", ap.stream[0].handler))
-	// 	ap.stream[0].lastCommand = commandPAUSE
-	// 	time.Sleep(time.Millisecond * 200)
-	// } else {
-	// 	panic("have not")
-	// }
 	return nil
 }
 
 func Action_Continue(ap *allProc, ib *InfoBox) error {
 	ap.globalStop = false
-	// for _, stream := range ap.stream {
-	// 	if stream.handler != nil && stream.handler.Status() == download.STATUS_PAUSED {
-	// 		stream.handler.Continue()
-	// 		return nil
-	// 	}
-	// }
 	ap.activeStream = nil
-	// if ap.activeStream != nil {
-	// 	ap.activeStream.handler.Continue()
-	// }
-
-	// if ap.stream[0].handler != nil {
-	// 	ap.activeHandler = ap.stream[0].handler //.Listen()
-	// 	ap.activeHandler.Continue()
-	// 	ap.stream[0].lastCommand = commandCONTINUE
-	// }
 	return nil
 }
-
-// func Action_StartNext(ap *allProc, ib *InfoBox) error {
-// 	if ap.stream == nil {
-// 		return fmt.Errorf(" Action_StartNext(): no streams to start")
-// 	}
-// 	if len(ap.stream) == 0 {
-// 		return fmt.Errorf("no streams")
-// 	}
-
-// 	for i, stream := range ap.stream {
-// 		if stream.lastResponse == "completed" {
-// 			continue
-// 		}
-// 		if ap.stream[i].handler == nil {
-
-// 			ap.stream[i].start()
-
-// 		}
-
-// 		//ap.activeHandlerChan = ap.stream[i].handler.Listen()
-// 		// switch ap.stream[i].lastCommand {
-// 		// case commandPAUSE, commandNONE:
-// 		// 	Action_Continue(ap, ib)
-// 		// }
-// 		return nil
-// 	}
-
-// 	return nil //Action_MoveCursorUP(ap, ib)
-// }
 
 func switchToWaitConfirmMode(ap *allProc, ib *InfoBox) {
 	Action_Pause(ap, ib)
@@ -406,7 +354,8 @@ func Action_AddNewProcess(ap *allProc, ib *InfoBox) error {
 			ap.NewProcesses(dest_gl, paths...)
 		}
 	}
-	ib.drawLen = 0
+	ib.lowBorder = 0
+	ib.highBorder = 0
 	return nil
 }
 
@@ -437,5 +386,6 @@ func Action_QUIT_PROGRAM(ap *allProc, ib *InfoBox) error {
 \\nas\ROOT\EDIT\_amedia\Barri_s01\Barri_s01_07_PRT230421103310_AUDIORUS51.m4a
 \\nas\ROOT\EDIT\_amedia\Barri_s01\Barri_s01_07_PRT230421103310_AUDIORUS51_proxy.ac3
 \\nas\ROOT\EDIT\_amedia\Barri_s01\Barri_s01_07_PRT230421103310_HD.mp4
-
++---5 file down----------------------------------------+
+[F1=HELP] [F2=STATS] [F10=QUIT]===================================================
 */

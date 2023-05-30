@@ -34,8 +34,24 @@ func CreateDefaultConfig() error {
 			Triggers:   []string{"UP"},
 		},
 		{
+			ActionName: "MOVE_CURSOR_PU",
+			Triggers:   []string{"PgUp"},
+		},
+		{
+			ActionName: "MOVE_CURSOR_TOP",
+			Triggers:   []string{"HOME"},
+		},
+		{
 			ActionName: "MOVE_CURSOR_DOWN",
 			Triggers:   []string{"DOWN"},
+		},
+		{
+			ActionName: "MOVE_CURSOR_PD",
+			Triggers:   []string{"PgDn"},
+		},
+		{
+			ActionName: "MOVE_CURSOR_BOTTOM",
+			Triggers:   []string{"END"},
 		},
 		{
 			ActionName: "CURSOR_DOWN_AND_TOGGLE_SELECTION",
@@ -63,11 +79,11 @@ func CreateDefaultConfig() error {
 		},
 		{
 			ActionName: "MOVE_SELECTED_UP",
-			Triggers:   []string{"W", "PgUp"},
+			Triggers:   []string{"W"},
 		},
 		{
 			ActionName: "MOVE_SELECTED_DOWN",
-			Triggers:   []string{"S", "PgDn"},
+			Triggers:   []string{"S"},
 		},
 		{
 			ActionName: "DECIDION_CONFIRM",

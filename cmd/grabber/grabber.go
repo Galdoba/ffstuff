@@ -9,7 +9,6 @@ import (
 	"github.com/Galdoba/ffstuff/cmd/grabber/ui"
 	"github.com/Galdoba/ffstuff/pkg/config"
 	"github.com/Galdoba/ffstuff/pkg/glog"
-	"github.com/Galdoba/ffstuff/pkg/grabber"
 	"github.com/Galdoba/ffstuff/pkg/scanner"
 	"github.com/Galdoba/ffstuff/pkg/sortnames"
 	"github.com/Galdoba/utils"
@@ -191,46 +190,14 @@ func main() {
 					}
 					list = append(list, path)
 				}
-				fmt.Printf("simulating sorting...\n")
-				for _, name := range list {
-					fmt.Println(name)
-				}
+				fmt.Printf("sorting...\n")
+				fmt.Println(list)
 				list = sortnames.GrabberOrder(list)
-				fmt.Println("")
-				for _, name := range list {
-					fmt.Println(name)
-				}
-				//sort.GrabberWay()
-				fmt.Printf("simulating drawing of ui...\n")
-
-				//panic(1)
+				fmt.Printf("starting main loop...\n")
 				if err := ui.StartMainloop(configMap, list); err != nil {
 					return err
 				}
-				fmt.Printf("simulating passing of control data to ui...\n")
-				fmt.Printf("simulating download process...\n")
 				fmt.Printf("simulating report making...\n")
-
-				return nil
-				for _, path := range list {
-					if isReadyfile(path) {
-						fmt.Printf("delete: %v\n", path)
-						os.Remove(path)
-						continue
-					}
-
-					fmt.Printf("GRABBER COPYING FILE: %v\n", path)
-					err := grabber.CopyFile(path, dest, true)
-					if err != nil {
-						switch err.Error() {
-						case "Copy exists at destination":
-							continue
-						}
-						return err
-					}
-					fmt.Println("Complete...")
-
-				}
 				return nil
 			},
 		},
