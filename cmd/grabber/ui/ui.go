@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 	"os"
+	"os/user"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -244,6 +245,9 @@ func (st *stream) Progress() string {
 
 type InfoBox struct {
 	data            []string
+	HEAD            []string
+	LIST            []string
+	INFO            []string
 	cursor          int
 	cOffset         int
 	ticker          int
@@ -315,14 +319,16 @@ func (ib *InfoBox) Draw(ap *allProc) {
 		ib.highBorder = utils.Min(len(ap.stream)-1, ib.lowBorder+ib.drawLen)
 	}
 
-	switch ib.lastScroll {
+	switch ib.lastScroll { //0 = down/ 1 = up //ЧТО-ТО НЕ РАБОТАЕТ ОТ ЗПвт
 	case 0:
+
 		if ib.cursor > ib.highBorder {
 			ib.lowBorder = utils.Max(0, ib.cursor-ib.drawLen)
 			ib.highBorder = utils.Min(len(ap.stream)-1, ib.lowBorder+ib.drawLen)
 		}
 	case 1:
-		if ib.cursor < ib.lowBorder {
+
+		for ib.cursor < ib.lowBorder {
 			ib.lowBorder--
 			ib.highBorder--
 		}
@@ -409,9 +415,6 @@ func (ib *InfoBox) Update(ap *allProc) error {
 	default:
 		return fmt.Errorf("unknown input mode: %v", ib.inputMode)
 	case input_mode_NORMAL:
-		// completeList := []string{}
-		// queueList := []string{}
-		// errList := []string{}
 		for _, pr := range ap.stream {
 			if pr.warning == "duplicate" {
 				newData = append(newData, pr.ErrString())
@@ -436,9 +439,6 @@ func (ib *InfoBox) Update(ap *allProc) error {
 			}
 
 		}
-		//newData = append(newData, completeList...)
-		//newData = append(newData, queueList...)
-		//newData = append(newData, errList...)
 
 	case input_mode_WAIT_CONFIRM:
 		newData = append(newData, "Press Enter to confirm or Esc to deny")
@@ -823,10 +823,10 @@ func (ap *allProc) ExportSelected() []bool {
 	return sel
 }
 
-func renameFile(stream *stream) error {
-	//panic(stream.temp + stream.baseName + "===>" + stream.dest + stream.baseName)
-	return os.Rename(stream.dest+stream.baseName+".gdf", stream.dest+stream.baseName)
-}
+// func renameFile(stream *stream) error {
+// 	//panic(stream.temp + stream.baseName + "===>" + stream.dest + stream.baseName)
+// 	return os.Rename(stream.dest+stream.baseName+".gdf", stream.dest+stream.baseName)
+// }
 
 func (ap *allProc) CloseStream() error {
 	if len(ap.stream) < 1 {
@@ -1077,10 +1077,31 @@ func (ap *allProc) confirmStreams() {
 			//if exist {}
 		}
 		if stream.handler != nil && stream.handler.Status() == download.STATUS_COMPLETED {
-			renameFileName(stream.dest+stream.baseName+".gdf", stream.dest+stream.baseName)
-			stream.warning = "done"
+			go renameCycle(stream)
+
+			// } renameFileName()
+			// //err := renameFileName(stream.dest+stream.baseName+".gdf", stream.dest+stream.baseName)
+			// if err != nil {
+			// 	panic(err.Error())
+			// }
+
+			// stream.warning = "done"
 		}
 	}
+}
+
+func renameCycle(stream *stream) {
+	err := fmt.Errorf("nil err")
+	usr, _ := user.Current()
+	for err != nil {
+		if strings.HasSuffix(stream.source, ".ready") {
+			err = renameFileName(stream.source, stream.source+"_"+usr.Name)
+		}
+		stream.warning = "????"
+		time.Sleep(time.Millisecond * 100)
+		err = renameFileName(stream.dest+stream.baseName+".gdf", stream.dest+stream.baseName)
+	}
+	stream.warning = "done"
 }
 
 func (ap *allProc) initialCheck() {

@@ -9,6 +9,7 @@ import (
 	"github.com/Galdoba/ffstuff/cmd/grabber/ui"
 	"github.com/Galdoba/ffstuff/pkg/config"
 	"github.com/Galdoba/ffstuff/pkg/glog"
+	"github.com/Galdoba/ffstuff/pkg/namedata"
 	"github.com/Galdoba/ffstuff/pkg/scanner"
 	"github.com/Galdoba/ffstuff/pkg/sortnames"
 	"github.com/Galdoba/utils"
@@ -197,6 +198,7 @@ func main() {
 				if err := ui.StartMainloop(configMap, list); err != nil {
 					return err
 				}
+				deleteReadyFiles(dest, list)
 				fmt.Printf("simulating report making...\n")
 				return nil
 			},
@@ -229,6 +231,19 @@ func checkMediaFile(path string, keys ...string) error {
 		}
 	}
 	return nil
+}
+
+func deleteReadyFiles(dest string, list []string) {
+	usr, _ := user.Current()
+	for _, path := range list {
+		if !strings.HasSuffix(path, ".ready") {
+			continue
+		}
+		short := namedata.RetrieveShortName(path)
+		os.Remove(dest + short)
+		os.Remove(path + "_" + usr.Name)
+	}
+
 }
 
 func downloadAssociatedWith(l glog.Logger, paths []string, destination string) error {

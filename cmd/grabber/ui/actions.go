@@ -7,6 +7,7 @@ import (
 
 	"github.com/Galdoba/ffstuff/cmd/grabber/sorting"
 	"github.com/Galdoba/ffstuff/pkg/namedata"
+	"github.com/Galdoba/utils"
 	"golang.design/x/clipboard"
 )
 
@@ -38,13 +39,19 @@ func Action_MoveCursorTOP(ap *allProc, ib *InfoBox) error {
 }
 
 func Action_MoveCursorPU(ap *allProc, ib *InfoBox) error {
-	ib.cursor = ib.lowBorder
-	if ib.cursor < 0 {
-		ib.cursor = 0
+	switch ib.cursor {
+	default:
+		ib.cursor = ib.lowBorder
+		return nil
+	case ib.lowBorder:
+		ib.lowBorder = utils.Max(0, ib.lowBorder-ib.drawLen)
+		ib.highBorder = ib.lowBorder + ib.drawLen
+		ib.cursor = ib.lowBorder
+
 	}
-	ib.lastScroll = 1
-	ib.lowBorder = 0
-	ib.highBorder = 0
+	ib.lastScroll = 1 //0 = down/ 1 = up
+	//ib.lowBorder = 0
+	//ib.highBorder = 0
 	return nil
 }
 
@@ -58,13 +65,19 @@ func Action_MoveCursorDOWN(ap *allProc, ib *InfoBox) error {
 }
 
 func Action_MoveCursorPD(ap *allProc, ib *InfoBox) error {
-	ib.cursor = ib.highBorder
+	switch ib.cursor {
+	default:
+		ib.cursor = ib.highBorder
+	case ib.highBorder:
+		ib.cursor += ib.drawLen
+	}
+
 	if ib.cursor >= len(ap.stream) {
 		ib.cursor = len(ap.stream) - 1
 	}
-	ib.lastScroll = 1
+	ib.lastScroll = 0
 	ib.lowBorder = 0
-	ib.highBorder = 0
+	ib.highBorder = 0 //0 = down/ 1 = up
 	return nil
 }
 

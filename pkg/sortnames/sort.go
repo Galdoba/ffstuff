@@ -284,6 +284,7 @@ func editOrder(list [][]string) []string {
 
 func editOrderTags() [][]string {
 	return [][]string{
+		{"ready"},
 		{"srt"},
 		{"AUDIO", "proxy"},
 		{"SD", "proxy"},
