@@ -79,7 +79,7 @@ func TestInputReading(t *testing.T) {
 
 }
 
-func (pi *parseInfo) String() string {
+func (pi *ParseInfo) String() string {
 
 	str := ""
 	str += fmt.Sprintf("name: %v\n", pi.filename)

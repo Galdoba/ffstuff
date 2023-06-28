@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/Galdoba/ffstuff/pkg/namedata"
+	"github.com/Galdoba/ffstuff/pkg/scanner"
 )
 
 func OmitDuplicates(sl []string) []string {
@@ -230,10 +231,24 @@ func names() []string {
 }
 
 func GrabberOrder(list []string) []string {
+	for _, file := range list {
+		if !strings.HasSuffix(file, ".ready") {
+			continue
+		}
+		assosiated, err := scanner.ListAssosiated(file)
+		if err != nil {
+			fmt.Printf("scanner.ListAssosiated(%v): %v", file, err.Error())
+		}
+		for _, assttd := range assosiated {
+			list = append(list, assttd)
+		}
+	}
+	list = OmitDuplicates(list)
 	edNam := []*namedata.EditNameForm{}
 	for _, name := range list {
 		edNam = append(edNam, namedata.EditForm(name))
 	}
+
 	baseMap := make(map[string]string)
 	baseList := []string{}
 	for _, edit := range edNam {

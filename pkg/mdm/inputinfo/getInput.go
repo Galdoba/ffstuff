@@ -8,7 +8,7 @@ import (
 	"github.com/Galdoba/devtools/cli/command"
 )
 
-func ParseFile(path string) (*parseInfo, error) {
+func ParseFile(path string) (*ParseInfo, error) {
 	_, err := os.Stat(path)
 	if err != nil {
 		return nil, fmt.Errorf("os.Stat(%v): %v", path, err)
@@ -32,6 +32,6 @@ func ParseFile(path string) (*parseInfo, error) {
 	return pi, err
 }
 
-func (pi *parseInfo) NumAudio() int {
+func (pi *ParseInfo) NumAudio() int {
 	return len(pi.audio)
 }

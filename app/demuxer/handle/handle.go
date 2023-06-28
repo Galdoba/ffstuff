@@ -21,14 +21,15 @@ func SelectionSingle(message string, options ...string) string {
 func askSelection(validator survey.Validator, message string, options []string) (string, error) {
 	choose := ""
 	promptSelect := &survey.Select{
-		Message: message,
-		Options: append(options, "Отмена"),
+		Message:  message,
+		Options:  append(options, "Отмена"),
+		PageSize: 30,
 	}
 	if err := survey.AskOne(promptSelect, &choose, validator); err != nil {
 		return choose, err
 	}
 	if choose == "Отмена" {
-		return "", fmt.Errorf("была выбрана `Отмена`")
+		return "", fmt.Errorf("\nбыла выбрана `Отмена`\n")
 	}
 
 	return choose, nil
@@ -71,7 +72,7 @@ func SelectFromTable(listType string) []tablemanager.TaskData {
 	case "Фильм":
 		return tlist.ReadyForDemux()
 	case "Трейлер":
-		return tlist.ReadyTrailers()
+		return tlist.ChooseTrailer()
 
 	}
 	return nil

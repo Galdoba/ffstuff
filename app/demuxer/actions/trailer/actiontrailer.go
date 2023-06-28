@@ -158,7 +158,7 @@ func selectTask() (tablemanager.TaskData, error) {
 	taskList := tablemanager.TaskListFrom(sheet)
 	activeTasks := []tablemanager.TaskData{}
 	options := []string{}
-	for _, task := range taskList.ReadyTrailers() {
+	for _, task := range taskList.ChooseTrailer() {
 		options = append(options, task.String())
 		activeTasks = append(activeTasks, task)
 	}

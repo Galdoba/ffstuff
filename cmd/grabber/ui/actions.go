@@ -7,6 +7,7 @@ import (
 
 	"github.com/Galdoba/ffstuff/cmd/grabber/sorting"
 	"github.com/Galdoba/ffstuff/pkg/namedata"
+	"github.com/Galdoba/ffstuff/pkg/sortnames"
 	"github.com/Galdoba/utils"
 	"golang.design/x/clipboard"
 )
@@ -357,16 +358,20 @@ func Action_AddNewProcess(ap *allProc, ib *InfoBox) error {
 	if strings.Join(paths, "") == cb {
 		paths = strings.Split(cb, "\n")
 	}
-
+	list := []string{}
 	for _, path := range paths {
 		exists, err := exists(path)
 		if err != nil {
 			return err
 		}
+
 		if exists {
-			ap.NewProcesses(dest_gl, paths...)
+			list = append(list, path)
 		}
 	}
+	list = sortnames.GrabberOrder(list)
+	ap.NewProcesses(dest_gl, list...)
+
 	ib.lowBorder = 0
 	ib.highBorder = 0
 	return nil

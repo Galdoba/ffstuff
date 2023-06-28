@@ -10,27 +10,27 @@ import (
 )
 
 const (
-	noData = iota
-	badData
-	readyTrailerExpected
-	readyTrailerUploadedAhead
-	trailerMaterialUploaded
-	trailerInWork
-	trailerReady
-	trailerUploaded
-	posterInWork
-	posterReady
-	posterUploded
-	filmProblem
-	filmInBuffer
-	filmUploaded
-	filmDownloading
-	muxingInwork
-	muxingReady
-	muxingUploaded
-	rowTypeHeader
-	rowTypeSeparator
-	rowTypeInfo
+	NoData = iota
+	BadData
+	ReadyTrailerExpected
+	ReadyTrailerUploadedAhead
+	TrailerMaterialUploaded
+	TrailerInWork
+	TrailerReady
+	TrailerUploaded
+	PosterInWork
+	PosterReady
+	PosterUploded
+	FilmProblem
+	FilmInBuffer
+	FilmUploaded
+	FilmDownloading
+	MuxingInwork
+	MuxingReady
+	MuxingUploaded
+	RowTypeHeader
+	RowTypeSeparator
+	RowTypeInfo
 
 	SpreadsheetDataPath    = "SpreadsheetDataPath"
 	SpreadsheetCurlRequest = "SpreadsheetCurlRequest"
@@ -67,7 +67,7 @@ func (tl *TaskList) ParseErrors() []error {
 func (tl *TaskList) Downloading() []TaskData {
 	list := []TaskData{}
 	for _, task := range tl.tasks {
-		if task.filmStatus != filmDownloading {
+		if task.filmStatus != FilmDownloading {
 			continue
 		}
 		if task.path != "" {
@@ -81,7 +81,7 @@ func (tl *TaskList) Downloading() []TaskData {
 func (tl *TaskList) ReadyForDemux() []TaskData {
 	list := []TaskData{}
 	for _, task := range tl.tasks {
-		if task.filmStatus != filmInBuffer {
+		if task.filmStatus != FilmInBuffer {
 			continue
 		}
 		if task.path != "" {
@@ -95,16 +95,20 @@ func (tl *TaskList) ReadyForDemux() []TaskData {
 func (tl *TaskList) ReadyForEdit() []TaskData {
 	list := []TaskData{}
 	for _, task := range tl.tasks {
-		if task.rowType != rowTypeInfo {
+		if task.rowType != RowTypeInfo {
 			continue
 		}
-		if task.filmStatus != filmInBuffer {
+		if task.filmStatus != FilmInBuffer {
 			continue
 		}
 		if task.path == "" {
 			continue
 		}
+
 		if strings.Contains(task.comment, "готовит") || strings.Contains(task.comment, "отмен") {
+			continue
+		}
+		if strings.Contains(task.comment, "уже готов") {
 			continue
 		}
 		list = append(list, task)
@@ -112,19 +116,74 @@ func (tl *TaskList) ReadyForEdit() []TaskData {
 	return list
 }
 
-func (tl *TaskList) ReadyTrailers() []TaskData {
+func (tl *TaskList) ChooseTrailer() []TaskData {
 	list := []TaskData{}
 	for _, task := range tl.tasks {
-		if task.rowType != rowTypeInfo {
+		if task.rowType != RowTypeInfo {
 			continue
 		}
-		if task.readyTrailerStatus != readyTrailerExpected {
+		if task.readyTrailerStatus != ReadyTrailerExpected {
 			continue
 		}
 		if task.trailerMaker != "" {
 			continue
 		}
 		list = append(list, task)
+	}
+	return list
+}
+
+func (tl *TaskList) ChooseFilm() []TaskData {
+	list := []TaskData{}
+	for _, task := range tl.tasks {
+		if task.rowType != RowTypeInfo {
+			continue
+		}
+		nameTransl := translit.Transliterate(task.taskName)
+		if strings.Contains(nameTransl, "sezon") {
+			continue
+		}
+		if task.path != "" {
+			continue
+		}
+		if task.filmStatus != FilmInBuffer {
+			continue
+		}
+		list = append(list, task)
+	}
+	return list
+}
+
+func (tl *TaskList) ChooseSeason() []TaskData {
+	list := []TaskData{}
+	seasonList := []string{}
+	for _, task := range tl.tasks {
+		if task.rowType != RowTypeInfo {
+			continue
+		}
+		nameTransl := translit.Transliterate(task.taskName)
+		if !strings.Contains(nameTransl, "sezon") {
+			continue
+		}
+		if task.path != "" {
+			continue
+		}
+		if task.filmStatus <= FilmProblem {
+			continue
+		}
+		alreadyHave := false
+
+		for _, inList := range seasonList {
+			if task.outputName.outBase+"_s"+task.outputName.season == inList {
+				alreadyHave = true
+				break
+			}
+		}
+		if !alreadyHave {
+			list = append(list, task)
+			seasonList = append(seasonList, task.outputName.outBase+"_s"+task.outputName.season)
+		}
+
 	}
 	return list
 }
@@ -159,7 +218,7 @@ func ProposeTargetDirectoryTrailer() string {
 
 func ProposeTargetDirectory(tl *TaskList, task TaskData) string {
 	path := ``
-	if task.rowType != rowTypeInfo {
+	if task.rowType != RowTypeInfo {
 		return path
 	}
 	separator := TaskData{}
@@ -168,7 +227,7 @@ func ProposeTargetDirectory(tl *TaskList, task TaskData) string {
 		if r.taskName == task.taskName {
 			break
 		}
-		if r.rowType == rowTypeSeparator {
+		if r.rowType == RowTypeSeparator {
 			separator = r
 			date, err := newDate(separator.taskName)
 			folder1 = date.pathFolder() + `\`
@@ -214,6 +273,21 @@ func (t *TaskData) OutputBaseName() string {
 		name += "_" + t.outputName.episode
 	}
 	name = strings.Title(name)
+	return name
+}
+
+func (t *TaskData) StringAsTrailer() string {
+	name := t.outputName.outBase
+	return name
+}
+
+func (t *TaskData) StringAsFilm() string {
+	name := t.outputName.outBase + " [" + t.contragent + "]"
+	return name
+}
+
+func (t *TaskData) StringAsSeason() string {
+	name := t.outputName.outBase + "_s" + t.outputName.season + " [" + t.contragent + "]"
 	return name
 }
 
@@ -267,7 +341,7 @@ type outName struct {
 func ParseRow(data []string) (TaskData, error) {
 	r := TaskData{}
 	if strings.Join(data, `","`) == `Комментарий","Путь","ГТ","Т","Трейлер","П","Постеры","М","Наименование","С","З","О","!","Контрагент","Дата публикации` {
-		r.rowType = rowTypeHeader
+		r.rowType = RowTypeHeader
 		return r, nil
 	}
 	if len(data) != 15 {
@@ -275,7 +349,7 @@ func ParseRow(data []string) (TaskData, error) {
 	}
 	sep := strings.Join(data[2:7], "")
 	if sep == "" {
-		r.rowType = rowTypeSeparator
+		r.rowType = RowTypeSeparator
 	}
 
 	for i, val := range data {
@@ -287,80 +361,80 @@ func ParseRow(data []string) (TaskData, error) {
 		case 2:
 			switch val {
 			default:
-				r.readyTrailerStatus = badData
+				r.readyTrailerStatus = BadData
 			case "":
-				r.readyTrailerStatus = noData
+				r.readyTrailerStatus = NoData
 			case "r", "к":
-				r.readyTrailerStatus = readyTrailerExpected
+				r.readyTrailerStatus = ReadyTrailerExpected
 			case "y", "н":
-				r.readyTrailerStatus = readyTrailerUploadedAhead
+				r.readyTrailerStatus = ReadyTrailerUploadedAhead
 			case "g", "п":
-				r.readyTrailerStatus = badData
+				r.readyTrailerStatus = BadData
 			}
 		case 3:
 			switch val {
 			default:
-				r.trailerStatus = badData
+				r.trailerStatus = BadData
 			case "":
-				r.trailerStatus = noData
+				r.trailerStatus = NoData
 			case "r", "к":
-				r.trailerStatus = trailerInWork
+				r.trailerStatus = TrailerInWork
 			case "y", "н":
-				r.trailerStatus = trailerReady
+				r.trailerStatus = TrailerReady
 			case "g", "п":
-				r.trailerStatus = trailerUploaded
+				r.trailerStatus = TrailerUploaded
 			}
 		case 4:
 			r.trailerMaker = val
 		case 5:
 			switch val {
 			default:
-				r.posterStatus = badData
+				r.posterStatus = BadData
 			case "":
-				r.posterStatus = noData
+				r.posterStatus = NoData
 			case "r", "к":
-				r.posterStatus = posterInWork
+				r.posterStatus = PosterInWork
 			case "y", "н":
-				r.posterStatus = posterReady
+				r.posterStatus = PosterReady
 			case "g", "п":
-				r.posterStatus = posterUploded
+				r.posterStatus = PosterUploded
 			}
 		case 6:
 			r.posterMaker = val
 		case 7:
 			if val == "O" {
 				r.dataRow = true
-				r.rowType = rowTypeInfo
+				r.rowType = RowTypeInfo
 			}
 		case 8:
 			r.taskName = val
 		case 9:
 			switch val {
 			default:
-				r.filmStatus = badData
+				r.filmStatus = BadData
 			case "":
-				r.filmStatus = noData
+				r.filmStatus = NoData
 			case "r", "к":
-				r.filmStatus = filmProblem
+				r.filmStatus = FilmProblem
 			case "y", "н":
-				r.filmStatus = filmInBuffer
+				r.filmStatus = FilmInBuffer
 			case "g", "п":
-				r.filmStatus = filmUploaded
+				r.filmStatus = FilmUploaded
 			case "b", "и", "v", "м":
-				r.filmStatus = filmDownloading
+				r.filmStatus = FilmDownloading
 			}
 		case 10:
 			switch val {
 			default:
-				r.muxingStatus = badData
+				r.muxingStatus = BadData
 			case "":
-				r.muxingStatus = noData
+				r.muxingStatus = NoData
 			case "r", "к":
-				r.muxingStatus = muxingInwork
+				r.muxingStatus = MuxingInwork
 			case "y", "н":
-				r.muxingStatus = muxingReady
+				r.muxingStatus = MuxingReady
 			case "g", "п", "G", "П":
-				r.muxingStatus = muxingUploaded
+				r.muxingStatus = MuxingUploaded
 			}
 		case 11:
 			switch val {

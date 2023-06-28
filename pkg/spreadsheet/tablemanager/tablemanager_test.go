@@ -17,25 +17,25 @@ func TestParsing(t *testing.T) {
 			fmt.Println(row)
 			continue
 		}
-		if row.rowType == noData {
+		if row.rowType == NoData {
 			t.Errorf("%v\nrowType not asigned: %v", data, data[2])
 		}
-		if row.readyTrailerStatus == badData {
+		if row.readyTrailerStatus == BadData {
 			t.Errorf("%v\nunknown data for readyTrailerStatus: %v", data, data[2])
 		}
-		if row.trailerStatus == badData {
+		if row.trailerStatus == BadData {
 			t.Errorf("%v\nunknown data for trailerStatus: %v", data, data[3])
 		}
-		if row.posterStatus == badData {
+		if row.posterStatus == BadData {
 			t.Errorf("%v\nunknown data for posterStatus: %v", data, data[5])
 		}
-		if row.taskName == "" && row.rowType == rowTypeInfo {
+		if row.taskName == "" && row.rowType == RowTypeInfo {
 			t.Errorf("%v\ntask is unnamed: %v", data, data[8])
 		}
-		if row.filmStatus == badData {
+		if row.filmStatus == BadData {
 			t.Errorf("%v\nunknown data for filmStatus: %v", data, data[9])
 		}
-		if row.muxingStatus == badData {
+		if row.muxingStatus == BadData {
 			t.Errorf("%v\nunknown data for muxingStatus: %v", data, data[10])
 		}
 		//fmt.Println(row.String())
@@ -63,7 +63,7 @@ func TestListing(t *testing.T) {
 	}
 
 	fmt.Println("ReadyTrailer")
-	for _, task := range TaskList.ReadyTrailers() {
+	for _, task := range TaskList.ChooseTrailer() {
 		fmt.Println(task.String())
 	}
 }
@@ -73,7 +73,7 @@ func TestTargetDirectoryPath(t *testing.T) {
 	//sheet.Update()
 	taskList := TaskListFrom(sheet)
 	for _, task := range taskList.tasks {
-		if task.rowType != rowTypeInfo {
+		if task.rowType != RowTypeInfo {
 			continue
 		}
 		if task.path != "" {

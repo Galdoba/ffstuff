@@ -13,6 +13,7 @@ import (
 	"github.com/Galdoba/ffstuff/pkg/scanner"
 	"github.com/Galdoba/ffstuff/pkg/sortnames"
 	"github.com/Galdoba/utils"
+	"github.com/martinlindhe/notify"
 	"github.com/urfave/cli"
 )
 
@@ -212,7 +213,10 @@ func main() {
 	fmt.Printf("simulating errors processing...\n")
 	if err != nil {
 		fmt.Println(err.Error())
+	} else {
+		notify.Notify("Grabber", "Done", "No errors", `c:\Users\pemaltynov\.config\grabber\grabbe2r.png`)
 	}
+
 	fmt.Printf("simulating graceful exit...\n")
 }
 

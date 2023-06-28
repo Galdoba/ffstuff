@@ -56,6 +56,7 @@ func Run(c *cli.Context) error {
 	}
 	fmt.Println("Precheck complete")
 	args := c.Args()
+	return nil
 	for _, arg := range args {
 		taskType := handle.SelectionSingle("Что в исходнике?", []string{taskTypeFILM, taskTypeTRAILER}...)
 		// task := tablemanager.TaskData{}

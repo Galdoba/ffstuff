@@ -13,7 +13,7 @@ type inputdata struct {
 	data []string
 }
 
-type parseInfo struct {
+type ParseInfo struct {
 	scanTime    string
 	filename    string
 	metadata    map[string]string
@@ -31,7 +31,7 @@ type parseInfo struct {
 	warnings    []string
 }
 
-func (pi *parseInfo) Warnings() []string {
+func (pi *ParseInfo) Warnings() []string {
 	return pi.warnings
 }
 
@@ -88,8 +88,8 @@ func newStream() stream {
 	return stream{"", make(map[string]string)}
 }
 
-func parse(input inputdata) (*parseInfo, error) {
-	pi := parseInfo{}
+func parse(input inputdata) (*ParseInfo, error) {
+	pi := ParseInfo{}
 	pi.metadata = make(map[string]string)
 	pi.start = math.NaN()
 	pMethod := unknown
@@ -171,7 +171,7 @@ func parse(input inputdata) (*parseInfo, error) {
 	return &pi, nil
 }
 
-func (pi *parseInfo) mergeWarnings() {
+func (pi *ParseInfo) mergeWarnings() {
 	for i, v := range pi.video {
 		if len(v.warnings) == 0 {
 			continue
@@ -201,7 +201,7 @@ func (pi *parseInfo) mergeWarnings() {
 	}
 }
 
-func (pi *parseInfo) injectDurationInfo(dsb map[string]string) {
+func (pi *ParseInfo) injectDurationInfo(dsb map[string]string) {
 	for k, v := range dsb {
 		switch k {
 		case "Duration":
@@ -215,7 +215,7 @@ func (pi *parseInfo) injectDurationInfo(dsb map[string]string) {
 	}
 }
 
-func (pi *parseInfo) injectMetadata(key, val string) {
+func (pi *ParseInfo) injectMetadata(key, val string) {
 	switch key {
 	case "At least one output file must be specified", "Metadata", "":
 		return
@@ -356,7 +356,7 @@ func startStrToFl64(start string) float64 {
 	return startFL
 }
 
-func (pi *parseInfo) parseStreams() {
+func (pi *ParseInfo) parseStreams() {
 	//fmt.Println("Parse", len(pi.streams), "streams")
 	for i, stream := range pi.streams {
 		data := stream.data
