@@ -1,5 +1,7 @@
 package constant
 
+import "os"
+
 const (
 	InPath       = "InPath"
 	InPathProxy  = "InPathProxy"
@@ -9,3 +11,11 @@ const (
 	SearchRoot   = "SearchRoot"
 	LogDirectory = "LogDirectory"
 )
+
+func AudioCodecAliasFile() string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		panic("os.UserHomeDir(): " + err.Error())
+	}
+	return home + "\\.ffstuff\\data\\alias_AudioCodec"
+}

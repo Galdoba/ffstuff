@@ -28,11 +28,12 @@ type demuxTask struct {
 
 func inputList() []string {
 	return []string{
-		`\\192.168.31.4\buffer\IN\_DONE\Razboi_prores.mov`,
+		`\\192.168.31.4\buffer\IN\_DONE\I_LIKE_MOVIES_HDTRL_25f_RUS_51.mp4`,
 	}
 }
 
 func main() {
+
 	dt, err := ConstructTask(inputList())
 	if dt.agent == "" {
 		fmt.Println("task.agent unset")
@@ -70,10 +71,50 @@ func ConstructTask(list []string) (demuxTask, error) {
 		return dt, fmt.Errorf("Подходящих задач не найдено")
 	}
 	taskData := SelectTaskData(dt.taskType, taskList)
+	inputs := []*inputinfo.ParseInfo{}
+	for _, path := range list {
+		data, err := inputinfo.ParseFile(path)
+		if err != nil {
+			return dt, err
+		}
+		inputs = append(inputs, data)
+	}
 	fmt.Println("==========")
 	fmt.Println(taskData)
+
 	fmt.Println("||||||||||")
+	streamMap := make(map[string]string)
+	keyMap := make(map[int]string)
+	keys := 0
+	for i, input := range inputs {
+		for s, v := range input.Video {
+			key := fmt.Sprintf("%v:v:%v", i, s)
+			streamMap[key] = v.String()
+			keyMap[keys] = key
+			keys++
+		}
+		for ss, a := range input.Audio {
+			key := fmt.Sprintf("%v:a:%v", i, ss)
+			streamMap[fmt.Sprintf("%v:a:%v", i, ss)] = a.String()
+			keyMap[keys] = key
+			keys++
+		}
+	}
+	for i := 0; i < 99; i++ {
+		if v, ok := keyMap[i]; ok {
+			fmt.Println(v, streamMap[v])
+		}
+	}
 	return dt, nil
+}
+
+type parsedata struct {
+	inputinfo.Videostream
+	inputinfo.Audiostream
+}
+
+func Stream(key string, input []*inputinfo.Audiostream) {
+
 }
 
 func (dt *demuxTask) WithTaskType() *demuxTask {
@@ -118,3 +159,5 @@ func filterTasks(taskType string) []tablemanager.TaskData {
 	}
 	return taskList
 }
+
+//маша ела кашу

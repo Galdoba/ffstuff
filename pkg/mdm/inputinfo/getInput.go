@@ -33,5 +33,5 @@ func ParseFile(path string) (*ParseInfo, error) {
 }
 
 func (pi *ParseInfo) NumAudio() int {
-	return len(pi.audio)
+	return len(pi.Audio)
 }

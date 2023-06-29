@@ -2,12 +2,15 @@ package inputinfo
 
 import (
 	"fmt"
+	"strings"
 	"testing"
+
+	"github.com/Galdoba/devtools"
 )
 
 func TestInputReading(t *testing.T) {
-	return
-	remember := []videostream{}
+	//return
+	remember := []Audiostream{}
 	examples := gatherInfo()
 	darMap := make(map[string]int)
 	//out := []string{}
@@ -21,7 +24,6 @@ func TestInputReading(t *testing.T) {
 		}
 		if pi.filename != "" {
 			//fmt.Printf("example %v: \n", i)
-
 			//fmt.Printf("%v", pi.String())
 
 			//for k, _ := range pi.metadata {
@@ -29,7 +31,7 @@ func TestInputReading(t *testing.T) {
 			if pi.comment == "---" {
 				panic(pi.filename)
 			}
-			remember = append(remember, pi.video...)
+			remember = append(remember, pi.Audio...)
 			// if i == 1400 {
 			// 	fmt.Println(pi)
 			// 	fmt.Println(pi.video)
@@ -41,9 +43,9 @@ func TestInputReading(t *testing.T) {
 				//	fmt.Print("" + wrn + "\n")
 				//}
 				//fmt.Println("")
-				darMap[fmt.Sprintf("have %v warnings", len(pi.warnings))]++
+				//				darMap[fmt.Sprintf("have %v warnings", len(pi.warnings))]++
 			} else {
-				darMap["possible for automation"]++
+				//				darMap["possible for automation"]++
 				//fmt.Println(pi.String())
 			}
 		}
@@ -54,21 +56,27 @@ func TestInputReading(t *testing.T) {
 	}
 	fmt.Println("cycles", total)
 	fmt.Println("===============")
-	// for _, data := range remember {
-	// 	switch {
-	// 	default:
-	// 		//fmt.Println(data.sardar)
-	// 		// case strings.HasPrefix(data.codecinfo, "prores"):
-	// 		darMap[strings.TrimSpace(data.sardar)]++
-	// 		darMap["Total_Files"]++
-	// 		// case strings.HasPrefix(data.codecinfo, "mpeg2video"):
-	// 		// 	darMap["mpeg2video"]++
-	// 	}
+	for _, data := range remember {
+		codec := devtools.AliasByPrefixFromFile(`c:\Users\pemaltynov\.ffstuff\data\alias_AudioCodec`, data.codec)
+		// switch {
+		// default:
+		// 	//fmt.Println(data.sardar)
+		// case strings.HasPrefix(data.codec, "aac"):
+		// 	codec = "aac"
 
-	// 	// }
+		// case strings.HasPrefix(data.codec, "ac3"):
+		// 	codec = "ac3"
+		// case strings.HasPrefix(data.codec, "pcm_s24le"):
+		// 	codec = "pcm_s24le"
+		// case strings.HasPrefix(data.codec, "pcm_s16le"):
+		// 	codec = "pcm_s16le"
+		// }
+		darMap[codec]++
+		darMap["Total_Files"]++
+		// }
 
-	// }
-	for i := 0; i < 5000; i++ {
+	}
+	for i := 0; i < 15000; i++ {
 		for k, v := range darMap {
 			if v == i {
 				fmt.Println(k, v, "--")
@@ -79,47 +87,17 @@ func TestInputReading(t *testing.T) {
 
 }
 
-func (pi *ParseInfo) String() string {
-
-	str := ""
-	str += fmt.Sprintf("name: %v\n", pi.filename)
-	str += fmt.Sprintf("scanned: %v\n", pi.scanTime)
-	str += fmt.Sprintf("GlobMeta: %v\n", len(pi.metadata))
-	for k, v := range pi.metadata {
-		str += fmt.Sprintf("  %v: %v\n", k, v)
+func hasAnyPrefix(str string, preflist []string) string {
+	for _, prefix := range preflist {
+		if strings.HasPrefix(str, prefix) {
+			return prefix
+		}
 	}
-	str += fmt.Sprintf("durdata: %v - %v - %v\n", pi.duration, pi.start, pi.globBitrate)
-	str += fmt.Sprintf("Streams: %v\n", len(pi.streams))
-	str += "Video:\n"
-	for _, v := range pi.video {
-		str += fmt.Sprintf("%v++\n", v.fps)
-	}
-	// for i, s := range pi.streams {
-	// 	str += s.data + "||"
-	// 	if len(s.metadata) > 0 {
-	// 		str += fmt.Sprintf(" | stream %v has %v metadata\n", i, len(s.metadata))
-	// 		for k, v := range s.metadata {
-	// 			str += fmt.Sprintf("    %v: %v\n", k, v)
-	// 		}
-	// 	}
-	// 	//for k, v := range s.metadata {
-	// 	//str += fmt.Sprintf("%v|---|%v\n", k, v)
-	// 	//}
-	// }
-	// for _, s := range pi.video {
-	// 	str += s.codecinfo + "\n"
-	// 	str += s.pix_fmt + "\n"
-	// 	str += s.sardar + "\n"
-	// 	str += s.fps + "\n"
-
-	// }
-
-	str += "------------\n"
 	return str
 }
 
 func TestParseFile(t *testing.T) {
-
+	return
 	file := `\\192.168.31.4\buffer\IN\_REJECTED\Пустая_Церковь_Ростелеком_R2.mp4`
 	pi, err := ParseFile(file)
 	fmt.Println(err)
