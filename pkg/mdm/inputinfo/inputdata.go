@@ -5,8 +5,12 @@ import (
 	"math"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/Galdoba/devtools"
+	"github.com/Galdoba/ffstuff/constant"
 )
 
 type inputdata struct {
@@ -24,11 +28,49 @@ type ParseInfo struct {
 	parsedLines int
 	parseStage  int
 	comment     string
-	video       []videostream
-	audio       []audiostream
+	Video       []Videostream
+	Audio       []Audiostream
 	data        []datastream
 	subtitles   []subtitlestream
 	warnings    []string
+}
+
+func (pi *ParseInfo) String() string {
+
+	str := ""
+	str += fmt.Sprintf("name: %v\n", pi.filename)
+	str += fmt.Sprintf("GlobMeta: %v\n", len(pi.metadata))
+	for k, v := range pi.metadata {
+		str += fmt.Sprintf("  %v: %v\n", k, v)
+	}
+	str += fmt.Sprintf("durdata: %v - %v - %v\n", pi.duration, pi.start, pi.globBitrate)
+	str += fmt.Sprintf("Streams: %v\n", len(pi.streams))
+	str += "Video:\n"
+	for _, v := range pi.Video {
+		str += fmt.Sprintf("[vid]  %v\n", v.String())
+	}
+	// for i, s := range pi.streams {
+	// 	str += s.data + "||"
+	// 	if len(s.metadata) > 0 {
+	// 		str += fmt.Sprintf(" | stream %v has %v metadata\n", i, len(s.metadata))
+	// 		for k, v := range s.metadata {
+	// 			str += fmt.Sprintf("    %v: %v\n", k, v)
+	// 		}
+	// 	}
+	// 	//for k, v := range s.metadata {
+	// 	//str += fmt.Sprintf("%v|---|%v\n", k, v)
+	// 	//}
+	// }
+	// for _, s := range pi.Video {
+	// 	str += s.codecinfo + "\n"
+	// 	str += s.pix_fmt + "\n"
+	// 	str += s.sardar + "\n"
+	// 	str += s.fps + "\n"
+
+	// }
+
+	str += "------------\n"
+	return str
 }
 
 func (pi *ParseInfo) Warnings() []string {
@@ -172,7 +214,7 @@ func parse(input inputdata) (*ParseInfo, error) {
 }
 
 func (pi *ParseInfo) mergeWarnings() {
-	for i, v := range pi.video {
+	for i, v := range pi.Video {
 		if len(v.warnings) == 0 {
 			continue
 		}
@@ -181,7 +223,7 @@ func (pi *ParseInfo) mergeWarnings() {
 			pi.warnings = append(pi.warnings, "  "+w)
 		}
 	}
-	for i, a := range pi.audio {
+	for i, a := range pi.Audio {
 		if len(a.warnings) == 0 {
 			continue
 		}
@@ -190,13 +232,13 @@ func (pi *ParseInfo) mergeWarnings() {
 			pi.warnings = append(pi.warnings, "  "+w)
 		}
 	}
-	if len(pi.video) > 1 {
-		pi.warnings = append(pi.warnings, fmt.Sprintf("file have %v video streams", len(pi.video)))
+	if len(pi.Video) > 1 {
+		pi.warnings = append(pi.warnings, fmt.Sprintf("file have %v video streams", len(pi.Video)))
 	}
-	if len(pi.audio) > 2 {
-		pi.warnings = append(pi.warnings, fmt.Sprintf("file have %v audio streams", len(pi.audio)))
+	if len(pi.Audio) > 2 {
+		pi.warnings = append(pi.warnings, fmt.Sprintf("file have %v audio streams", len(pi.Audio)))
 	}
-	if len(pi.subtitles) > 0 && (len(pi.audio)+len(pi.video)) > 0 {
+	if len(pi.subtitles) > 0 && (len(pi.Audio)+len(pi.Video)) > 0 {
 		pi.warnings = append(pi.warnings, fmt.Sprintf("file have %v subtitle streams", len(pi.subtitles)))
 	}
 }
@@ -366,11 +408,11 @@ func (pi *ParseInfo) parseStreams() {
 		case strings.Contains(data, "Video:"):
 			vs := parseVideoData(pi.streams[i].data)
 			vs.metadata = stream.metadata
-			pi.video = append(pi.video, vs)
+			pi.Video = append(pi.Video, vs)
 		case strings.Contains(data, "Audio:"):
 			as := parseAudioData(pi.streams[i].data)
 			as.metadata = stream.metadata
-			pi.audio = append(pi.audio, as)
+			pi.Audio = append(pi.Audio, as)
 		case strings.Contains(data, "Data:"):
 			dt := parseDataData(pi.streams[i].data)
 			dt.metadata = stream.metadata
@@ -410,8 +452,8 @@ func parseSubtitleData(data string) subtitlestream {
 	return ss
 }
 
-func parseAudioData(data string) audiostream {
-	as := audiostream{}
+func parseAudioData(data string) Audiostream {
+	as := Audiostream{}
 	//0:1 (eng) Audio: pcm_s24le (lpcm / 0x6D63706C), 48000 Hz, 5.1, s32 (24 bit), 6912 kb/s (default)
 	//0:1 (rus) Audio: aac (LC), 48000 Hz, stereo, fltp (default)
 	//Stream #0:1(rus): Audio: aac (LC) (mp4a / 0x6134706D), 48000 Hz, stereo, fltp, 127 kb/s (default)
@@ -420,7 +462,7 @@ func parseAudioData(data string) audiostream {
 		switch i {
 		case 0:
 			data := strings.Split(aud, "Audio: ")
-			as.codec = data[1]
+			as.codec = devtools.AliasByPrefixFromFile(constant.AudioCodecAliasFile(), data[1])
 
 		case 1:
 			as.hertz = grepFreq(aud)
@@ -441,20 +483,24 @@ func parseAudioData(data string) audiostream {
 		}
 	}
 	as.lang = grepLang(data)
-	as.assessAudioStream()
+	as.assessAudiostream()
 	return as
 }
 
-func (as *audiostream) assessAudioStream() {
+func (as *Audiostream) assessAudiostream() {
 	switch {
 	default:
 		as.warnings = append(as.warnings, fmt.Sprintf("channel layout:%v", as.channel_layout))
 	case strings.HasPrefix(as.channel_layout, " 5.1"):
+		as.channel_layout = "5.1"
 	case strings.HasPrefix(as.channel_layout, " mono"):
+		as.channel_layout = "mono"
 	case strings.HasPrefix(as.channel_layout, " stereo"):
+		as.channel_layout = "stereo"
 	case strings.HasPrefix(as.channel_layout, " 1 channels"):
+		as.channel_layout = "mono"
 	}
-	if as.bitrate < 80 {
+	if as.bitrate < 80 && as.bitrate != 0 {
 		as.warnings = append(as.warnings, fmt.Sprintf("low bitrate: %v kb/s", as.bitrate))
 	}
 }
@@ -493,8 +539,8 @@ func grepFreq(data string) int {
 	return bt
 }
 
-func parseVideoData(line string) videostream {
-	vs := videostream{}
+func parseVideoData(line string) Videostream {
+	vs := Videostream{}
 	vs.data = line
 	bra := deBracketSplit(line)
 	for i, data := range bra {
@@ -537,11 +583,11 @@ func parseVideoData(line string) videostream {
 		}
 	}
 	vs.lang = grepLang(line)
-	vs.assessVideoStream()
+	vs.assessVideostream()
 	return vs
 }
 
-func (vid *videostream) assessVideoStream() {
+func (vid *Videostream) assessVideostream() {
 	switch vid.fps {
 	default:
 		vid.warnings = append(vid.warnings, "bad fps:"+strings.TrimSuffix(vid.fps, " fps"))
@@ -589,7 +635,7 @@ func grepLang(streamdata string) string {
 	return ripBetween(pts[1], "(", ")")
 }
 
-type videostream struct {
+type Videostream struct {
 	//  Stream #0:0(und): Video: h264 (High 4:2:2) (avc1 / 0x31637661), yuv422p, 1920x1080 [SAR 1:1 DAR 16:9], 38375 kb/s, 25 fps, 25 tbr, 12800 tbn, 50 tbc (default)
 	data      string
 	codecinfo string
@@ -608,7 +654,43 @@ type videostream struct {
 	warnings  []string
 }
 
-type audiostream struct {
+func (vs *Videostream) String() string {
+	sw, sh := vs.SAR()
+
+	s := fmt.Sprintf("%vx%v [%v:%v]  %v ", vs.width, vs.height, sw, sh, vs.fps)
+	return s
+}
+
+func (vs *Videostream) Dimentions() (int, int) {
+	return vs.width, vs.height
+}
+
+func (vs *Videostream) SAR() (int, int) {
+	w, h := vs.Dimentions()
+	primes := []int{2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97}
+	sort.Reverse(sort.IntSlice(primes))
+	for _, prime := range primes {
+		check := true
+		for check {
+			if w%prime == 0 && h%prime == 0 {
+				w, h = w/prime, h/prime
+			} else {
+				check = false
+			}
+		}
+	}
+	return w, h
+}
+
+func (vs *Videostream) DAR() float64 {
+	return float64(vs.width) / float64(vs.height)
+}
+
+/*
+Video: 1920x1080; 25 fps
+*/
+
+type Audiostream struct {
 	codec          string
 	hertz          int
 	channel_layout string
@@ -617,6 +699,18 @@ type audiostream struct {
 	lang           string
 	metadata       map[string]string
 	warnings       []string
+}
+
+func (a *Audiostream) String() string {
+	s := fmt.Sprintf("%v", a.codec)
+	if a.channel_layout != "" {
+		s += "  " + a.channel_layout
+	}
+	if a.bitrate != 0 {
+		s += "  " + fmt.Sprintf("bitrate: %v", a.bitrate)
+	}
+
+	return s
 }
 
 type datastream struct {
@@ -652,4 +746,24 @@ func ripBetween(data, open, close string) string {
 
 /*
 Stream #0:0(und): Video: h264 (High 4:2:2) (avc1 / 0x31637661), yuv422p, 1920x1080 [SAR 1:1 DAR 16:9], 25333 kb/s, 25 fps, 25 tbr, 12800 tbn, 50 tbc (default)
+
+000
+111
+101
+
+10N        3
+
+101  100
+ 01   00   5
+      00   7
+	  00
+	  00
+	  00
+2
+
+2
+1
+3
+
+
 */
