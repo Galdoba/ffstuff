@@ -657,15 +657,17 @@ var EditTags = []string{
 }
 
 type EditNameForm struct {
-	source    string
-	dir       string
-	short     string
-	base      string
-	season    string
-	episode   string
-	prt       string
-	extention string
-	tags      []string
+	source     string
+	dir        string
+	short      string
+	base       string
+	season     string
+	episode    string
+	prt        string
+	extention  string
+	tags       []string
+	readyToUse bool
+	editName   string
 }
 
 func (enf *EditNameForm) Source() string {
@@ -674,6 +676,10 @@ func (enf *EditNameForm) Source() string {
 
 func (enf *EditNameForm) Base() string {
 	return enf.base
+}
+
+func (enf *EditNameForm) ShortName() string {
+	return enf.short
 }
 
 func serialData(name string) (string, string, string) {
@@ -704,7 +710,25 @@ func EditForm(path string) *EditNameForm {
 	ef.extention = RetrieveExtention(path)
 	ef.base = RetrieveBase(ef.short)
 	ef.tags = tags(ef)
+	if editname := strings.Split(ef.short, "--")[0]; editname != ef.short {
+		ef.editName = editname
+	}
 	return &ef
+}
+
+func (ef *EditNameForm) EditName() string {
+	return ef.editName
+}
+
+func (ef *EditNameForm) AddPrefix(prefix string) error {
+	oldName := ef.dir + ef.short
+	ef.short = prefix + ef.short
+	newName := ef.dir + ef.short
+	err := os.Rename(oldName, newName)
+	if err != nil {
+		return fmt.Errorf("can not rename \n%v\n%v\n  reason: %v", oldName, newName, err.Error())
+	}
+	return nil
 }
 
 func (ef *EditNameForm) HasTags(tags ...string) bool {

@@ -16,6 +16,7 @@ func Transliterate(origin string) string {
 		}
 		result += w + "_"
 	}
+	result = strings.TrimSuffix(result, "_zamena_")
 	result = strings.TrimSuffix(result, "_")
 	result = strings.Title(result)
 
@@ -67,4 +68,22 @@ func change(a string) string {
 	case "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", `/`, `\`:
 		return a
 	}
+}
+
+func CleanName(name string) string {
+	if strings.HasSuffix(name, strings.ToLower(" (Замена)")) {
+		name = strings.TrimSuffix(name, " (Замена)")
+		name = strings.TrimSuffix(name, " (замена)")
+	}
+	letters := strings.Split(name, "")
+	fixed := []string{}
+	for _, l := range letters {
+		switch l {
+		default:
+		case " ", "(", ")":
+			l = "_"
+		}
+		fixed = append(fixed, l)
+	}
+	return strings.Join(fixed, "")
 }

@@ -26,6 +26,7 @@ func ParseFile(path string) (*ParseInfo, error) {
 	//fmt.Println("ffmpeg output:\n", buf)
 	input := inputdata{strings.Split(buf, "\n")}
 	pi, err := parse(input)
+	pi.buffer = buf
 	if err != nil {
 		return nil, fmt.Errorf("parse(%v): %v", path, err)
 	}
@@ -34,4 +35,8 @@ func ParseFile(path string) (*ParseInfo, error) {
 
 func (pi *ParseInfo) NumAudio() int {
 	return len(pi.Audio)
+}
+
+func (pi *ParseInfo) Buffer() string {
+	return pi.buffer
 }

@@ -123,6 +123,10 @@ func configPath() (string, string) {
 	return configDir, "ffstuff.config"
 }
 
+/*
+🁣	🁤	🁥	🁦	🁧	🁨	🁩	🁪	🁫	🁬
+*/
+
 func Filepath(program string) string {
 	pathSep := string(filepath.Separator)
 	dir, name := ConfigPathManual(program)
