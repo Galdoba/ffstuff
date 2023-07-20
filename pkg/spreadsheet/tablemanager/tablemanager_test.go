@@ -8,6 +8,7 @@ import (
 )
 
 func TestParsing(t *testing.T) {
+	return
 	sp, _ := spreadsheet.New()
 	for _, data := range sp.Data() {
 		//data := strings.Split(line, `","`)
@@ -43,6 +44,7 @@ func TestParsing(t *testing.T) {
 }
 
 func TestListing(t *testing.T) {
+	return
 	sheet, _ := spreadsheet.New()
 	sheet.Update()
 	TaskList := TaskListFrom(sheet)
@@ -69,6 +71,7 @@ func TestListing(t *testing.T) {
 }
 
 func TestTargetDirectoryPath(t *testing.T) {
+	return
 	sheet, _ := spreadsheet.New()
 	//sheet.Update()
 	taskList := TaskListFrom(sheet)

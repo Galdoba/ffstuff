@@ -1,45 +1,57 @@
 package task
 
 import (
+	"encoding/xml"
 	"fmt"
 	"strconv"
 	"time"
 )
 
 const (
-	KEY_agent    = "agent"
-	KEY_director = "director"
-	KEY_category = "category"
-	KEY_title    = "title"
-	KEY_descr    = "descr"
-	//KEY_created         = "created"
-	KEY_start      = "start_after"
-	KEY_deadline   = "deadline"
-	KEY_comment    = "comment"
-	KEY_importance = "importance"
-	KEY_private    = "private"
+	KEY_receiver = "Receiver"
+	KEY_sender   = "Sender"
+	KEY_category = "Category"
+	KEY_title    = "Title"
+	KEY_descr    = "Descr"
+	//KEY_created         = "Created"
+	KEY_start      = "Start_after"
+	KEY_deadline   = "Deadline"
+	KEY_comment    = "Comment"
+	KEY_importance = "Importance"
+	KEY_private    = "Private"
+	timeformat1    = "2006-01-02 15:04:05"
+	timeformat2    = "2006-01-02 15:04"
+	timeformat3    = "2006-01-02"
+	timeformat4    = "15:04:05"
+	timeformat5    = "15:04"
+
+	defaultVal = iota
+	timing_irrelevant
+	timing_active
+	timing_missed
 )
 
-type tsk struct {
-	//id              int64
-	director    string
-	agent       string
-	category    string
-	title       string
-	descr       string
-	created     time.Time
-	start_after time.Time
-	deadline    time.Time
-	comment     string
-	importance  int
-	private     bool
+type Task struct {
+	//id              int64 `xml:"name,omitempty"`
+	MXLName     xml.Name `xml:"task"`
+	Sender      string   `xml:"sender"`
+	Receiver    string   `xml:"receiver"`
+	Category    string   `xml:"category,omitempty"`
+	Title       string   `xml:"title"`
+	Descr       string   `xml:"descr,omitempty"`
+	Created     string   `xml:"created"`
+	Start_after string   `xml:"relevant after,omitempty"`
+	Deadline    string   `xml:"deadline,omitempty"`
+	Comment     string   `xml:"comment,omitempty"`
+	Importance  int      `xml:"importance,omitempty"`
+	timing      int
 }
 
-func NewTask(inputs ...*inputpair) (*tsk, error) {
+func NewTask(inputs ...*inputpair) (*Task, error) {
 	tm := time.Now()
-	ts := tsk{}
+	ts := Task{}
 	//ts.id = tm.UnixNano()
-	ts.created = tm
+	ts.Created = timeFormatted(tm)
 	errors := []error{}
 	for _, input := range inputs {
 		if err := ts.Change(input); err != nil {
@@ -53,7 +65,40 @@ func NewTask(inputs ...*inputpair) (*tsk, error) {
 		}
 		return &ts, fmt.Errorf(errText)
 	}
+	ts.evaluateTiming()
 	return &ts, nil
+}
+
+func (ts *Task) String() string {
+	str := fmt.Sprintf("From: %v\n", ts.Sender)
+	str += fmt.Sprintf("To: %v\n", ts.Receiver)
+	str += fmt.Sprintf("Task: %v\n", ts.Title)
+	str += fmt.Sprintf("Description: %v\n", ts.Descr)
+	if ts.Deadline == "" {
+		str += fmt.Sprintf("Status: %v\n", ts.timing)
+	}
+	return str
+}
+
+func (ts *Task) evaluateTiming() {
+
+	tn := time.Now()
+	//ts := time.Parse(timeformat1, ts.Created)
+
+	startAfter, errS := time.Parse(timeformat1, ts.Start_after)
+
+	deadline, errA := time.Parse(timeformat1, ts.Deadline)
+
+	if errS == nil && !tn.After(startAfter) {
+		ts.timing = timing_irrelevant
+		return
+	}
+	if errA == nil && tn.After(deadline) {
+		ts.timing = timing_missed
+		return
+	}
+	ts.timing = timing_active
+
 }
 
 type inputpair struct {
@@ -74,61 +119,75 @@ func (inp *inputpair) From(from string) *inputpair {
 	return inp
 }
 
-func (ts *tsk) Change(input *inputpair) error {
-	if ts.private && ts.director != "" && (ts.director != input.from) {
-		return fmt.Errorf("can not change private task of different agent")
+func (ts *Task) Change(input *inputpair) error {
+	if ts.Sender != "" && (ts.Sender != input.from) {
+		return fmt.Errorf("can not change task of different Sender")
 	}
 	switch input.key {
 	default:
-		return fmt.Errorf("can not change task '%v': key '%v' unrecognized", ts.title, input.key)
-	case KEY_director:
-		if ts.director != "" {
-			return fmt.Errorf("can not change director if already set")
+		return fmt.Errorf("can not change task '%v': key '%v' unrecognized", ts.Title, input.key)
+	case KEY_sender:
+		if ts.Sender != "" {
+			return fmt.Errorf("can not change Sender if already set")
 		}
-		ts.director = input.val
-	case KEY_agent:
-		ts.agent = input.val
+		ts.Sender = input.val
+	case KEY_receiver:
+		ts.Receiver = input.val
 	case KEY_category:
-		ts.category = input.val
+		ts.Category = input.val
 	case KEY_title:
-		ts.title = input.val
+		ts.Title = input.val
 	case KEY_descr:
-		ts.descr = input.val
+		ts.Descr = input.val
 	case KEY_start:
-		tm, err := time.Parse("2006-01-02 15:04:05", input.val)
+		_, err := time.Parse("2006-01-02 15:04:05", input.val)
 		if err != nil {
 			return fmt.Errorf("can not change start: %v", err.Error())
 		}
-		ts.start_after = tm
+		ts.Start_after = input.val
 	case KEY_deadline:
-		tm, err := time.Parse("2006-01-02 15:04:05", input.val)
+		_, err := time.Parse("2006-01-02 15:04:05", input.val)
 		if err != nil {
-			return fmt.Errorf("can not change deadline: %v", err.Error())
+			return fmt.Errorf("can not change Deadline: %v", err.Error())
 		}
-		ts.deadline = tm
+		ts.Deadline = input.val
 	case KEY_comment:
-		ts.comment = input.val
+		ts.Comment = input.val
 	case KEY_importance:
 		switch input.val {
 		default:
-			return fmt.Errorf("can not change importance: '%v' value unknown", input.val)
+			return fmt.Errorf("can not change Importance: '%v' value unknown", input.val)
 		case "1", "2", "3", "4", "5", "6", "7":
-			ts.importance, _ = strconv.Atoi(input.val)
+			ts.Importance, _ = strconv.Atoi(input.val)
 		}
-	case KEY_private:
-		v, err := strconv.ParseBool(input.val)
-		if err != nil {
-			return fmt.Errorf("can not change privacy: %v", err.Error())
-		}
-		ts.private = v
 	}
 	return nil
 }
 
+func formats() []string {
+	return []string{
+		timeformat1,
+		timeformat2,
+		timeformat3,
+		timeformat4,
+		timeformat5,
+	}
+}
+
+func timeFormatted(t time.Time) string {
+	for _, f := range []string{timeformat1, timeformat2, timeformat3} {
+		str := t.Format(f)
+		if str != "" {
+			return str
+		}
+	}
+	return ""
+}
+
 /*
-IMPORTANCE:
+Importance:
 1 Критично			Critical		Red
-2 Очень Важно		Very Important	Magenta
+2 Очень Важно		Very Important	Mreceivera
 3 Важно				Important		Yellow
 4 Средней Важности	Average			Green
 5 Рутина			Routine			White/Gray
@@ -164,73 +223,6 @@ IMPORTANCE:
 // }
 
 ///////////////////////////////////////////////////
-// func (ts *tsk) ID() int64 {
+// func (ts *Task) ID() int64 {
 // 	return ts.id
 // }
-func (ts *tsk) Director() string {
-	return ts.director
-}
-func (ts *tsk) Agent() string {
-	return ts.agent
-}
-func (ts *tsk) Category() string {
-	return ts.category
-}
-func (ts *tsk) Title() string {
-	return ts.title
-}
-func (ts *tsk) Descr() string {
-	return ts.descr
-}
-func (ts *tsk) Created() time.Time {
-	return ts.created
-}
-func (ts *tsk) StartTime() time.Time {
-	return ts.start_after
-}
-func (ts *tsk) Deadline() time.Time {
-	return ts.deadline
-}
-func (ts *tsk) Comment() string {
-	return ts.comment
-}
-func (ts *tsk) Importance() int {
-	return ts.importance
-}
-func (ts *tsk) IsPrivate() bool {
-	return ts.private
-}
-
-// func (ts *tsk) SetFrom(val string) {
-// 	ts.from = val
-// }
-func (ts *tsk) SetAgent(val string) {
-	ts.agent = val
-}
-func (ts *tsk) SetCategory(val string) {
-	ts.category = val
-}
-func (ts *tsk) SetTitle(val string) {
-	ts.title = val
-}
-func (ts *tsk) SetDescr(val string) {
-	ts.descr = val
-}
-func (ts *tsk) SetCreated(val time.Time) {
-	ts.created = val
-}
-func (ts *tsk) Setstart_after(val time.Time) {
-	ts.start_after = val
-}
-func (ts *tsk) SetDeadline(val time.Time) {
-	ts.deadline = val
-}
-func (ts *tsk) SetComment(val string) {
-	ts.comment = val
-}
-func (ts *tsk) SetImportance(val int) {
-	ts.importance = val
-}
-func (ts *tsk) SetPrivate(val bool) {
-	ts.private = val
-}

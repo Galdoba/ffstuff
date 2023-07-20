@@ -1,0 +1,8 @@
+<Task>
+  <task></task>
+  <sender>pemaltynov</sender>
+  <receiver>ffautoBatch</receiver>
+  <title>Write Todosher</title>
+  <descr>ffmpeg -i test.mp4</descr>
+  <created>2023-07-20 16:01:37</created>
+</Task>

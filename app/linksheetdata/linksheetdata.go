@@ -42,6 +42,7 @@ func main() {
 	args := os.Args[1:]
 	if len(args) == 0 {
 		fmt.Println("Не полученно аргументов")
+		askUser("Нажми ENTER для завершения", []string{})
 		return
 	}
 
@@ -49,12 +50,16 @@ func main() {
 	names := drawOptionsFromTable()
 	if len(names) == 0 {
 		fmt.Println("В таблице нет доступных названий")
+		askUser("Нажми ENTER для завершения", []string{})
 		return
 	}
 	answer := askUser("Выбери название из таблицы:", names)
 	errors := addPrefixToFiles(answer, edits)
 	for _, err := range errors {
 		fmt.Println("error: ", err.Error())
+	}
+	if len(errors) != 0 {
+		askUser("Нажми ENTER для завершения", []string{})
 	}
 
 }
