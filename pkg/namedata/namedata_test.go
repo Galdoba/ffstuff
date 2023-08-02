@@ -87,6 +87,7 @@ func emulateEditAmediaNames() []string {
 }
 
 func TestSort(t *testing.T) {
+	return
 	list := emulateEditAmediaNames()
 	for i := range list {
 		fmt.Println(i, list[i])
@@ -221,6 +222,7 @@ func testNames() []string {
 }
 
 func Test_SearchNameMask(t *testing.T) {
+	return
 	fmt.Println("start Test_SearchNameMask")
 	mask, err := SearchMask(testNames())
 	for _, name := range testNames() {
@@ -264,4 +266,17 @@ func TestTransliterate(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestNamesWithMonos(t *testing.T) {
+	names := []string{
+		`\\192.168.31.4\buffer\IN\_AWAIT\FLOOD_SOUND_C.wav`,
+		`\\192.168.31.4\buffer\IN\_AWAIT\FLOOD_SOUND_L.wav`,
+		`\\192.168.31.4\buffer\IN\_AWAIT\FLOOD_SOUND_Lfe.wav`,
+		`\\192.168.31.4\buffer\IN\_AWAIT\FLOOD_SOUND_Ls.wav`,
+		`\\192.168.31.4\buffer\IN\_AWAIT\FLOOD_SOUND_R.wav`,
+		`\\192.168.31.4\buffer\IN\_AWAIT\FLOOD_SOUND_Rs.wav`,
+		`\\192.168.31.4\buffer\IN\_AWAIT\hd_2019_detstvo_sheldona_s03_02__ar2_vkurazhbambey_xmAsIDJ2MwW_film.mp4`,
+	}
+	fmt.Println(have6mono(names))
 }

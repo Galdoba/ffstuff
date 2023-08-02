@@ -14,18 +14,21 @@ import (
 )
 
 const (
-	RESOLUTION_MP4 = "mp4"
-	RESOLUTION_M4A = "m4a"
-	RESOLUTION_AAC = "aac"
-	RESOLUTION_SRT = "srt"
-	TAG_HD         = "_HD"
-	TAG_SD         = "_SD"
-	TAG_4K         = "_4K"
-	TAG_SUB        = "_SUB"
-	TAG_AUDIORUS20 = "_AUDIORUS20"
-	TAG_AUDIORUS51 = "_AUDIORUS51"
-	TAG_AUDIOENG20 = "_AUDIOENG20"
-	TAG_AUDIOENG51 = "_AUDIOENG51"
+	RESOLUTION_MP4    = "mp4"
+	RESOLUTION_M4A    = "m4a"
+	RESOLUTION_AAC    = "aac"
+	RESOLUTION_SRT    = "srt"
+	TAG_HD            = "_HD"
+	TAG_SD            = "_SD"
+	TAG_4K            = "_4K"
+	TAG_SUB           = "_SUB"
+	TAG_AUDIORUS20    = "_AUDIORUS20"
+	TAG_AUDIORUS51    = "_AUDIORUS51"
+	TAG_AUDIOENG20    = "_AUDIOENG20"
+	TAG_AUDIOENG51    = "_AUDIOENG51"
+	CONTENT_TYPE_FILM = "FILM"
+	CONTENT_TYPE_TRL  = "TRL"
+	CONTENT_TYPE_SER  = "SER"
 )
 
 /*
@@ -668,6 +671,9 @@ type EditNameForm struct {
 	tags       []string
 	readyToUse bool
 	editName   string
+	film       bool
+	trl        bool
+	serial     bool
 }
 
 func (enf *EditNameForm) Source() string {
@@ -696,6 +702,10 @@ func serialData(name string) (string, string, string) {
 	return data[1], data[2], data[3]
 }
 
+func (ed *EditNameForm) PRT() string {
+	return ed.prt
+}
+
 func RetrieveAudioTag(name string) string {
 	re := regexp.MustCompile(`AUDIO(.*[0-9]{2})`)
 	return re.FindString(name)
@@ -710,14 +720,54 @@ func EditForm(path string) *EditNameForm {
 	ef.extention = RetrieveExtention(path)
 	ef.base = RetrieveBase(ef.short)
 	ef.tags = tags(ef)
-	if editname := strings.Split(ef.short, "--")[0]; editname != ef.short {
-		ef.editName = editname
+	editMarkers := strings.Split(ef.short, "--")
+	switch len(editMarkers) {
+	case 3:
+		ef.editName = editMarkers[0]
+		switch editMarkers[1] {
+		case CONTENT_TYPE_TRL:
+			ef.trl = true
+		case CONTENT_TYPE_FILM:
+			ef.film = true
+		case CONTENT_TYPE_SER:
+			ef.serial = true
+		}
 	}
 	return &ef
 }
 
 func (ef *EditNameForm) EditName() string {
 	return ef.editName
+}
+
+func (ef *EditNameForm) Season() string {
+	return ef.season
+}
+func (ef *EditNameForm) Episode() string {
+	return ef.episode
+}
+
+func (ef *EditNameForm) IsFilm() bool {
+	return ef.film
+}
+func (ef *EditNameForm) IsTrl() bool {
+	return ef.trl
+}
+func (ef *EditNameForm) IsSerial() bool {
+	return ef.serial
+}
+
+func (ef *EditNameForm) ContentType() string {
+	if ef.trl {
+		return CONTENT_TYPE_TRL
+	}
+	if ef.serial {
+		return CONTENT_TYPE_SER
+	}
+	if ef.film {
+		return CONTENT_TYPE_FILM
+	}
+	return ""
 }
 
 func (ef *EditNameForm) AddPrefix(prefix string) error {
@@ -728,6 +778,7 @@ func (ef *EditNameForm) AddPrefix(prefix string) error {
 	if err != nil {
 		return fmt.Errorf("can not rename \n%v\n%v\n  reason: %v", oldName, newName, err.Error())
 	}
+	ef.source = newName
 	return nil
 }
 
@@ -795,3 +846,82 @@ type EditFormList struct {
 // 	efl := EditFormList{}
 
 // }
+
+func have6mono(names []string) bool {
+	ending := make(map[string]int)
+	for _, name := range names {
+		name = strings.ToLower(name)
+		dots := strings.Split(name, ".")
+		ext := dots[len(dots)-1]
+		ending[ext]++
+	}
+
+	for _, qty := range ending {
+		if qty != 6 {
+			continue
+		}
+		for _, n := range names {
+
+			for _, suf := range []string{
+				"L.wav", "01.wav", "L.aif", "01.aif",
+				"R.wav", "02.wav", "R.aif", "02.aif",
+				"C.wav", "03.wav", "C.aif", "03.aif",
+				"LFE.wav", "Lfe.wav", "04.wav", "LFE.aif", "Lfe.aif", "04.aif",
+				"LS.wav", "Ls.wav", "05.wav", "LS.aif", "Ls.aif", "05.aif",
+				"RS.wav", "Rs.wav", "06.wav", "RS.aif", "Rs.aif", "06.aif",
+			} {
+
+				if strings.HasSuffix(n, suf) {
+					qty--
+				}
+
+			}
+
+		}
+		if qty == 0 {
+			return true
+		}
+	}
+	return false
+}
+
+func NormalizeSoundNames(names []string) ([]string, error) {
+	if !have6mono(names) {
+		return names, fmt.Errorf("6 mono sounds not detected")
+	}
+	newnames := []string{}
+	norm := make(map[string]string)
+	norm["01.wav"] = "L.wav"
+	norm["01.aif"] = "L.aif"
+	norm["02.wav"] = "R.wav"
+	norm["02.aif"] = "R.aif"
+	norm["03.wav"] = "C.wav"
+	norm["03.aif"] = "C.aif"
+	norm["LFE.wav"] = "Lfe.wav"
+	norm["04.wav"] = "Lfe.wav"
+	norm["LFE.aif"] = "Lfe.aif"
+	norm["04.aif"] = "Lfe.aif"
+	norm["LS.wav"] = "Ls.wav"
+	norm["05.wav"] = "Ls.wav"
+	norm["LS.aif"] = "Ls.aif"
+	norm["05.aif"] = "Ls.aif"
+	norm["RS.wav"] = "Rs.wav"
+	norm["06.wav"] = "Rs.wav"
+	norm["RS.aif"] = "Rs.aif"
+	norm["06.aif"] = "Rs.aif"
+	for _, nam := range names {
+		for k, v := range norm {
+			if !strings.HasSuffix(nam, k) {
+				continue
+			}
+			newName := strings.TrimSuffix(nam, k) + v
+
+			err := os.Rename(nam, newName)
+			if err != nil {
+				return names, fmt.Errorf("os.Rename(): %v", err.Error())
+			}
+			newnames = append(newnames, newName)
+		}
+	}
+	return newnames, nil
+}

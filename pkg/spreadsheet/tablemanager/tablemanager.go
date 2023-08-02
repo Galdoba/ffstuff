@@ -125,7 +125,7 @@ func (tl *TaskList) ChooseTrailer() []TaskData {
 		if task.readyTrailerStatus != ReadyTrailerExpected {
 			continue
 		}
-		if task.trailerMaker != "" {
+		if task.muxingStatus == MuxingUploaded {
 			continue
 		}
 		list = append(list, task)

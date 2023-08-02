@@ -3,6 +3,7 @@ package task
 import (
 	"encoding/xml"
 	"fmt"
+	"io/ioutil"
 	"strconv"
 	"time"
 )
@@ -33,19 +34,32 @@ const (
 
 type Task struct {
 	//id              int64 `xml:"name,omitempty"`
-	MXLName     xml.Name `xml:"task"`
-	Sender      string   `xml:"sender"`
-	Receiver    string   `xml:"receiver"`
-	Category    string   `xml:"category,omitempty"`
-	Title       string   `xml:"title"`
-	Descr       string   `xml:"descr,omitempty"`
-	Created     string   `xml:"created"`
-	Start_after string   `xml:"relevant after,omitempty"`
-	Deadline    string   `xml:"deadline,omitempty"`
-	Comment     string   `xml:"comment,omitempty"`
-	Importance  int      `xml:"importance,omitempty"`
+	MXLName     xml.Name `xml:"task"`                     //задача
+	Sender      string   `xml:"sender"`                   //тот кто поставил задачу (юзер или программа)
+	Receiver    string   `xml:"receiver"`                 //тот кто должен выполнить задачу (юзер или программа)
+	Category    string   `xml:"category,omitempty"`       //
+	Title       string   `xml:"title"`                    //краткое описание задачи
+	Descr       string   `xml:"descr,omitempty"`          //описываем что как и зачем делать для человека
+	ResolveArgs []string `xml:"args,omitempty"`           //описываем что как и зачем делать для машины
+	Created     string   `xml:"created"`                  //Дата создания файла
+	Start_after string   `xml:"relevant after,omitempty"` //отметка времени после которого задача считается актуальной
+	Deadline    string   `xml:"deadline,omitempty"`       //отметка времени после которого задача перестает быть актуальной
+	Comment     string   `xml:"comment,omitempty"`        //дополнительный коментарий в любой форме
+	Importance  int      `xml:"importance,omitempty"`     //степень важности
 	timing      int
 }
+
+/*
+Importance:
+0 неопределено
+1 Критично			Critical		Red
+2 Очень Важно		Very Important	Magenta
+3 Важно				Important		Yellow
+4 Средней Важности	Average			Green
+5 Рутина			Routine			White/Gray
+6 Не важно			Unimportant		Cyan
+7 Факультативно		Optional		Blue
+*/
 
 func NewTask(inputs ...*inputpair) (*Task, error) {
 	tm := time.Now()
@@ -69,16 +83,25 @@ func NewTask(inputs ...*inputpair) (*Task, error) {
 	return &ts, nil
 }
 
-func (ts *Task) String() string {
-	str := fmt.Sprintf("From: %v\n", ts.Sender)
-	str += fmt.Sprintf("To: %v\n", ts.Receiver)
-	str += fmt.Sprintf("Task: %v\n", ts.Title)
-	str += fmt.Sprintf("Description: %v\n", ts.Descr)
-	if ts.Deadline == "" {
-		str += fmt.Sprintf("Status: %v\n", ts.timing)
+func FromFile(file string) (*Task, error) {
+	ts := Task{}
+	f, err := ioutil.ReadFile(file)
+	if err != nil {
+		return nil, fmt.Errorf("ioutil.ReadFile(file): %v", err.Error())
 	}
-	return str
+	err := xml.Unmarshal(f, &tsk2)
 }
+
+// func (ts *Task) String() string {
+// 	str := fmt.Sprintf("From: %v\n", ts.Sender)
+// 	str += fmt.Sprintf("To: %v\n", ts.Receiver)
+// 	str += fmt.Sprintf("Task: %v\n", ts.Title)
+// 	str += fmt.Sprintf("Description: %v\n", ts.Descr)
+// 	if ts.Deadline == "" {
+// 		str += fmt.Sprintf("Status: %v\n", ts.timing)
+// 	}
+// 	return str
+// }
 
 func (ts *Task) evaluateTiming() {
 
