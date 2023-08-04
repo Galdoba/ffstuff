@@ -125,7 +125,7 @@ func (tl *TaskList) ChooseTrailer() []TaskData {
 		if task.readyTrailerStatus != ReadyTrailerExpected {
 			continue
 		}
-		if task.trailerMaker != "" {
+		if task.muxingStatus == MuxingUploaded {
 			continue
 		}
 		list = append(list, task)
@@ -230,15 +230,19 @@ func ProposeTargetDirectory(tl *TaskList, task TaskData) string {
 		if r.rowType == RowTypeSeparator {
 			separator = r
 			date, err := newDate(separator.taskName)
-			folder1 = date.pathFolder() + `\`
+			folder1 = date.pathFolder()
 			if err != nil {
 				agent := translit.Transliterate(task.contragent)
-
-				folder1 = "_" + agent + `\`
+				agent = strings.ToLower(agent)
+				folder1 = "_" + agent
 			}
 		}
 	}
-	path = path + folder1 + addSeasonSubFolder(task)
+	add := addSeasonSubFolder(task)
+	path = path + folder1
+	if add != "" {
+		path += add
+	}
 	return path
 }
 
@@ -249,7 +253,7 @@ func ProposeArchiveDirectory(task TaskData) string {
 		nameFolderName += "_s" + task.outputName.season
 	}
 	//отделить сериалы от фильмов
-	path := `\\nas\ROOT\IN\_` + strings.ToUpper(agentFolderName) + `\_DONE\` + nameFolderName + `\`
+	path := "_" + strings.ToUpper(agentFolderName) // + `/_DONE/` + nameFolderName
 	return path
 }
 
@@ -293,7 +297,7 @@ func (t *TaskData) StringAsSeason() string {
 
 func addSeasonSubFolder(t TaskData) string {
 	if t.outputName.season != "" {
-		return t.outputName.outBase + "_s" + t.outputName.season + `\`
+		return `/` + t.outputName.outBase + "_s" + t.outputName.season
 	}
 	return ""
 }

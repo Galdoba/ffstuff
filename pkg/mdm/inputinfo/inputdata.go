@@ -33,6 +33,7 @@ type ParseInfo struct {
 	data        []datastream
 	subtitles   []subtitlestream
 	warnings    []string
+	buffer      string
 }
 
 func (pi *ParseInfo) String() string {
@@ -49,28 +50,13 @@ func (pi *ParseInfo) String() string {
 	for _, v := range pi.Video {
 		str += fmt.Sprintf("[vid]  %v\n", v.String())
 	}
-	// for i, s := range pi.streams {
-	// 	str += s.data + "||"
-	// 	if len(s.metadata) > 0 {
-	// 		str += fmt.Sprintf(" | stream %v has %v metadata\n", i, len(s.metadata))
-	// 		for k, v := range s.metadata {
-	// 			str += fmt.Sprintf("    %v: %v\n", k, v)
-	// 		}
-	// 	}
-	// 	//for k, v := range s.metadata {
-	// 	//str += fmt.Sprintf("%v|---|%v\n", k, v)
-	// 	//}
-	// }
-	// for _, s := range pi.Video {
-	// 	str += s.codecinfo + "\n"
-	// 	str += s.pix_fmt + "\n"
-	// 	str += s.sardar + "\n"
-	// 	str += s.fps + "\n"
-
-	// }
 
 	str += "------------\n"
 	return str
+}
+
+func (pi *ParseInfo) FileName() string {
+	return pi.filename
 }
 
 func (pi *ParseInfo) Warnings() []string {

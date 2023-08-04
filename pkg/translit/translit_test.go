@@ -19,6 +19,9 @@ func inputStrings() []string {
 		`Приключения_мышонка_TRL.mp4`,
 		`Прощай_моя_королева_Les_adieux_a_la_reine_or.mp4`,
 		`Шеф_Comme_un_chef_ru.mp4`,
+		`Название (со скобками) на русском.mp4`,
+		`Name (With braCKets).mp4`,
+		`Фильм о собаке (Замена)`,
 	}
 }
 
@@ -26,6 +29,7 @@ func TestTransliterate(t *testing.T) {
 	for _, input := range inputStrings() {
 		fmt.Println(input)
 		fmt.Println(Transliterate(input))
+		fmt.Println(CleanName(input))
 		fmt.Println("-------")
 	}
 }
