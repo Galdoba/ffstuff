@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"runtime"
 
 	"github.com/Galdoba/devtools/directory"
@@ -16,7 +17,7 @@ const (
 )
 
 type ConfFile struct {
-	Roots               map[string]string
+	Roots               map[string][]string
 	UpdateCycle_seconds int
 	Max_threads         int
 }
@@ -46,8 +47,8 @@ func main() {
 				return err
 			}
 			fmt.Println("Filling default Data...")
-			roots := make(map[string]string)
-			roots["buffer"] = `\\192.168.31.4\buffer\IN\`
+			roots := make(map[string][]string)
+			roots["buffer"] = []string{`\\192.168.31.4\buffer\IN\_DONE\`, `\\192.168.31.4\buffer\IN\_IN_PROGRESS\`, `\\192.168.31.4\buffer\IN\`}
 			conf := ConfFile{
 				Roots:               roots,
 				UpdateCycle_seconds: 5,
@@ -60,11 +61,9 @@ func main() {
 			fmt.Println("Default data filled...")
 			return nil
 		}
-		fmt.Println("Config detected...")
 		if err := yaml.Unmarshal(cfg.Data, ConfFile{}); err != nil {
 			return err
 		}
-		fmt.Println("Content is valid...")
 		return nil
 	}
 	//ПО ОКОНЧАНИЮ ДЕЙСТВИЯ
@@ -77,94 +76,82 @@ func main() {
 		//ShowStats - поразать глубокую аналитику
 		{
 			Name:        "print",
-			ShortName:   "",
-			Usage:       "monitor print [root] [-destination]...",
+			Usage:       "monitor print [rootkey] [-destination]...",
 			UsageText:   "print list of content in tracked directories",
 			Description: "TODO: подробное описание команды",
 			ArgsUsage:   "Аргументов не имеет\nВ планах локальный режим и указание файла в который должен писаться отчет",
+			Category:    "Primary",
 			Action: func(c *cli.Context) error {
-				cfgData, err := config.ReadFrom(program) //считываем содержание конфига
+				cfgData, err := config.ReadFrom(program)
 				if err != nil {
 					return fmt.Errorf("config.ReadFrom: %v", err)
 				}
-				if err := yaml.Unmarshal(cfgData, &Conf); err != nil { //интерпритируем конфиг для дальнейшего пользования
+				if err := yaml.Unmarshal(cfgData, &Conf); err != nil {
 					return fmt.Errorf("yaml.Unmarshal: %v", err)
 				}
 				if len(Conf.Roots) < 1 {
 					return fmt.Errorf("no Roots set in config.file")
 				}
-				runtime.GOMAXPROCS(runtime.NumCPU() - 1) // занимаем все ядра кроме одного чтобы система не висла в случае избыточного кол-ва тредов
+				runtime.GOMAXPROCS(runtime.NumCPU() - 1)
 				roots := Conf.Roots
 				list := []string{}
-				for _, v := range roots {
-					dir, files, err := directory.List(v)
-					if err != nil {
-						return fmt.Errorf("directory.List(%v): %v", v, err.Error())
+				sep := string(filepath.Separator)
+				for _, rootList := range roots {
+					for _, v := range rootList {
+						dirs := []string{}
+						fls := []string{}
+						dir, files, err := directory.List(v)
+						if err != nil {
+							return fmt.Errorf("directory.List(%v): %v", v, err.Error())
+						}
+						list = append(list, dir)
+						for _, fl := range files {
+							cntnt := dir + fl
+							f, _ := os.Stat(cntnt)
+							switch f.IsDir() {
+							case true:
+								if !c.Bool("files") {
+									dirs = append(dirs, ".."+sep+fl+sep)
+								}
+							case false:
+								if !c.Bool("dirs") {
+									fls = append(fls, fl)
+								}
+							}
+						}
+						list = append(list, dirs...)
+						list = append(list, fls...)
 					}
-					list = append(list, dir)
-					list = append(list, files...)
 				}
 				for _, l := range list {
 					fmt.Println(l)
 				}
-				//fmt.Printf("Updating...                                   \n")
-				// atempt := 1
-				// for atempt <= 100 {
-				// 	if err := fl.Update(Conf.Max_threads); err != nil {
-				// 		fmt.Print("\rTry ", atempt, " ", err.Error()) //на случай если будет ошибка обновления списка
-				// 		time.Sleep(time.Second)
-				// 	} else {
-				// 		break
-				// 	}
-				// 	atempt++
-				// 	if atempt > 10 {
-				// 		return fmt.Errorf("to many atempts to update list")
-				// 	}
-				// }
-
-				// shortList := filelist.Compile(fl.FullList(), Conf.WhiteList, Conf.WhiteListEnabled, Conf.BlackList, Conf.BlackListEnabled)
-
-				// res, err := filelist.Format(shortList, Conf.WhiteList, Conf.WhiteListEnabled)
-				// if err != nil {
-				// 	if err.Error() == "no files found" {
-				// 		utils.ClearScreen()
-				// 		fmt.Println("NO FILES FOUND            ")
-				// 		time.Sleep(time.Second * 5)
-				// 		continue mainLoop
-				// 	}
-				// }
-				// utils.ClearScreen()
-				// //stats := fl.Stats()
-				// //fmt.Printf("Found %v files in %v directories with %v errors\n", stats["file"], stats["dir"], stats["err"])
 				sendToBot := false
-				// if output != res {
-				// 	if output != "" {
-				// 		sendToBot = true
-				// 	}
-				// }
-				// output = res
-				// fmt.Println(output)
-
 				switch sendToBot {
 				case true:
-					//fmt.Println("Sending To Bot")
-
 				case false:
-					//fmt.Println("NOT Sending To Bot")
 				}
-
-				// updCyc := Conf.UpdateCycle_seconds
-				// for i := updCyc; i > -1; i-- {
-				// 	switch i {
-				// 	default:
-				// 		//	fmt.Printf("Next update in %v seconds...             \r", i)
-				// 	}
-				// 	time.Sleep(time.Second)
-				// }
-
-				//fmt.Println(output)
 				return nil
 			},
+
+			Subcommands: []cli.Command{},
+			Flags: []cli.Flag{
+				cli.BoolFlag{
+					Name:  "files",
+					Usage: "show files only",
+				},
+				cli.BoolFlag{
+					Name:  "dirs",
+					Usage: "show directories only",
+				},
+			},
+			SkipFlagParsing:        false,
+			SkipArgReorder:         false,
+			HideHelp:               false,
+			Hidden:                 false,
+			UseShortOptionHandling: false,
+			HelpName:               "",
+			CustomHelpTemplate:     "",
 		},
 		{
 			Name:        "config",
