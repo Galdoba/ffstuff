@@ -48,8 +48,8 @@ func init() {
 	fmt.Println("Initialisation...")
 
 	fmt.Println("Reading config file...")
-	cDir, cFile := config.ConfigPathManual(programName)
-	gc, err := ReadConfig(cDir + "\\" + cFile)
+	cDir, cFile := config.StdConfigPath(programName)
+	gc, err := ReadConfig(cDir + cFile)
 	if err != nil {
 		fmt.Println("Error:", err.Error())
 		offerToCreateDefaultConfig(cDir)

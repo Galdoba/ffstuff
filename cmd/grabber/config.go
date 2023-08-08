@@ -119,8 +119,8 @@ func CreateDefaultConfig() error {
 		return err
 	}
 
-	cDir, cFile := config.ConfigPathManual(programName)
-	confPath := fmt.Sprintf("%v\\%v", cDir, cFile)
+	cDir, cFile := config.StdConfigPath(programName)
+	confPath := fmt.Sprintf("%v%v", cDir, cFile)
 	fmt.Println("will go here:", confPath)
 	//confPath, err = filepath.Abs(confPath)
 
