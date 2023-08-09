@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -101,6 +102,10 @@ func main() {
 						dirs := []string{}
 						fls := []string{}
 						dir, files, err := directory.List(v)
+						if _, err := os.Stat(dir); errors.Is(err, os.ErrNotExist) {
+							return err
+						}
+
 						if err != nil {
 							return fmt.Errorf("directory.List(%v): %v", v, err.Error())
 						}
@@ -178,7 +183,7 @@ func main() {
 
 	args := os.Args
 	if err := app.Run(args); err != nil {
-		fmt.Printf("application returned error: %v", err.Error())
+		fmt.Printf("application returned error: %v\n", err.Error())
 	}
 	// exit := ""
 	// val := survey.ComposeValidators()
