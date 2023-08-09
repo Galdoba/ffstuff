@@ -109,6 +109,17 @@ func ConstructManual(program string) (File, error) {
 	return File{location: dir + file}, nil
 }
 
+func DataDirectory(program string) string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		panic("can't get HOME path to reach DATA directory")
+	}
+	//~/.ffstuff/data/monitor/... - для конкретного юзера
+	pathSep := filepath.Separator
+	dataDir := home + string(pathSep) + ".ffstuff" + string(pathSep) + "data" + string(pathSep) + program + string(pathSep)
+	return dataDir
+}
+
 //ConfigFile - return standard config file path
 // func StandardPath() string {
 // 	dir, file := configPath()

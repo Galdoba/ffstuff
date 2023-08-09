@@ -43,16 +43,25 @@ func main() {
 	//ДО НАЧАЛА ДЕЙСТВИЯ
 	app.Before = func(c *cli.Context) error {
 		opsys = runtime.GOOS
+		storagePath := ""
 		switch opsys {
-
+		default:
+			fmt.Printf("this is unsupported Operating System: %v", opsys)
+			os.Exit(1)
 		case "windows":
-			fmt.Println("this is WINDOWS")
+			storagePath = config.DataDirectory(program)
 		case "linux":
-			fmt.Println("this is LINUX")
+			storagePath = config.DataDirectory(program)
 		}
-		panic(opsys)
-		//Убедиться что есть файлы статистики. если нет то создать
+
+		//зачищаем остатки данных с прошлой сессии
 		cfg := config.File{}
+		if err := os.RemoveAll(storagePath); err != nil {
+			return err
+		}
+		if err := os.MkdirAll(storagePath, os.ModePerm); err != nil {
+			return err
+		}
 		if !config.Exists(program) {
 			fmt.Println("Config not detected...")
 			cfg, err := config.ConstructManual(program)
