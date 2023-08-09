@@ -30,8 +30,8 @@ type ParseInfo struct {
 	comment     string
 	Video       []Videostream
 	Audio       []Audiostream
-	data        []datastream
-	subtitles   []subtitlestream
+	Data        []datastream
+	Subtitles   []subtitlestream
 	warnings    []string
 	buffer      string
 }
@@ -80,12 +80,17 @@ const (
 	stage_ParseStreamMeta
 	parseMethod_FFLITE
 	parseMethod_FFMPEG
-	prefix_StartTime        = "Started:"
-	prefix_FFLITE_input     = "INPUT "
-	prefix_FFMPEG_input     = "Input "
-	prefix_FFMPEG_Metadata  = "Metadata:"
-	prefix_FFMPEG_Duration  = "Duration:"
-	prefix_FFMPEG_Side_data = "Side data"
+	prefix_StartTime             = "Started:"
+	prefix_FFLITE_input          = "INPUT "
+	prefix_FFMPEG_input          = "Input "
+	prefix_FFMPEG_Metadata       = "Metadata:"
+	prefix_FFMPEG_Duration       = "Duration:"
+	prefix_FFMPEG_Side_data      = "Side data"
+	prefix_FFMPEG_Video_data     = ": Video:"
+	prefix_FFMPEG_Audio_data     = ": Audio:"
+	prefix_FFMPEG_Data_data      = ": Data:"
+	prefix_FFMPEG_Subtitles_data = ": Subtitles:"
+	warning_FFMPEG_Invalid_data  = "Invalid data found when processing input"
 )
 
 func hasTrigger(line, trigger string) bool {
@@ -124,6 +129,7 @@ func parse(input inputdata) (*ParseInfo, error) {
 	pStage := stage_ParseScanTime
 	dsbMap := make(map[string]string)
 	for _, line := range input.data {
+
 		switch {
 		default:
 			switch len(pi.streams) {
@@ -133,6 +139,9 @@ func parse(input inputdata) (*ParseInfo, error) {
 				pStage = stage_ParseStreamMeta
 			}
 		case pStage == stage_ParseSideData:
+			if hasStreamInfo(line) {
+				pStage = stage_ParseStreams
+			}
 		case hasTrigger(line, prefix_StartTime) && (pStage == stage_ParseScanTime):
 			pi.scanTime = grepScantime(line)
 			pStage = stage_ParseFilename
@@ -156,7 +165,10 @@ func parse(input inputdata) (*ParseInfo, error) {
 			pStage = stage_ParseDuration
 		case hasStreamInfo(line):
 			pStage = stage_ParseStreams
+		case hasTrigger(line, warning_FFMPEG_Invalid_data):
+			pi.warnings = append(pi.warnings, warning_FFMPEG_Invalid_data)
 		}
+		//fmt.Println("Stage", pStage, line)
 		switch pStage {
 		case stage_ParseFilename:
 			switch pMethod {
@@ -168,7 +180,7 @@ func parse(input inputdata) (*ParseInfo, error) {
 		case stage_ParseGlobalMeta:
 			switch pMethod {
 			default:
-				//panic(0)
+				//panic("Unknown panic")
 			case parseMethod_FFMPEG:
 				key, val := grepGlobalMetadataFFMPEG(line)
 				pi.injectMetadata(key, val)
@@ -224,8 +236,8 @@ func (pi *ParseInfo) mergeWarnings() {
 	if len(pi.Audio) > 2 {
 		pi.warnings = append(pi.warnings, fmt.Sprintf("file have %v audio streams", len(pi.Audio)))
 	}
-	if len(pi.subtitles) > 0 && (len(pi.Audio)+len(pi.Video)) > 0 {
-		pi.warnings = append(pi.warnings, fmt.Sprintf("file have %v subtitle streams", len(pi.subtitles)))
+	if len(pi.Subtitles) > 0 && (len(pi.Audio)+len(pi.Video)) > 0 {
+		pi.warnings = append(pi.warnings, fmt.Sprintf("file have %v subtitle streams", len(pi.Subtitles)))
 	}
 }
 
@@ -402,11 +414,11 @@ func (pi *ParseInfo) parseStreams() {
 		case strings.Contains(data, "Data:"):
 			dt := parseDataData(pi.streams[i].data)
 			dt.metadata = stream.metadata
-			pi.data = append(pi.data, dt)
+			pi.Data = append(pi.Data, dt)
 		case strings.Contains(data, "Subtitle:"):
 			st := parseSubtitleData(pi.streams[i].data)
 			st.metadata = stream.metadata
-			pi.subtitles = append(pi.subtitles, st)
+			pi.Subtitles = append(pi.Subtitles, st)
 		}
 	}
 

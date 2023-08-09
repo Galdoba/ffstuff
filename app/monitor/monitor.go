@@ -18,11 +18,14 @@ const (
 
 type ConfFile struct {
 	Roots               map[string][]string
+	Storage             string
 	UpdateCycle_seconds int
 	Max_threads         int
 }
 
 var Conf *ConfFile
+
+var opsys string
 
 func main() {
 	app := cli.NewApp()
@@ -38,6 +41,15 @@ func main() {
 	}
 	//ДО НАЧАЛА ДЕЙСТВИЯ
 	app.Before = func(c *cli.Context) error {
+		opsys = runtime.GOOS
+		switch opsys {
+
+		case "windows":
+			fmt.Println("this is WINDOWS")
+		case "linux":
+			fmt.Println("this is LINUX")
+		}
+		panic(opsys)
 		//Убедиться что есть файлы статистики. если нет то создать
 		cfg := config.File{}
 		if !config.Exists(program) {
@@ -48,6 +60,15 @@ func main() {
 			}
 			fmt.Println("Filling default Data...")
 			roots := make(map[string][]string)
+
+			/*
+				Православные места хранения временной информации:
+				LINUX:
+				/var/lib/[program]/ - для системы
+				~/.ffstuff/data/monitor/... - для конкретного юзера
+				WINDOWS:
+				c:\Users\pemaltynov\.ffstuff\data\monitor\
+			*/
 			roots["buffer"] = []string{`\\192.168.31.4\buffer\IN\_DONE\`, `\\192.168.31.4\buffer\IN\_IN_PROGRESS\`, `\\192.168.31.4\buffer\IN\`}
 			conf := ConfFile{
 				Roots:               roots,
