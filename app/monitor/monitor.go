@@ -45,9 +45,8 @@ func main() {
 		// 	Usage: "если активен, то до начала выполнения любой команды - обновится csv с рабочей таблицей",
 		// },
 		&cli.StringSliceFlag{
-			Name:  "roots",
-			Usage: "defines whitch root to print (prints first by default)",
-
+			Name:      "roots",
+			Usage:     "defines whitch root to print (prints first by default)",
 			FilePath:  "",
 			Required:  false,
 			Hidden:    false,
@@ -203,8 +202,8 @@ func main() {
 }
 
 func scanRoots(c *cli.Context) ([]string, error) {
-	roots := Conf.Roots
-
+	rootsUnsorted := Conf.Roots
+	roots := make(map[string][]string)
 	list := []string{}
 	sep := string(filepath.Separator)
 	dataStore, err := os.OpenFile(storagePath+storageFile, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
@@ -214,16 +213,18 @@ func scanRoots(c *cli.Context) ([]string, error) {
 	defer dataStore.Close()
 
 	validRoots := c.StringSlice("roots")
-	for k1, rootList := range roots {
-		valid := false
+	for k, root := range rootsUnsorted {
+		if len(validRoots) == 0 {
+			roots[k] = root
+		}
 		for _, k2 := range validRoots {
-			if k1 == k2 {
-				valid = true
+			if k == k2 {
+				roots[k] = root
 			}
 		}
-		if !valid {
-			continue
-		}
+	}
+	for _, rootList := range roots {
+
 		for _, v := range rootList {
 			dirs := []string{}
 			fls := []string{}

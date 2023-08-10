@@ -15,6 +15,7 @@ require (
 	github.com/urfave/cli v1.22.14
 	github.com/urfave/cli/v2 v2.25.7
 	golang.design/x/clipboard v0.7.0
+	golang.org/x/term v0.5.0
 	gopkg.in/AlecAivazis/survey.v1 v1.8.8
 	gopkg.in/yaml.v3 v3.0.1
 )

@@ -15,7 +15,6 @@ func updateMediaProfile() error {
 	if err != nil {
 		return err
 	}
-
 	oldData := []string{}
 	newData := []string{}
 	scanner := bufio.NewScanner(dataStore)
@@ -29,6 +28,7 @@ func updateMediaProfile() error {
 		fmt.Printf("updating data: %v/%v                                \r", i+1, dataLen)
 		switch hasMP(data) {
 		case false:
+			//dataMap := make(map[int]string)
 			pi, err := inputinfo.ParseFile(data)
 			if err == nil {
 				data += "  " + fdf.FMP(pi)
@@ -52,5 +52,10 @@ func updateMediaProfile() error {
 }
 
 func hasMP(s string) bool {
-	return strings.Contains(s, "  ")
+	switch len(strings.Split(s, "  ")) {
+	default:
+	case 2:
+		return true
+	}
+	return false
 }

@@ -2,6 +2,7 @@ package fdf
 
 import (
 	"fmt"
+	"math"
 	"os"
 	"time"
 
@@ -51,6 +52,46 @@ func newFD(path string) *filedata {
 func FMP(pi *inputinfo.ParseInfo) string {
 	str := fmt.Sprintf("%v%v%v%v-%v", ehex(len(pi.Video)), ehex(len(pi.Audio)), ehex(len(pi.Data)), ehex(len(pi.Subtitles)), ehex(len(pi.Warnings())))
 	return str
+}
+
+func Size(pi *inputinfo.ParseInfo) string {
+	fl := pi.FileName()
+	stats, err := os.Stat(fl)
+	if err != nil {
+		return "???"
+	}
+	size := stats.Size()
+	return formatSize(size)
+
+}
+
+func formatSize(btSize int64) string {
+	if btSize < 0 {
+		return "???"
+	}
+	sizeFl := float64(btSize)
+	show := ""
+	for _, suff := range []string{"bt", "kb", "Mb", "Gb", "Tb"} {
+		if sizeFl > 1024.0 {
+			sizeFl = roundFloat64(sizeFl/1024, 1)
+			continue
+		}
+		show = fmt.Sprintf("%v %v", sizeFl, suff)
+		for len(show) < 9 {
+			show = " " + show
+		}
+		break
+	}
+	return show
+}
+
+func roundFloat64(num float64, precision int) float64 {
+	output := math.Pow(10, float64(precision))
+	return float64(round(num*output)) / output
+}
+
+func round(num float64) int {
+	return int(num + math.Copysign(0.5, num))
 }
 
 func ehex(i int) string {
