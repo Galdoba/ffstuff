@@ -9,7 +9,7 @@ import (
 	"os"
 
 	"github.com/olekukonko/tablewriter"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 
 	"github.com/Galdoba/ffstuff/fldr"
 	"github.com/Galdoba/ffstuff/pkg/config"
@@ -78,7 +78,7 @@ func main() {
 			Usage: "If flag is active soundscan will print data on terminal",
 		},
 	}
-	app.Commands = []cli.Command{
+	app.Commands = []*cli.Command{
 		//////////////////////////////////////
 		{
 			Name:  "track",
@@ -92,7 +92,6 @@ func main() {
 				&cli.StringFlag{
 					Name:     "dir",
 					Usage:    "sets directories to scan audio",
-					EnvVar:   "",
 					Required: true,
 					//Value:  root,
 				},

@@ -35,15 +35,21 @@ func newFD(path string) *filedata {
 	fd.IsDir = FileInfo.IsDir()
 	dur := time.Since(FileInfo.ModTime())
 	fmt.Println(dur.String())
-	fmt.Println(streamStamp(path))
+	pi, _ := inputinfo.ParseFile(path)
+	fmt.Println(FMP(pi))
 	return &fd
 	//.Format("2006-01-02 15:04:05")
 }
 
-func streamStamp(path string) string {
-	pi, _ := inputinfo.ParseFile(path)
-	//fmt.Println(pi.String())
-	str := fmt.Sprintf("%v%v%v%v:W%v", ehex(len(pi.Video)), ehex(len(pi.Audio)), ehex(len(pi.Data)), ehex(len(pi.Subtitles)), ehex(len(pi.Warnings())))
+//FMP - (FileMediaProfile) return short entry on stream data in ehex glyphs:
+//Format: 0123-5
+//0 - quantity of video streams
+//1 - quantity of audio streams
+//2 - quantity of data streams
+//3 - quantity of subtitle streams
+//4 - quantity of warnings
+func FMP(pi *inputinfo.ParseInfo) string {
+	str := fmt.Sprintf("%v%v%v%v-%v", ehex(len(pi.Video)), ehex(len(pi.Audio)), ehex(len(pi.Data)), ehex(len(pi.Subtitles)), ehex(len(pi.Warnings())))
 	return str
 }
 

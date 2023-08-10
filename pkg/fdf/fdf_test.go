@@ -6,6 +6,6 @@ import (
 )
 
 func TestFDF(t *testing.T) {
-	fd := newFD(`\\192.168.31.4\buffer\IN\_DONE\bash\amedia_I_prosto_tak.sh`)
+	fd := newFD(`\\nas\ROOT\EDIT\_amedia\Krovnye_s01\Krovnye_s01_05_PRT230809182151.srt`)
 	fmt.Println(fd)
 }

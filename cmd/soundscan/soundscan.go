@@ -6,7 +6,7 @@ import (
 
 	"os"
 
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 
 	"github.com/Galdoba/ffstuff/pkg/silence"
 )
@@ -49,7 +49,7 @@ func main() {
 			Usage: "If flag is active soundcan will print data on terminal",
 		},
 	}
-	app.Commands = []cli.Command{
+	app.Commands = []*cli.Command{
 		//////////////////////////////////////
 		{
 			Name:  "listen",
@@ -67,7 +67,7 @@ func main() {
 				},
 			},
 			Action: func(c *cli.Context) error {
-				args := c.Args()
+				args := c.Args().Tail()
 				for _, v := range args {
 					lb, err := strconv.ParseFloat(c.String("loudnessborder"), 64)
 					if lb > 0 {
@@ -82,7 +82,7 @@ func main() {
 						fmt.Println(err)
 						return err
 					}
-					si, err := silence.Detect(v, lb, d, c.GlobalBool("vocal"))
+					si, err := silence.Detect(v, lb, d, c.Bool("vocal"))
 					if err != nil {
 						fmt.Println(err)
 					} else {

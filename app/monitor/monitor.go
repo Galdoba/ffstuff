@@ -9,7 +9,8 @@ import (
 
 	"github.com/Galdoba/devtools/directory"
 	"github.com/Galdoba/ffstuff/pkg/config"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
+
 	"gopkg.in/yaml.v3"
 )
 
@@ -27,8 +28,12 @@ type ConfFile struct {
 var Conf *ConfFile
 
 var opsys string
+var storagePath string
+var storageFile string
 
 func main() {
+	storageFile = "session.info"
+	//dv := []string{"buffer"}
 	app := cli.NewApp()
 	app.Version = "v 0.0.1"
 	app.Name = "monitor"
@@ -39,11 +44,20 @@ func main() {
 		// 	Name:  "update",
 		// 	Usage: "если активен, то до начала выполнения любой команды - обновится csv с рабочей таблицей",
 		// },
+		&cli.StringSliceFlag{
+			Name:  "roots",
+			Usage: "defines whitch root to print (prints first by default)",
+
+			FilePath:  "",
+			Required:  false,
+			Hidden:    false,
+			TakesFile: false,
+			//Value:     &cli.StringSlice{""},
+		},
 	}
 	//ДО НАЧАЛА ДЕЙСТВИЯ
 	app.Before = func(c *cli.Context) error {
 		opsys = runtime.GOOS
-		storagePath := ""
 		switch opsys {
 		default:
 			fmt.Printf("this is unsupported Operating System: %v", opsys)
@@ -71,14 +85,6 @@ func main() {
 			fmt.Println("Filling default Data...")
 			roots := make(map[string][]string)
 
-			/*
-				Православные места хранения временной информации:
-				LINUX:
-				/var/lib/[program]/ - для системы
-				~/.ffstuff/data/monitor/... - для конкретного юзера
-				WINDOWS:
-				c:\Users\pemaltynov\.ffstuff\data\monitor\
-			*/
 			roots["buffer"] = []string{`\\192.168.31.4\buffer\IN\_DONE\`, `\\192.168.31.4\buffer\IN\_IN_PROGRESS\`, `\\192.168.31.4\buffer\IN\`}
 			conf := ConfFile{
 				Roots:               roots,
@@ -95,14 +101,14 @@ func main() {
 		if err := yaml.Unmarshal(cfg.Data, ConfFile{}); err != nil {
 			return err
 		}
+		runtime.GOMAXPROCS(runtime.NumCPU() - 1)
 		return nil
 	}
 	//ПО ОКОНЧАНИЮ ДЕЙСТВИЯ
 	app.After = func(c *cli.Context) error {
-		//Придумаем что-нибудь
 		return nil
 	}
-	app.Commands = []cli.Command{
+	app.Commands = []*cli.Command{
 		//start - запустить программу
 		//ShowStats - поразать глубокую аналитику
 		{
@@ -123,44 +129,17 @@ func main() {
 				if len(Conf.Roots) < 1 {
 					return fmt.Errorf("no Roots set in config.file")
 				}
-				runtime.GOMAXPROCS(runtime.NumCPU() - 1)
-				roots := Conf.Roots
-				list := []string{}
-				sep := string(filepath.Separator)
-				for _, rootList := range roots {
-					for _, v := range rootList {
-						dirs := []string{}
-						fls := []string{}
-						dir, files, err := directory.List(v)
-						if _, err := os.Stat(dir); errors.Is(err, os.ErrNotExist) {
-							return err
-						}
-
-						if err != nil {
-							return fmt.Errorf("directory.List(%v): %v", v, err.Error())
-						}
-						list = append(list, dir)
-						for _, fl := range files {
-							cntnt := dir + fl
-							f, _ := os.Stat(cntnt)
-							switch f.IsDir() {
-							case true:
-								if !c.Bool("files") {
-									dirs = append(dirs, ".."+sep+fl+sep)
-								}
-							case false:
-								if !c.Bool("dirs") {
-									fls = append(fls, fl)
-								}
-							}
-						}
-						list = append(list, dirs...)
-						list = append(list, fls...)
-					}
+				list, err := scanRoots(c)
+				if err != nil {
+					return err
 				}
 				for _, l := range list {
 					fmt.Println(l)
 				}
+				if err := updateMediaProfile(); err != nil {
+					return err
+				}
+
 				sendToBot := false
 				switch sendToBot {
 				case true:
@@ -169,19 +148,19 @@ func main() {
 				return nil
 			},
 
-			Subcommands: []cli.Command{},
+			Subcommands: []*cli.Command{},
 			Flags: []cli.Flag{
-				cli.BoolFlag{
+
+				&cli.BoolFlag{
 					Name:  "files",
 					Usage: "show files only",
 				},
-				cli.BoolFlag{
+				&cli.BoolFlag{
 					Name:  "dirs",
 					Usage: "show directories only",
 				},
 			},
 			SkipFlagParsing:        false,
-			SkipArgReorder:         false,
 			HideHelp:               false,
 			Hidden:                 false,
 			UseShortOptionHandling: false,
@@ -190,7 +169,6 @@ func main() {
 		},
 		{
 			Name:        "config",
-			ShortName:   "",
 			Usage:       "Показывает информацию о текущих настройках",
 			UsageText:   "ТУДУ: описание как использовать команду",
 			Description: "TODO: подробное описание команды",
@@ -222,4 +200,60 @@ func main() {
 	// }
 	// survey.AskOne(promptInput, &exit, val)
 
+}
+
+func scanRoots(c *cli.Context) ([]string, error) {
+	roots := Conf.Roots
+
+	list := []string{}
+	sep := string(filepath.Separator)
+	dataStore, err := os.OpenFile(storagePath+storageFile, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
+	if err != nil {
+		return list, err
+	}
+	defer dataStore.Close()
+
+	validRoots := c.StringSlice("roots")
+	for k1, rootList := range roots {
+		valid := false
+		for _, k2 := range validRoots {
+			if k1 == k2 {
+				valid = true
+			}
+		}
+		if !valid {
+			continue
+		}
+		for _, v := range rootList {
+			dirs := []string{}
+			fls := []string{}
+			dir, files, err := directory.List(v)
+			if _, err := os.Stat(dir); errors.Is(err, os.ErrNotExist) {
+				return list, err
+			}
+			if err != nil {
+				return list, fmt.Errorf("directory.List(%v): %v", v, err.Error())
+			}
+			list = append(list, dir)
+			for _, fl := range files {
+				cntnt := dir + fl
+				f, _ := os.Stat(cntnt)
+				switch f.IsDir() {
+				case true:
+					if !c.Bool("files") {
+						dirs = append(dirs, fl+sep)
+					}
+				case false:
+					if !c.Bool("dirs") {
+						fls = append(fls, fl)
+
+						dataStore.Write([]byte(cntnt + "\n"))
+					}
+				}
+			}
+			list = append(list, dirs...)
+			list = append(list, fls...)
+		}
+	}
+	return list, nil
 }

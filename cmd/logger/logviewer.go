@@ -10,7 +10,7 @@ import (
 	"github.com/Galdoba/ffstuff/pkg/config"
 	"github.com/Galdoba/ffstuff/pkg/stamp"
 	"github.com/Galdoba/utils"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 const (
@@ -45,7 +45,7 @@ func main() {
 	app.Usage = "Controls ffstuff logs"
 	app.Flags = []cli.Flag{}
 
-	app.Commands = []cli.Command{
+	app.Commands = []*cli.Command{
 
 		//////////////////////////////////////
 		{

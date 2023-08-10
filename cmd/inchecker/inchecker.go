@@ -7,7 +7,7 @@ import (
 
 	"github.com/Galdoba/ffstuff/pkg/glog"
 	"github.com/Galdoba/ffstuff/pkg/inchecker"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 func main() {
@@ -32,10 +32,9 @@ func main() {
 			Usage: "If flag is active searcher will delay start for N seconds",
 		},
 	}
-	app.Commands = []cli.Command{
+	app.Commands = []*cli.Command{
 		{
 			Name:        "check",
-			ShortName:   "",
 			Aliases:     []string{},
 			Usage:       "",
 			UsageText:   "",
@@ -50,7 +49,7 @@ func main() {
 			},
 
 			Action: func(c *cli.Context) error {
-				for _, path := range c.Args() {
+				for _, path := range c.Args().Tail() {
 					if strings.Contains(path, ".ready") {
 						continue
 					}

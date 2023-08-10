@@ -9,7 +9,7 @@ import (
 	"github.com/Galdoba/ffstuff/app/dirtracker/filelist"
 	"github.com/Galdoba/ffstuff/pkg/config"
 	"github.com/Galdoba/utils"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 	"gopkg.in/yaml.v3"
 )
 
@@ -80,12 +80,11 @@ func main() {
 		//Придумаем что-нибудь
 		return nil
 	}
-	app.Commands = []cli.Command{
+	app.Commands = []*cli.Command{
 		//start - запустить программу
 		//ShowStats - поразать глубокую аналитику
 		{
 			Name:        "start",
-			ShortName:   "",
 			Usage:       "запустить программу",
 			UsageText:   "Собирает необходимую информацию из config.file после чего формирует общий список и пропускает его через фильтры для формирования короткого списка",
 			Description: "TODO: подробное описание команды",
@@ -166,7 +165,6 @@ func main() {
 		},
 		{
 			Name:        "config",
-			ShortName:   "",
 			Usage:       "Показывает информацию о текущих настройках",
 			UsageText:   "ТУДУ: описание как использовать команду",
 			Description: "TODO: подробное описание команды",

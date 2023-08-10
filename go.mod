@@ -19,7 +19,7 @@ require (
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/rivo/uniseg v0.4.4 // indirect
 	github.com/rogpeppe/go-internal v1.11.0 // indirect
-	github.com/urfave/cli v1.22.14
+	github.com/urfave/cli/v2 v2.25.7 // indirect
 	golang.design/x/clipboard v0.7.0
 	golang.org/x/crypto v0.12.0 // indirect
 	golang.org/x/exp v0.0.0-20230807204917-050eac23e9de // indirect

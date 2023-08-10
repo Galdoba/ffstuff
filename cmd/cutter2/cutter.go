@@ -12,7 +12,7 @@ import (
 	gcli "github.com/Galdoba/ffstuff/pkg/cli"
 	"github.com/Galdoba/ffstuff/pkg/config"
 	"github.com/Galdoba/ffstuff/pkg/namedata"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 var configMap map[string]string
@@ -42,11 +42,10 @@ func main() {
 	app := cli.NewApp()
 	app.Version = "v 0.0.0"
 	app.Name = "cutter"
-	app.Commands = []cli.Command{
+	app.Commands = []*cli.Command{
 
 		{
 			Name:        "cut",
-			ShortName:   "",
 			Aliases:     []string{},
 			Usage:       "",
 			UsageText:   "",
@@ -59,7 +58,8 @@ func main() {
 			Before: func(c *cli.Context) error {
 				fmt.Println("Start before action")
 				edlFound := 0
-				for _, filepath := range c.Args() {
+
+				for _, filepath := range c.Args().Tail() {
 					f, err := os.Stat(filepath)
 					switch {
 					default:
@@ -165,7 +165,7 @@ func main() {
 				fmt.Println("Start on error action")
 				return nil
 			},
-			Subcommands: []cli.Command{},
+			Subcommands: []*cli.Command{},
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:  "targetfolder, tf",
@@ -174,7 +174,6 @@ func main() {
 				},
 			},
 			SkipFlagParsing:        false,
-			SkipArgReorder:         false,
 			HideHelp:               false,
 			Hidden:                 false,
 			UseShortOptionHandling: false,

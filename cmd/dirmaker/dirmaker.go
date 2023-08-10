@@ -10,7 +10,7 @@ import (
 	"github.com/Galdoba/ffstuff/pkg/config"
 	"github.com/Galdoba/ffstuff/pkg/scanner"
 	"github.com/Galdoba/utils"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 //$ app [global options] command [command options] arguments
@@ -50,7 +50,7 @@ func main() {
 	app.Version = "v 0.0.2"
 	app.Name = "dirmaker"
 	app.Usage = "checks, creates and (TODO: Deletes) directories"
-	app.Commands = []cli.Command{
+	app.Commands = []*cli.Command{
 		//////////////////////////////////////
 		{
 			Name:  "new",
@@ -106,7 +106,7 @@ func main() {
 				return nil
 			},
 			Flags: []cli.Flag{
-				cli.BoolFlag{
+				&cli.BoolFlag{
 					Name:  "clean",
 					Usage: "deletes all Username markers",
 				},

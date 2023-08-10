@@ -10,7 +10,7 @@ import (
 	"github.com/Galdoba/ffstuff/pkg/glog"
 	"github.com/Galdoba/ffstuff/pkg/mdm/muxer"
 	"github.com/Galdoba/utils"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 var configMap map[string]string
@@ -36,7 +36,7 @@ func main() {
 	app.Version = "v 0.0.2"
 	app.Name = "muxer"
 	app.Usage = "Muxes media files using 'muxlist.txt' as a directions"
-	app.Commands = []cli.Command{
+	app.Commands = []*cli.Command{
 		//////////////////////////////////////
 		{
 			Name:  "today",

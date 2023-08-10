@@ -10,7 +10,7 @@ import (
 	"github.com/Galdoba/ffstuff/pkg/namedata"
 	"github.com/Galdoba/ffstuff/pkg/scanner"
 	"github.com/Galdoba/utils"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 var configMap map[string]string
@@ -47,7 +47,7 @@ func main() {
 	app.Name = "grabber"
 	app.Usage = "dowloads files and sort it to working directories"
 	app.Flags = []cli.Flag{}
-	app.Commands = []cli.Command{
+	app.Commands = []*cli.Command{
 		//////////////////////////////////////
 		{
 			Name:  "today",
@@ -115,7 +115,6 @@ func main() {
 		////////////////////////////////////
 		{
 			Name:        "preapare",
-			ShortName:   "",
 			Aliases:     []string{},
 			Usage:       "------",
 			UsageText:   "",
@@ -142,7 +141,7 @@ func main() {
 				return nil
 			},
 			Flags: []cli.Flag{
-				cli.StringFlag{
+				&cli.StringFlag{
 					Name:     "input",
 					Usage:    "sets file to preapare name",
 					Required: true,

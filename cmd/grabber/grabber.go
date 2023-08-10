@@ -14,7 +14,7 @@ import (
 	"github.com/Galdoba/ffstuff/pkg/sortnames"
 	"github.com/Galdoba/utils"
 	"github.com/martinlindhe/notify"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 /*
@@ -149,11 +149,10 @@ func main() {
 		},
 	}
 
-	app.Commands = []cli.Command{
+	app.Commands = []*cli.Command{
 		////////////////////////////////////
 		{
 			Name:        "take",
-			ShortName:   "",
 			Aliases:     []string{},
 			Usage:       "grabs files to destination folder",
 			UsageText:   "grabber --dest [FOLDER] take [FILE_1] [FILE_2] ... [FILE_N]",
@@ -162,7 +161,7 @@ func main() {
 			Category:    "Operation",
 
 			Action: func(c *cli.Context) error {
-				paths := c.Args()
+				paths := c.Args().Tail()
 
 				if len(paths) == 0 {
 					fmt.Println("No arguments provided")
@@ -170,11 +169,11 @@ func main() {
 				}
 				dest := ""
 
-				switch c.GlobalString("destination") {
+				switch c.String("destination") {
 				default:
-					dest = c.GlobalString("destination")
+					dest = c.String("destination")
 					configMap["dest"] = dest
-					fmt.Println("destination set as: " + c.GlobalString("destination"))
+					fmt.Println("destination set as: " + c.String("destination"))
 					//TODO: отучить от необходимости ставить слэшь для аргумента
 				case "":
 					dest = destination

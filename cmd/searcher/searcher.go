@@ -10,7 +10,7 @@ import (
 	"github.com/Galdoba/ffstuff/constant"
 	"github.com/Galdoba/ffstuff/fldr"
 	"github.com/Galdoba/utils"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 
 	fcli "github.com/Galdoba/ffstuff/pkg/cli"
 	"github.com/Galdoba/ffstuff/pkg/scanner"
@@ -67,7 +67,7 @@ func main() {
 		},
 	}
 
-	app.Commands = []cli.Command{
+	app.Commands = []*cli.Command{
 		//////////////////////////////////////
 		// {
 		// 	Name:  "probe",
@@ -202,8 +202,8 @@ func main() {
 			},
 			Action: func(c *cli.Context) error {
 				logger.INFO("Run Searcher")
-				if c.GlobalString("delay") != "" {
-					sec := utils.TimeStampToSeconds(c.GlobalString("delay"))
+				if c.String("delay") != "" {
+					sec := utils.TimeStampToSeconds(c.String("delay"))
 					for i := 0; i <= sec; i++ {
 						fmt.Print("Searcher will start in ", stamp.Seconds(int64(sec-i)), "                       \r")
 						time.Sleep(time.Second)
@@ -216,10 +216,10 @@ func main() {
 					restart = true
 				}
 				for restart {
-					if c.GlobalBool("vocal") {
+					if c.Bool("vocal") {
 						logger.ShoutWhen(glog.LogLevelALL) //вещаем в терминал все сообщения логгера
 					}
-					if c.GlobalBool("clear") {
+					if c.Bool("clear") {
 						utils.ClearScreen() //обновляем экран
 					}
 					takeFile, err := scanner.Scan(root, marker) //сканируем
