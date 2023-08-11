@@ -37,6 +37,8 @@
 Krovnye_s02e04_PRT230809182511_SER_01748_18.mp4  1200-0  [size]  
 
 
-IpManCrisisTime_HD24_DTS.m2ts  1200-0  Unlinked
 
-Ip_man_nachalo  FILM  1200-0  s00_00
+IpMan CrisisTime(1)_HD24_DTS.m2ts  issue:Bad Name
+IpManCrisisTime_HD24_DTS.m2ts  issue:Unlinked
+IpManCrisisTime_HD24_DTS.m2ts  base:Ip_man_nachalo|mType:FILM|mProfile:1200-0|fSize:15.5 GB|-A>:/mnt/pemaltynov/ROOT/IN/_VESTA/|-E>:/mnt/pemaltynov/ROOT/EDIT/23_08_21/|
+Krovnye  SER  s02_04  1200-0  4.7 GB

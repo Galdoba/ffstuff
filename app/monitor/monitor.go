@@ -69,12 +69,17 @@ func main() {
 
 		//зачищаем остатки данных с прошлой сессии
 		cfg := config.File{}
-		if err := os.RemoveAll(storagePath); err != nil {
-			return err
-		}
+		// if err := os.RemoveAll(storagePath); err != nil {
+		// 	return err
+		// }
 		if err := os.MkdirAll(storagePath, os.ModePerm); err != nil {
 			return err
 		}
+		dataStore, err := os.OpenFile(storagePath+storageFile, os.O_CREATE, 0511)
+		if err != nil {
+			return err
+		}
+		defer dataStore.Close()
 		if !config.Exists(program) {
 			fmt.Println("Config not detected...")
 			cfg, err := config.ConstructManual(program)
@@ -135,7 +140,7 @@ func main() {
 				for _, l := range list {
 					fmt.Println(l)
 				}
-				if err := updateMediaProfile(); err != nil {
+				if err := updateStoredInfo(list); err != nil {
 					return err
 				}
 
@@ -166,6 +171,62 @@ func main() {
 			HelpName:               "",
 			CustomHelpTemplate:     "",
 		},
+		// {
+		// 	Name:        "track",
+		// 	Usage:       "monitor track [--loop x] [--buffer path]",
+		// 	UsageText:   "keep updated and formated info about content on the screen",
+		// 	Description: "TODO: подробное описание команды",
+		// 	ArgsUsage:   "Аргументов не имеет\nВ планах локальный режим и указание файла в который должен писаться отчет",
+		// 	Category:    "Primary",
+		// 	Action: func(c *cli.Context) error {
+		// 		cfgData, err := config.ReadFrom(program)
+		// 		if err != nil {
+		// 			return fmt.Errorf("config.ReadFrom: %v", err)
+		// 		}
+		// 		if err := yaml.Unmarshal(cfgData, &Conf); err != nil {
+		// 			return fmt.Errorf("yaml.Unmarshal: %v", err)
+		// 		}
+		// 		if len(Conf.Roots) < 1 {
+		// 			return fmt.Errorf("no Roots set in config.file")
+		// 		}
+		// 		list, err := scanRoots(c)
+		// 		if err != nil {
+		// 			return err
+		// 		}
+		// 		for _, l := range list {
+		// 			fmt.Println(l)
+		// 		}
+		// 		if err := updateStoredInfo(); err != nil {
+		// 			return err
+		// 		}
+
+		// 		sendToBot := false
+		// 		switch sendToBot {
+		// 		case true:
+		// 		case false:
+		// 		}
+		// 		return nil
+		// 	},
+
+		// 	Subcommands: []*cli.Command{},
+		// 	Flags: []cli.Flag{
+
+		// 		&cli.BoolFlag{
+		// 			Name:  "files",
+		// 			Usage: "show files only",
+		// 		},
+		// 		&cli.BoolFlag{
+		// 			Name:  "dirs",
+		// 			Usage: "show directories only",
+		// 		},
+		// 	},
+		// 	SkipFlagParsing:        false,
+		// 	HideHelp:               false,
+		// 	Hidden:                 false,
+		// 	UseShortOptionHandling: false,
+		// 	HelpName:               "",
+		// 	CustomHelpTemplate:     "",
+		// },
 		{
 			Name:        "config",
 			Usage:       "Показывает информацию о текущих настройках",
@@ -206,11 +267,11 @@ func scanRoots(c *cli.Context) ([]string, error) {
 	roots := make(map[string][]string)
 	list := []string{}
 	sep := string(filepath.Separator)
-	dataStore, err := os.OpenFile(storagePath+storageFile, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
-	if err != nil {
-		return list, err
-	}
-	defer dataStore.Close()
+	// dataStore, err := os.OpenFile(storagePath+storageFile, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
+	// if err != nil {
+	// 	return list, err
+	// }
+	// defer dataStore.Close()
 
 	validRoots := c.StringSlice("roots")
 	for k, root := range rootsUnsorted {
@@ -242,13 +303,13 @@ func scanRoots(c *cli.Context) ([]string, error) {
 				switch f.IsDir() {
 				case true:
 					if !c.Bool("files") {
-						dirs = append(dirs, fl+sep)
+						dirs = append(dirs, cntnt+sep)
 					}
 				case false:
 					if !c.Bool("dirs") {
-						fls = append(fls, fl)
+						fls = append(fls, cntnt)
 
-						dataStore.Write([]byte(cntnt + "\n"))
+						//	dataStore.Write([]byte(cntnt + "  \n"))
 					}
 				}
 			}

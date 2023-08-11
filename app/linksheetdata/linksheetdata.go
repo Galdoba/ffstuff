@@ -81,16 +81,42 @@ func main() {
 	prefix := translit.CleanName(answer)
 	translName := translit.Transliterate(prefix)
 	fmt.Printf("'%s' ==> %s.\n", prefix, translName)
-	if optType == namedata.CONTENT_TYPE_SER {
+	errors := []error{}
+	switch optType {
+	case namedata.CONTENT_TYPE_SER:
 		numbs := catchNumbersFromTableName(answer)
 		seas := askUser("Какой это сезон? ", numbs)
+		if strings.Contains(translName, seas+"_sezon") {
+			translName = strings.Split(translName, seas+"_sezon")[0] + "s" + seas + "_"
+			//			askUser("Верно? ", []string{translName, "No"})
+		}
+		///////////////
+		chosenNames := []string{}
+		for _, ed := range edits {
+			nm := strings.TrimSuffix(ed.ShortName(), "."+namedata.RetrieveExtention(ed.Source()))
+			chosenNames = append(chosenNames, nm)
+		}
+		allNumbrs := catchNumbersFromNames(chosenNames)
+		numOpts := []string{}
+		for _, nums := range allNumbrs {
+			numOpts = append(numOpts, strings.Join(nums, " "))
+		}
+		seas2 := askUser("Какие это серии? ", numOpts)
+
+		eps := strings.Fields(seas2)
+		for j, ep := range eps {
+			translNameSer := translName + ep
+			editOne := []*namedata.EditNameForm{edits[j]}
+			errors = append(errors, addPrefixToFiles(translNameSer, optType, editOne)...)
+		}
 		if strings.Contains(translName, seas+"_sezon") {
 			translName = strings.Split(translName, seas+"_sezon")[0] + "s" + seas + "_xx"
 			//			askUser("Верно? ", []string{translName, "No"})
 		}
+	default:
+		errors = append(errors, addPrefixToFiles(translName, optType, edits)...)
 	}
 
-	errors := addPrefixToFiles(translName, optType, edits)
 	for _, err := range errors {
 		fmt.Println("error: ", err.Error())
 	}
@@ -210,6 +236,20 @@ func catchNumbersFromTableName(fullName string) []string {
 		}
 	}
 	return found
+}
+
+func catchNumbersFromNames(names []string) [][]string {
+	numbers := [][]string{}
+	for _, name := range names {
+		numbrs := catchNumbersFromTableName(name)
+		for i, n := range numbrs {
+			if len(numbers) < i+1 {
+				numbers = append(numbers, []string{})
+			}
+			numbers[i] = append(numbers[i], n)
+		}
+	}
+	return numbers
 }
 
 func excludeNames(names []string) []string {

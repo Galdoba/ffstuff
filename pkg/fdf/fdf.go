@@ -54,10 +54,10 @@ func FMP(pi *inputinfo.ParseInfo) string {
 	return str
 }
 
-func Size(pi *inputinfo.ParseInfo) string {
-	fl := pi.FileName()
-	stats, err := os.Stat(fl)
+func Size(path string) string {
+	stats, err := os.Stat(path)
 	if err != nil {
+		fmt.Println(err.Error())
 		return "???"
 	}
 	size := stats.Size()
@@ -77,9 +77,6 @@ func formatSize(btSize int64) string {
 			continue
 		}
 		show = fmt.Sprintf("%v %v", sizeFl, suff)
-		for len(show) < 9 {
-			show = " " + show
-		}
 		break
 	}
 	return show
