@@ -16,10 +16,16 @@ func onScreenBW(width int) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	scr := ""
 	max := len(infoMap)
+	dir := ""
 	for key := 0; key < max; key++ {
-		//fmt.Println(infoMap[key].String())
+		if dir != infoMap[key].Dir() { //print new Dir as a header
+			dir = infoMap[key].Dir()
+			fmt.Println(dir, "++")
+			scr += dir + "\n"
+		}
 		s := infoMap[key].String()
 		s = format(s, width) + "\n"
 
@@ -31,9 +37,15 @@ func onScreenBW(width int) (string, error) {
 
 func format(s string, width int) string {
 	if strings.HasPrefix(s, "*") {
-		if len(s) >= width {
-			ss := strings.Split(s, "")
-			s = strings.Join(ss[:width-3], "") + ".."
+		ss := strings.Split(s, "")
+		fields := strings.Split(s, "WARNING:")
+		w := width
+		if len(fields) > 1 {
+			w = width / 3 * 2
+			ss = strings.Split(fields[0], "")
+		}
+		if len(ss) >= w {
+			s = strings.Join(ss[:(w)-3], "") + ".."
 		}
 		return s
 	}
@@ -43,7 +55,9 @@ func format(s string, width int) string {
 
 		if len(s) < width {
 			add += " "
-			s = fl[0] + " " + fl[1] + " " + add + fl[2] + " " + fl[3] + " " + fl[4]
+			s1 := strings.Join(fl[0:2], " ")
+			s2 := strings.Join(fl[2:], " ")
+			s = s1 + add + s2
 		}
 	}
 	return s
@@ -52,16 +66,10 @@ func format(s string, width int) string {
 
 func infoFields() (map[int]*entry, error) {
 	infoMap := make(map[int]*entry)
-	dataStore, err := os.OpenFile(storagePath+storageFile, os.O_RDONLY, 0600)
+	lines, err := readLinesFromStorage()
 	if err != nil {
-		return nil, fmt.Errorf("can't open %v", storagePath+storageFile)
+		return nil, fmt.Errorf("readLinesFromStorage(): %v")
 	}
-	lines := []string{}
-	scanner := bufio.NewScanner(dataStore)
-	for scanner.Scan() {
-		lines = append(lines, scanner.Text())
-	}
-	dataStore.Close()
 	gathered := 0
 	errs := []string{}
 	for _, line := range lines {
@@ -169,18 +177,38 @@ func (dl *entry) String() string {
 	return str
 }
 
+func (dl *entry) Dir() string {
+	return namedata.RetrieveDirectory(dl.file)
+}
+
 func checkFileName(name string) string {
 	letters := strings.Split(name, "")
 	for _, glyph := range letters {
 		glyph = strings.ToLower(glyph)
 		switch glyph {
 		case " ", ")", "(", "'":
-			return fmt.Sprintf("Bad Name (contains |%v|)", glyph)
-		case "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", ".", "_":
+			return fmt.Sprintf("WARNING: Bad Name (contains |%v|)", glyph)
+		case "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m",
+			"n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z",
+			"1", "2", "3", "4", "5", "6", "7", "8", "9", "0", ".", "_", "-":
 			continue
 		default:
-			return fmt.Sprintf("Need Transliteration")
+			return fmt.Sprintf("WARNING: Need Transliteration")
 		}
 	}
 	return ""
+}
+
+func readLinesFromStorage() ([]string, error) {
+	dataStore, err := os.OpenFile(storagePath+storageFile, os.O_RDONLY, 0600)
+	if err != nil {
+		return nil, fmt.Errorf("can't open %v", storagePath+storageFile)
+	}
+	defer dataStore.Close()
+	lines := []string{}
+	scanner := bufio.NewScanner(dataStore)
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
+	}
+	return lines, nil
 }
