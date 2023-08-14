@@ -6,11 +6,14 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"time"
 
 	"github.com/Galdoba/devtools/directory"
+	"github.com/Galdoba/ffstuff/internal/terminal"
 	"github.com/Galdoba/ffstuff/pkg/config"
 	"github.com/urfave/cli/v2"
 
+	tsize "github.com/kopoli/go-terminal-size"
 	"gopkg.in/yaml.v3"
 )
 
@@ -135,7 +138,7 @@ func main() {
 				}
 				list, err := scanRoots(c)
 				if err != nil {
-					return err
+					return fmt.Errorf("scanRoots(c): %v", err.Error())
 				}
 				for _, l := range list {
 					fmt.Println(l)
@@ -171,62 +174,74 @@ func main() {
 			HelpName:               "",
 			CustomHelpTemplate:     "",
 		},
-		// {
-		// 	Name:        "track",
-		// 	Usage:       "monitor track [--loop x] [--buffer path]",
-		// 	UsageText:   "keep updated and formated info about content on the screen",
-		// 	Description: "TODO: подробное описание команды",
-		// 	ArgsUsage:   "Аргументов не имеет\nВ планах локальный режим и указание файла в который должен писаться отчет",
-		// 	Category:    "Primary",
-		// 	Action: func(c *cli.Context) error {
-		// 		cfgData, err := config.ReadFrom(program)
-		// 		if err != nil {
-		// 			return fmt.Errorf("config.ReadFrom: %v", err)
-		// 		}
-		// 		if err := yaml.Unmarshal(cfgData, &Conf); err != nil {
-		// 			return fmt.Errorf("yaml.Unmarshal: %v", err)
-		// 		}
-		// 		if len(Conf.Roots) < 1 {
-		// 			return fmt.Errorf("no Roots set in config.file")
-		// 		}
-		// 		list, err := scanRoots(c)
-		// 		if err != nil {
-		// 			return err
-		// 		}
-		// 		for _, l := range list {
-		// 			fmt.Println(l)
-		// 		}
-		// 		if err := updateStoredInfo(); err != nil {
-		// 			return err
-		// 		}
+		{
+			Name:        "track",
+			Usage:       "monitor track [--loop x] [--buffer path]",
+			UsageText:   "keep updated and formated info about content on the screen",
+			Description: "TODO: подробное описание команды",
+			ArgsUsage:   "Аргументов не имеет\nВ планах локальный режим и указание файла в который должен писаться отчет",
+			Category:    "Primary",
+			Action: func(c *cli.Context) error {
+				cfgData, err := config.ReadFrom(program)
+				if err != nil {
+					return fmt.Errorf("config.ReadFrom: %v", err)
+				}
+				if err := yaml.Unmarshal(cfgData, &Conf); err != nil {
+					return fmt.Errorf("yaml.Unmarshal: %v", err)
+				}
+				if len(Conf.Roots) < 1 {
+					return fmt.Errorf("no Roots set in config.file")
+				}
+				list, err := scanRoots(c)
+				if err != nil {
+					return err
+				}
 
-		// 		sendToBot := false
-		// 		switch sendToBot {
-		// 		case true:
-		// 		case false:
-		// 		}
-		// 		return nil
-		// 	},
+				loop := 5
+				for loop > 0 {
+					terminal.Clear()
+					if err := updateStoredInfo(list); err != nil {
+						return err
+					}
+					s, _ := tsize.GetSize()
+					scr, err := onScreenBW(s.Width)
+					if err != nil {
+						fmt.Println(err.Error())
+					}
+					fmt.Println(scr)
+					time.Sleep(time.Second * time.Duration(Conf.UpdateCycle_seconds))
+					loop--
+				}
+				sendToBot := false
+				switch sendToBot {
+				case true:
+				case false:
+				}
+				return nil
+			},
 
-		// 	Subcommands: []*cli.Command{},
-		// 	Flags: []cli.Flag{
+			Subcommands: []*cli.Command{},
+			Flags: []cli.Flag{
 
-		// 		&cli.BoolFlag{
-		// 			Name:  "files",
-		// 			Usage: "show files only",
-		// 		},
-		// 		&cli.BoolFlag{
-		// 			Name:  "dirs",
-		// 			Usage: "show directories only",
-		// 		},
-		// 	},
-		// 	SkipFlagParsing:        false,
-		// 	HideHelp:               false,
-		// 	Hidden:                 false,
-		// 	UseShortOptionHandling: false,
-		// 	HelpName:               "",
-		// 	CustomHelpTemplate:     "",
-		// },
+				&cli.StringFlag{
+					Name:     "width",
+					Category: "Output",
+					Usage:    "S: [20-80]; M: [81-130]; L: [131+]",
+					Value:    "S",
+					Aliases:  []string{"w"},
+				},
+				// 	&cli.BoolFlag{
+				// 		Name:  "dirs",
+				// 		Usage: "show directories only",
+				// 	},
+			},
+			SkipFlagParsing:        false,
+			HideHelp:               false,
+			Hidden:                 false,
+			UseShortOptionHandling: false,
+			HelpName:               "",
+			CustomHelpTemplate:     "",
+		},
 		{
 			Name:        "config",
 			Usage:       "Показывает информацию о текущих настройках",

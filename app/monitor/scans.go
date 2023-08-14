@@ -26,15 +26,16 @@ func updateStoredInfo(list []string) error {
 	oldText := strings.Join(oldData, "\n")
 	dHash := makeHash(oldData)
 	for _, path := range list {
+		data := dHash[path]
+		toAdd := ""
 		fInfo, err := os.Stat(path)
 		if err != nil {
-			panic("debug unknown: " + err.Error())
+			toAdd += "uptodate:false|"
 		}
 		if fInfo.IsDir() {
 			continue
 		}
-		data := dHash[path]
-		toAdd := ""
+
 		//		pi, err := inputinfo.ParseFile(path)
 		en := namedata.EditForm(path)
 		if err == nil {
