@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/Galdoba/ffstuff/pkg/namedata"
+	"github.com/fatih/color"
 )
 
 func onScreenBW(width int) (string, error) {
@@ -16,18 +17,18 @@ func onScreenBW(width int) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	dirsSorted := dirsSort()
 
 	scr := ""
-	max := len(infoMap)
+	//max := len(infoMap)
 	dir := ""
-	for key := 0; key < max; key++ {
+	for _, key := range keysByDirOrder(infoMap, dirsSorted) {
 		if dir != infoMap[key].Dir() { //print new Dir as a header
 			dir = infoMap[key].Dir()
-			fmt.Println(dir, "++")
 			scr += dir + "\n"
 		}
-		s := infoMap[key].String()
-		s = format(s, width) + "\n"
+
+		s := format(infoMap[key], width) + "\n"
 
 		scr += s
 	}
@@ -35,7 +36,45 @@ func onScreenBW(width int) (string, error) {
 	return scr, nil
 }
 
-func format(s string, width int) string {
+func keysByDirOrder(infoMap map[int]*entry, dirsSorted []string) []int {
+	resultSl := []int{}
+	cntnt := []string{"TRL", "FILM", "SER", ""}
+	for _, dir := range dirsSorted {
+		for _, cnt := range cntnt {
+			dirSl := []int{}
+			for i := 0; i < len(infoMap); i++ {
+				ed := namedata.EditForm(infoMap[i].file)
+				if ed.ContentType() != cnt {
+					continue
+				}
+				if dir == namedata.RetrieveDirectory(infoMap[i].file) {
+					dirSl = append(dirSl, i)
+				}
+			}
+			resultSl = append(resultSl, dirSl...)
+		}
+	}
+	return resultSl
+}
+
+func dirsSort() []string {
+	rtKeys := []string{}
+	for k, _ := range Conf.Roots {
+		rtKeys = append(rtKeys, k)
+	}
+	sort.Strings(rtKeys)
+	rtVals := []string{}
+	for _, key := range rtKeys {
+		for _, val := range Conf.Roots[key] {
+			rtVals = append(rtVals, val)
+		}
+	}
+	return rtVals
+}
+
+func format(en *entry, width int) string {
+	s := en.String()
+	fmt.Println("fmt", en.file)
 	if strings.HasPrefix(s, "*") {
 		ss := strings.Split(s, "")
 		fields := strings.Split(s, "WARNING:")
@@ -50,18 +89,51 @@ func format(s string, width int) string {
 		return s
 	}
 	fl := strings.Fields(s)
-	add := ""
-	for len(s) != width {
+	add := " "
+	size := en.data["fSize"]
+	for len(size) < 9 {
+		size = " " + size
+	}
+	mPRF := colormPRF(en.data["mProfile"])
 
-		if len(s) < width {
+	//cntnt := en.data["mTag"]
+	//maxNameLen := width - len(size) - len(mPRF) - 2
+	s1 := strings.Join(fl[0:2], " ")
+	s = s1 + add + mPRF + " " + size
+	for len(s) != width {
+		fmt.Println(".", s)
+		switch len(s) >= width {
+		case false:
 			add += " "
-			s1 := strings.Join(fl[0:2], " ")
-			s2 := strings.Join(fl[2:], " ")
-			s = s1 + add + s2
+			s = s1 + add + mPRF + " " + size
+			fmt.Println(":", len(s), s)
+		case true:
+			s1 = trimEnd(s1)
+			s = s1 + add + mPRF + " " + size
+			fmt.Println("|", len(s), s)
 		}
+
 	}
 	return s
+}
 
+func colormPRF(str string) string {
+	switch str {
+	default:
+		return str
+	case "1100-0", "1110-0":
+		return color.HiGreenString(str)
+	}
+}
+
+func trimEnd(str string) string {
+	if len(str) < 3 {
+		return ""
+	}
+	ltrs := strings.Split(str, "")
+	ltrs = ltrs[0 : len(str)-3]
+	ltrs = append(ltrs, ".", ".")
+	return strings.Join(ltrs, "")
 }
 
 func infoFields() (map[int]*entry, error) {

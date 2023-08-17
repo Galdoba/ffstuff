@@ -87,7 +87,7 @@ func main() {
 		numbs := catchNumbersFromTableName(answer)
 		seas := askUser("Какой это сезон? ", numbs)
 		if strings.Contains(translName, seas+"_sezon") {
-			translName = strings.Split(translName, seas+"_sezon")[0] + "s" + seas + "_"
+			translName = strings.Split(translName, seas+"_sezon")[0] + "s" + seas + "e"
 			//			askUser("Верно? ", []string{translName, "No"})
 		}
 		///////////////
@@ -205,9 +205,8 @@ func addPrefixToFiles(translName, contentType string, edits []*namedata.EditName
 	errors := []error{}
 
 	for _, edit := range edits {
-		switch strings.HasPrefix(edit.ShortName(), translName) {
+		switch strings.HasPrefix(edit.ShortName(), translName+"--"+contentType+"--") {
 		case false:
-
 			if err := edit.AddPrefix(translName + "--" + contentType + "--"); err != nil {
 				errors = append(errors, err)
 			}
@@ -226,10 +225,10 @@ func catchNumbersFromTableName(fullName string) []string {
 		switch gl {
 		case "0", "1", "2", "3", "4", "5", "6", "7", "8", "9":
 			buf += gl
-			fmt.Printf("found %v: buffer = '%v'\n", gl, buf)
+			//		fmt.Printf("found %v: buffer = '%v'\n", gl, buf)
 		default:
 			if buf != "" {
-				fmt.Printf("found %v: buffer = '%v' writing...\n", gl, buf)
+				//			fmt.Printf("found %v: buffer = '%v' writing...\n", gl, buf)
 				found = append(found, buf)
 				buf = ""
 			}
@@ -241,6 +240,7 @@ func catchNumbersFromTableName(fullName string) []string {
 func catchNumbersFromNames(names []string) [][]string {
 	numbers := [][]string{}
 	for _, name := range names {
+		name += "_q"
 		numbrs := catchNumbersFromTableName(name)
 		for i, n := range numbrs {
 			if len(numbers) < i+1 {
@@ -277,4 +277,14 @@ func hasReadyTrailer(name string, entries []fs.DirEntry) bool {
 		}
 	}
 	return false
+}
+
+func appendUniqueStr(slice []string, newElem string) []string {
+	for i := range slice {
+		if slice[i] == newElem {
+			return slice
+		}
+	}
+	slice = append(slice, newElem)
+	return slice
 }

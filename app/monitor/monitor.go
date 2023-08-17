@@ -198,13 +198,16 @@ func main() {
 					return err
 				}
 
-				loop := 5
+				loop := 1
 				for loop > 0 {
 					terminal.Clear()
 					if err := updateStoredInfo(list); err != nil {
 						return err
 					}
 					s, _ := tsize.GetSize()
+					if s.Width < 40 {
+						return fmt.Errorf("console width is to small: %v (minimum 40)", s.Width)
+					}
 					scr, err := onScreenBW(s.Width)
 					if err != nil {
 						fmt.Println(err.Error())
