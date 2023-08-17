@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/user"
+	"path/filepath"
 	"regexp"
 	"sort"
 	"strconv"
@@ -49,8 +50,10 @@ func RetrieveAll(path string) (string, string, []string) {
 }
 
 func RetrieveDirectory(path string) string {
-	pathData := strings.Split(path, "\\")
-	return strings.Join(pathData[0:len(pathData)-1], "\\") + "\\"
+	sep := string(filepath.Separator)
+	pathData := strings.Split(path, sep)
+	return strings.Join(pathData[0:len(pathData)-1], sep) + sep
+
 }
 
 func RetrieveShortName(path string) string {
