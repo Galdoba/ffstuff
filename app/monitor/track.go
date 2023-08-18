@@ -74,7 +74,7 @@ func dirsSort() []string {
 
 func format(en *entry, width int) string {
 	s := en.String()
-	fmt.Println("fmt", en.file)
+
 	if strings.HasPrefix(s, "*") {
 		ss := strings.Split(s, "")
 		fields := strings.Split(s, "WARNING:")
@@ -86,7 +86,19 @@ func format(en *entry, width int) string {
 		if len(ss) >= w {
 			s = strings.Join(ss[:(w)-3], "") + ".."
 		}
-		return s
+		for _, ftype := range []string{".sh", ".srt"} {
+			if !strings.HasSuffix(en.file, ftype) {
+				continue
+			}
+			switch ftype {
+			case ".sh":
+				return color.HiBlackString(s)
+			case ".srt":
+				return color.HiBlueString(s)
+			}
+		}
+
+		return color.HiYellowString(s)
 	}
 	fl := strings.Fields(s)
 	add := " "
@@ -94,27 +106,26 @@ func format(en *entry, width int) string {
 	for len(size) < 9 {
 		size = " " + size
 	}
-	mPRF := colormPRF(en.data["mProfile"])
 
+	mPRF := en.data["mProfile"]
+	//mPRF := en.data["mProfile"]
+	//fmt.Printf("'%v'\n'%v'\n--", mPRFc, mPRF)
 	//cntnt := en.data["mTag"]
 	//maxNameLen := width - len(size) - len(mPRF) - 2
 	s1 := strings.Join(fl[0:2], " ")
 	s = s1 + add + mPRF + " " + size
 	for len(s) != width {
-		fmt.Println(".", s)
 		switch len(s) >= width {
 		case false:
 			add += " "
 			s = s1 + add + mPRF + " " + size
-			fmt.Println(":", len(s), s)
 		case true:
 			s1 = trimEnd(s1)
 			s = s1 + add + mPRF + " " + size
-			fmt.Println("|", len(s), s)
 		}
 
 	}
-	return s
+	return fmt.Sprintf("%v%v%v %v", s1, add, colormPRF(mPRF), size)
 }
 
 func colormPRF(str string) string {
@@ -122,8 +133,13 @@ func colormPRF(str string) string {
 	default:
 		return str
 	case "1100-0", "1110-0":
-		return color.HiGreenString(str)
+		green := color.New(color.FgGreen).SprintFunc()
+		return green(str)
+	case "1800-0", "1800-1":
+		yellow := color.New(color.FgYellow).SprintFunc()
+		return yellow(str)
 	}
+	return str
 }
 
 func trimEnd(str string) string {

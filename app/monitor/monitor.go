@@ -193,17 +193,17 @@ func main() {
 				if len(Conf.Roots) < 1 {
 					return fmt.Errorf("no Roots set in config.file")
 				}
-				list, err := scanRoots(c)
-				if err != nil {
-					return err
-				}
 
 				loop := 1
 				for loop > 0 {
-					terminal.Clear()
+					list, err := scanRoots(c)
+					if err != nil {
+						return err
+					}
 					if err := updateStoredInfo(list); err != nil {
 						return err
 					}
+					terminal.Clear()
 					s, _ := tsize.GetSize()
 					if s.Width < 40 {
 						return fmt.Errorf("console width is to small: %v (minimum 40)", s.Width)
@@ -214,7 +214,7 @@ func main() {
 					}
 					fmt.Println(scr)
 					time.Sleep(time.Second * time.Duration(Conf.UpdateCycle_seconds))
-					loop--
+
 				}
 				sendToBot := false
 				switch sendToBot {
