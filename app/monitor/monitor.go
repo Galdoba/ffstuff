@@ -195,6 +195,7 @@ func main() {
 				}
 
 				loop := 1
+				lastScr := ""
 				for loop > 0 {
 					list, err := scanRoots(c)
 					if err != nil {
@@ -203,16 +204,17 @@ func main() {
 					if err := updateStoredInfo(list); err != nil {
 						return err
 					}
-					terminal.Clear()
+
 					s, _ := tsize.GetSize()
 					if s.Width < 40 {
 						return fmt.Errorf("console width is to small: %v (minimum 40)", s.Width)
 					}
-					scr, err := onScreenBW(s.Width)
-					if err != nil {
-						fmt.Println(err.Error())
+					scr := onScreenBW(s.Width)
+					if scr != lastScr {
+						lastScr = scr
+						terminal.Clear()
+						fmt.Println(scr)
 					}
-					fmt.Println(scr)
 					time.Sleep(time.Second * time.Duration(Conf.UpdateCycle_seconds))
 
 				}

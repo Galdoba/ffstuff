@@ -78,6 +78,15 @@ func (tl *TaskList) Downloading() []TaskData {
 	return list
 }
 
+func (tl *TaskList) ALL() []TaskData {
+	list := []TaskData{}
+	for _, task := range tl.tasks {
+
+		list = append(list, task)
+	}
+	return list
+}
+
 func (tl *TaskList) ReadyForDemux() []TaskData {
 	list := []TaskData{}
 	for _, task := range tl.tasks {

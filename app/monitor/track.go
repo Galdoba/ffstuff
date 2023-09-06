@@ -12,28 +12,24 @@ import (
 	"github.com/fatih/color"
 )
 
-func onScreenBW(width int) (string, error) {
+func onScreenBW(width int) string {
 	infoMap, err := infoFields()
-	if err != nil {
-		return "", err
-	}
 	dirsSorted := dirsSort()
-
 	scr := ""
-	//max := len(infoMap)
 	dir := ""
 	for _, key := range keysByDirOrder(infoMap, dirsSorted) {
 		if dir != infoMap[key].Dir() { //print new Dir as a header
 			dir = infoMap[key].Dir()
 			scr += dir + "\n"
 		}
-
 		s := format(infoMap[key], width) + "\n"
-
 		scr += s
 	}
-
-	return scr, nil
+	if err != nil {
+		scr += "   ---WARNING---\n"
+		scr += err.Error()
+	}
+	return scr
 }
 
 func keysByDirOrder(infoMap map[int]*entry, dirsSorted []string) []int {
@@ -74,10 +70,13 @@ func dirsSort() []string {
 
 func format(en *entry, width int) string {
 	s := en.String()
-
 	if strings.HasPrefix(s, "*") {
 		ss := strings.Split(s, "")
-		fields := strings.Split(s, "WARNING:")
+		warn := false
+		if strings.Contains(s, "WARNING") {
+			warn = true
+		}
+		fields := strings.Split(s, "WARNING: ")
 		w := width
 		if len(fields) > 1 {
 			w = width / 3 * 2
@@ -86,7 +85,16 @@ func format(en *entry, width int) string {
 		if len(ss) >= w {
 			s = strings.Join(ss[:(w)-3], "") + ".."
 		}
-		for _, ftype := range []string{".sh", ".srt"} {
+		if warn {
+			s = fields[1] + ": " + fields[0]
+			ss = strings.Split(s, "")
+			if len(ss) > width {
+				s = strings.Join(ss[:width-3], "") + ".."
+			}
+
+			return color.HiRedString(s)
+		}
+		for _, ftype := range []string{".sh", ".srt", ".wav", ".#err"} {
 			if !strings.HasSuffix(en.file, ftype) {
 				continue
 			}
@@ -95,11 +103,16 @@ func format(en *entry, width int) string {
 				return color.HiBlackString(s)
 			case ".srt":
 				return color.HiBlueString(s)
+			case ".wav":
+				return color.HiCyanString(s)
+			case ".#err":
+				return color.HiRedString(s)
 			}
 		}
 
 		return color.HiYellowString(s)
 	}
+
 	fl := strings.Fields(s)
 	add := " "
 	size := en.data["fSize"]
@@ -138,6 +151,9 @@ func colormPRF(str string) string {
 	case "1800-0", "1800-1":
 		yellow := color.New(color.FgYellow).SprintFunc()
 		return yellow(str)
+	case "0001-0":
+		blue := color.New(color.FgBlue).SprintFunc()
+		return blue(str)
 	}
 	return str
 }
@@ -156,12 +172,13 @@ func infoFields() (map[int]*entry, error) {
 	infoMap := make(map[int]*entry)
 	lines, err := readLinesFromStorage()
 	if err != nil {
-		return nil, fmt.Errorf("readLinesFromStorage(): %v")
+		return nil, fmt.Errorf("readLinesFromStorage(): %v", err.Error())
 	}
 	gathered := 0
 	errs := []string{}
 	for _, line := range lines {
 		info, err := newEntry(line)
+		//panic(line)
 		if err != nil {
 			errs = append(errs, err.Error())
 			continue
@@ -173,11 +190,11 @@ func infoFields() (map[int]*entry, error) {
 		gathered++
 	}
 	if len(errs) > 0 {
-		errText := fmt.Sprintf("%v error(s) met:\n")
+		errText := fmt.Sprintf("%v error(s) met:\n", len(errs))
 		for _, errtext := range errs {
 			errText += errtext + "\n"
 		}
-		return infoMap, fmt.Errorf(errText)
+		return infoMap, fmt.Errorf("%v", errText)
 	}
 	return infoMap, nil
 }
@@ -215,6 +232,7 @@ func newEntry(line string) (*entry, error) {
 		info := strings.Split(pair, ":")
 		dl.data[info[0]] = info[1]
 	}
+
 	return &dl, nil
 }
 
@@ -275,13 +293,13 @@ func checkFileName(name string) string {
 		glyph = strings.ToLower(glyph)
 		switch glyph {
 		case " ", ")", "(", "'":
-			return fmt.Sprintf("WARNING: Bad Name (contains |%v|)", glyph)
+			return fmt.Sprintf("WARNING: Name contains: '%v'", glyph)
 		case "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m",
 			"n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z",
 			"1", "2", "3", "4", "5", "6", "7", "8", "9", "0", ".", "_", "-":
 			continue
 		default:
-			return fmt.Sprintf("WARNING: Need Transliteration")
+			return fmt.Sprintf("WARNING: Run translit")
 		}
 	}
 	return ""

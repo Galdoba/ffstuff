@@ -551,11 +551,12 @@ func TransliterateForEdit(name string) string {
 	for e := 0; e < 100; e++ {
 		val := "_" + zeroIf(e) + fmt.Sprintf("%v", e) + "_seriya"
 		if strings.Contains(trName, val) {
-			eTag = fmt.Sprintf("_%v%v", zeroIf(e), e)
+			eTag = fmt.Sprintf("e%v%v", zeroIf(e), e)
 			break
 		}
 	}
-	res := nTag + sTag + eTag
+	sTag = sTag + eTag
+	res := nTag + sTag
 	if res == "" {
 		res = trName
 	}
@@ -737,6 +738,15 @@ func EditForm(path string) *EditNameForm {
 		}
 	}
 	return &ef
+}
+
+func (ef *EditNameForm) Words() []string {
+	wds := []string{}
+	wds = append(wds, strings.Split(ef.base, "_")...)
+	if ef.serial {
+		wds = append(wds, ef.season, ef.episode)
+	}
+	return wds
 }
 
 func (ef *EditNameForm) EditName() string {

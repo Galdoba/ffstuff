@@ -17,6 +17,20 @@ TODO: посмотреть строится ли запрос на csv прос�
 const (
 	SpreadsheetDataPath    = "SpreadsheetDataPath"
 	SpreadsheetCurlRequest = "SpreadsheetCurlRequest"
+	SheetComment           = iota
+	SheetPath
+	SheetReadyTrailer
+	SheetTrailerStatus
+	SheetTrailerMaker
+	SheetPosterStatus
+	SheetPosterMaker
+	SheetLineData0
+	SheetTaskName
+	SheetTaskStatus
+	SheetLineData1
+	SheetLineData2
+	SheetAgent
+	SheetPublicationDate
 )
 
 var configFields map[string]string

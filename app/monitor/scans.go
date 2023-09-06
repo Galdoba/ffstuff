@@ -30,7 +30,9 @@ func updateStoredInfo(list []string) error {
 		toAdd := ""
 		fInfo, err := os.Stat(path)
 		if err != nil {
-			toAdd += "uptodate:false|"
+			toAdd += "uptodate:false|error:" + err.Error() + "|"
+			newData = append(newData, path+"  "+data+toAdd)
+			continue
 		}
 		if fInfo.IsDir() {
 			continue

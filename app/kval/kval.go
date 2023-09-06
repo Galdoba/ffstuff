@@ -49,7 +49,7 @@ kval set --list wink --key Perevozchik --val "./IN/@SCRIPTS/amedia_ar2.sh Perevo
 curl -OL https://github.com/ryanoasis/nerd-fonts/releases/latest/download/GoMonoNerdFont.tar.xz
 */
 		{
-			Name:        "start",
+			Name:        "new",
 			ShortName:   "",
 			Usage:       "запустить программу",
 			UsageText:   "Собирает необходимую информацию из config.file после чего формирует общий список и пропускает его через фильтры для формирования короткого списка",
