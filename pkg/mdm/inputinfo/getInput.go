@@ -13,17 +13,18 @@ func ParseFile(path string) (*ParseInfo, error) {
 	if err != nil {
 		return nil, fmt.Errorf("os.Stat(%v): %v", path, err)
 	}
+	fmt.Println(path)
 	com, err := command.New(
 		command.CommandLineArguments("ffmpeg", "-hide_banner -i "+path),
 		command.Set(command.BUFFER_ON),
-		//command.Set(command.TERMINAL_ON),
+		command.Set(command.TERMINAL_ON),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("command.New(%v): %v", path, err)
 	}
 	com.Run()
 	buf := com.StdErr()
-	//fmt.Println("ffmpeg output:\n", buf)
+	fmt.Println("ffmpeg output:\n", buf)
 	input := inputdata{strings.Split(buf, "\n")}
 	pi, err := parse(input)
 	pi.buffer = buf

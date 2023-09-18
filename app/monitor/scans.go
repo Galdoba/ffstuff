@@ -45,6 +45,7 @@ func updateStoredInfo(list []string) error {
 			if !hasKey(allKeys(data), "mProfile") {
 				pi, _ := inputinfo.ParseFile(path)
 				fmt.Println("I SCAN")
+				fmt.Println(pi.String())
 				toAdd += "mProfile:" + fdf.FMP(pi) + "|"
 			}
 			if !hasKey(allKeys(data), "fSize") {

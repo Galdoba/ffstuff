@@ -168,7 +168,7 @@ func parse(input inputdata) (*ParseInfo, error) {
 		case hasTrigger(line, warning_FFMPEG_Invalid_data):
 			pi.warnings = append(pi.warnings, warning_FFMPEG_Invalid_data)
 		}
-		//fmt.Println("Stage", pStage, line)
+		fmt.Println("Stage", pStage, line)
 		switch pStage {
 		case stage_ParseFilename:
 			switch pMethod {
