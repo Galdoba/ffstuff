@@ -109,7 +109,8 @@ func format(en *entry, width int) string {
 				return color.HiRedString(s)
 			}
 		}
-
+		mPRF := en.data["mProfile"]
+		s = mPRF + " " + s
 		return color.HiYellowString(s)
 	}
 
@@ -289,6 +290,9 @@ func (dl *entry) Dir() string {
 
 func checkFileName(name string) string {
 	letters := strings.Split(name, "")
+	if strings.Contains(name, ".#err") {
+		return fmt.Sprintf("WARNING: processing error")
+	}
 	for _, glyph := range letters {
 		glyph = strings.ToLower(glyph)
 		switch glyph {
