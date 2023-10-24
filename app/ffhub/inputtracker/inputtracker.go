@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/Galdoba/devtools/cli/command"
+	"github.com/Galdoba/devtools/keyval"
 )
 
 const (
@@ -43,13 +44,9 @@ func main() {
 			key := entryKey(e.Name(), tag)
 			fmt.Println(key)
 			if !entryExists(key) {
-				//fmt.Println("No ENTRY", key)
 				createEntry(key)
-			} else {
-				fmt.Println("HAVE ENTRY", key)
 			}
-			//fmt.Println("readEntry", key, readEntry(key))
-
+			addTaskInputFile(key, e.Name())
 		}
 	}
 
@@ -75,26 +72,25 @@ func findSERdata(s string) (int, int) {
 }
 
 func entryExists(name string) bool {
-	comm, _ := command.New(command.CommandLineArguments(
-		"kval", "read ", "-from ", "fftasks_status ", "-k ", name,
-	),
-		command.Set(command.BUFFER_ON),
-	)
-	comm.Run()
-
-	return false
+	kv, err := keyval.Load("fftasks_status")
+	if err != nil {
+		return false
+	}
+	single, err := kv.GetSingle(name)
+	if err != nil {
+		return false
+	}
+	switch single {
+	case "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F":
+		return true
+	default:
+		return false
+	}
 }
 
 func createEntry(name string) {
-	comm, err := command.New(command.CommandLineArguments(
-		"kval", fmt.Sprintf("write -to fftasks_status -k %v 0", name),
-	),
-		command.Set(command.BUFFER_ON),
-	)
-	err = comm.Run()
-	if err != nil {
-		fmt.Println(err.Error())
-	}
+	kv, _ := keyval.NewKVlist(name)
+	kv.Save()
 
 }
 
@@ -110,4 +106,17 @@ func readEntry(name string) string {
 		fmt.Println(err.Error())
 	}
 	return comm.StdOut()
+}
+
+func addTaskInputFile(task string, file string) error {
+	kv, _ := keyval.NewKVlist(fmt.Sprintf("%v", task))
+	kv.Save()
+	fmt.Println("==", keyval.MakePathJS(task))
+
+	taskKVL, err := keyval.Load(fmt.Sprintf("%v", task))
+	if err != nil {
+		panic("+++" + err.Error())
+	}
+	taskKVL.Add("inputfiles", file)
+	return nil
 }
