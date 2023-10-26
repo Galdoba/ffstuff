@@ -21,7 +21,7 @@ func main() {
 		return
 	}
 	if badStatusVal(args[2]) {
-		fmt.Println("changestatus failed: bad val for new status")
+		fmt.Printf("changestatus failed: bad value '%v' for new status (expecting hex value 0-F)", args[2])
 		return
 	}
 	if err := readStatus(args[1]); err != nil {
@@ -80,7 +80,7 @@ func badStatusVal(s string) bool {
 	switch s {
 	default:
 		return true
-	case "0", "1", "2", "3", "4", "5", "6", "7", "8", "9":
+	case "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F":
 		return false
 	}
 }

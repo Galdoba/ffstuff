@@ -2,53 +2,101 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/Galdoba/devtools/cli/command"
-	"github.com/Galdoba/devtools/keyval"
 )
+
+/*
+ПРАВИЛА:
+1. Всегда печатай что происходит
+2. Используем только утилиту kval
+*/
 
 const (
-	IN_PATH  = `\\192.168.31.4\buffer\IN\`
-	TRL_TAG  = `--TRL--`
-	FILM_TAG = `--FILM--`
-	SER_TAG  = `--SER--`
+	IN_PATH     = `\\192.168.31.4\buffer\IN\`
+	TRL_TAG     = `--TRL--`
+	FILM_TAG    = `--FILM--`
+	SER_TAG     = `--SER--`
+	status_file = "fftasks_status"
+	input_key   = "inputfiles"
 )
 
+/*
+checklist:
+подтверди статусный файл
+	если нет - создай
+собери список файлов в папке Входящее
+	если ошибка - заверши работу
+	ПО СПИСКУ ФАЙЛОВ
+	если не линкованый - игнорируем
+	подтверди отсуствие статус проекта
+		если нет - создать файл проекта
+	подтверди статус проекта равный 0
+		если нет - игнорируем
+	добавить имя файла в исходные файлы проекта
+заверши работу
+*/
+
 func main() {
+	// подтверди статусный файл
+	// 	если нет - создай
+	if !confirm(status_file, "") {
+		fmt.Println("creating status file")
+		command.RunSilent("kval", fmt.Sprintf("new %v", status_file))
+	}
+	// собери список файлов в папке Входящее
+	// 	если ошибка - заверши работу
 	entries, err := os.ReadDir(IN_PATH)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println("не могу создать список файлов в директории %v:\n%v", IN_PATH, err.Error())
+		os.Exit(1)
 	}
-
+	// 	ПО СПИСКУ ФАЙЛОВ
 	for _, e := range entries {
+		//fmt.Print(e.Name())
 		if e.IsDir() {
+			//fmt.Print(" игнорируем (директория)\n")
 			continue
 		}
-		for _, tag := range []string{TRL_TAG, FILM_TAG, SER_TAG} {
-			if !strings.Contains(e.Name(), tag) {
-				//				fmt.Println("no tag", tag, e.Name())
-				continue
-			}
-			switch tag {
-			default:
-				//fmt.Println(e.Name(), tag)
-			case SER_TAG:
-				//se, ep := findSERdata(e.Name())
-				//fmt.Println(e.Name(), se, ep, tag)
-			}
-			key := entryKey(e.Name(), tag)
-			fmt.Println(key)
-			if !entryExists(key) {
-				createEntry(key)
-			}
-			addTaskInputFile(key, e.Name())
+		tag := ""
+		fileName := e.Name()
+		switch {
+		case strings.Contains(fileName, TRL_TAG):
+			tag = TRL_TAG
+		case strings.Contains(fileName, FILM_TAG):
+			tag = FILM_TAG
+		case strings.Contains(fileName, SER_TAG):
+			tag = SER_TAG
 		}
+		if tag == "" {
+			//fmt.Print(" игнорируем (не привязан)\n")
+			continue
+		}
+		key := entryKey(fileName, tag)
+		if !confirm("fftasks_status", key) {
+			command.RunSilent("kval", fmt.Sprintf("write -to %v -k %v 0", status_file, key))
+
+		}
+		if !confirm(key, "") {
+			command.RunSilent("kval", fmt.Sprintf("new %v", key))
+		}
+		// if !confirm(key, input_key) {
+		// 	command.RunSilent("kval", fmt.Sprintf("write -to %v -k %v 0", key, input_key))
+		// }
+		addTaskInputFile(key, e.Name())
+
 	}
+	// 	если не линкованый - игнорируем
+	// 	подтверди отсуствие статус проекта
+	// 		если нет - создать файл проекта
+	// 	подтверди статус проекта равный 0
+	// 		если нет - игнорируем
+	// 	добавить имя файла в исходные файлы проекта
+	// заверши работу
 
 }
 
@@ -71,52 +119,40 @@ func findSERdata(s string) (int, int) {
 	return -1, -1
 }
 
-func entryExists(name string) bool {
-	kv, err := keyval.Load("fftasks_status")
-	if err != nil {
-		return false
+func confirm(list, key string) bool {
+	keyStr := ""
+	if key != "" {
+		keyStr = fmt.Sprintf("-k %v", key)
 	}
-	single, err := kv.GetSingle(name)
-	if err != nil {
-		return false
-	}
-	switch single {
-	case "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F":
-		return true
-	default:
-		return false
-	}
-}
-
-func createEntry(name string) {
-	kv, _ := keyval.NewKVlist(name)
-	kv.Save()
-
-}
-
-func readEntry(name string) string {
-	comm, err := command.New(command.CommandLineArguments(
-		"kval", fmt.Sprintf("read -from fftasks_status -k %v", name),
-	),
+	comm, err := command.New(
+		command.CommandLineArguments("kval", fmt.Sprintf("confirm -page %v %v", list, keyStr)),
 		command.Set(command.BUFFER_ON),
-		command.Set(command.TERMINAL_ON),
+		command.Set(command.TERMINAL_OFF),
 	)
+	//fmt.Println("kval", fmt.Sprintf(" confirm -page %v %v", list, keyStr))
 	err = comm.Run()
 	if err != nil {
 		fmt.Println(err.Error())
+		panic(2)
+		return false
 	}
-	return comm.StdOut()
+	out := comm.StdOut()
+
+	switch out {
+	default:
+	case "1\n":
+		return true
+	case "0\n":
+		return false
+	}
+	return false
 }
 
-func addTaskInputFile(task string, file string) error {
-	kv, _ := keyval.NewKVlist(fmt.Sprintf("%v", task))
-	kv.Save()
-	fmt.Println("==", keyval.MakePathJS(task))
+func addTaskInputFile(task string, file string) string {
+	err := command.RunSilent("kval", fmt.Sprintf("append -to %v -k inputfiles -u %v", task, file))
 
-	taskKVL, err := keyval.Load(fmt.Sprintf("%v", task))
 	if err != nil {
-		panic("+++" + err.Error())
+		return err.Error()
 	}
-	taskKVL.Add("inputfiles", file)
-	return nil
+	return fmt.Sprintf("input file '%v' added to %v", file, task)
 }
