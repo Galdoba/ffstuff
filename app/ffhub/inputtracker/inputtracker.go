@@ -17,7 +17,7 @@ import (
 */
 
 const (
-	IN_PATH     = `\\192.168.31.4\buffer\IN\`
+	//IN_PATH     = `\\192.168.31.4\buffer\IN\`
 	TRL_TAG     = `--TRL--`
 	FILM_TAG    = `--FILM--`
 	SER_TAG     = `--SER--`
@@ -50,6 +50,9 @@ func main() {
 	}
 	// собери список файлов в папке Входящее
 	// 	если ошибка - заверши работу
+	IN_PATH, err := command.RunSilent("kval", fmt.Sprintf("read -from work_dirs -k IN"))
+	IN_PATH = strings.TrimSuffix(IN_PATH, "\n")
+	fmt.Println(IN_PATH)
 	entries, err := os.ReadDir(IN_PATH)
 	if err != nil {
 		fmt.Println("не могу создать список файлов в директории %v:\n%v", IN_PATH, err.Error())
@@ -82,7 +85,7 @@ func main() {
 
 		}
 		if !confirm(key, "") {
-			command.RunSilent("kval", fmt.Sprintf("new %v", key))
+			command.RunSilent("kval", fmt.Sprintf("new ffprojects/%v", key))
 		}
 		// if !confirm(key, input_key) {
 		// 	command.RunSilent("kval", fmt.Sprintf("write -to %v -k %v 0", key, input_key))
@@ -149,7 +152,7 @@ func confirm(list, key string) bool {
 }
 
 func addTaskInputFile(task string, file string) string {
-	err := command.RunSilent("kval", fmt.Sprintf("append -to %v -k inputfiles -u %v", task, file))
+	_, err := command.RunSilent("kval", fmt.Sprintf("append -to ffprojects/%v -k inputfiles -u %v", task, file))
 
 	if err != nil {
 		return err.Error()
