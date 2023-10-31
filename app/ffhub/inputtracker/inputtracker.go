@@ -52,7 +52,6 @@ func main() {
 	// 	если ошибка - заверши работу
 	IN_PATH, err := command.RunSilent("kval", fmt.Sprintf("read -from work_dirs -k IN"))
 	IN_PATH = strings.TrimSuffix(IN_PATH, "\n")
-	fmt.Println(IN_PATH)
 	entries, err := os.ReadDir(IN_PATH)
 	if err != nil {
 		fmt.Println("не могу создать список файлов в директории %v:\n%v", IN_PATH, err.Error())
@@ -87,9 +86,6 @@ func main() {
 		if !confirm(key, "") {
 			command.RunSilent("kval", fmt.Sprintf("new ffprojects/%v", key))
 		}
-		// if !confirm(key, input_key) {
-		// 	command.RunSilent("kval", fmt.Sprintf("write -to %v -k %v 0", key, input_key))
-		// }
 		addTaskInputFile(key, e.Name())
 
 	}
@@ -132,7 +128,6 @@ func confirm(list, key string) bool {
 		command.Set(command.BUFFER_ON),
 		command.Set(command.TERMINAL_OFF),
 	)
-	//fmt.Println("kval", fmt.Sprintf(" confirm -page %v %v", list, keyStr))
 	err = comm.Run()
 	if err != nil {
 		fmt.Println(err.Error())
