@@ -938,3 +938,20 @@ func NormalizeSoundNames(names []string) ([]string, error) {
 	}
 	return newnames, nil
 }
+
+func Words(name string) []string {
+	wds := []string{}
+	parts := strings.Split(name, " (")
+	switch len(parts) > 1 {
+	case true:
+		if strings.HasSuffix(parts[1], ")") {
+			name = parts[0]
+		}
+	case false:
+	}
+	for _, delim := range []string{" ", ".", ",", ":", "-", "–", "?", "!", "	"} {
+		name = strings.ReplaceAll(name, delim, "_")
+	}
+	wds = append(wds, strings.Split(name, "_")...)
+	return wds
+}

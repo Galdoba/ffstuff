@@ -3,7 +3,7 @@ module github.com/Galdoba/ffstuff
 go 1.18
 
 require (
-	github.com/Galdoba/devtools v0.0.0-20231030073954-2e04e7b58321
+	github.com/Galdoba/devtools v0.0.0-20231101021029-7b6ef7f2ecee
 	github.com/Galdoba/utils v0.0.0-20211006043430-41d7b3fa4b0a
 	github.com/fatih/color v1.15.0
 	github.com/k0kubun/go-ansi v0.0.0-20180517002512-3bf9e2903213
@@ -34,7 +34,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
-	github.com/stretchr/objx v0.5.0 // indirect
+	github.com/stretchr/objx v0.5.1 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
 	golang.org/x/exp/shiny v0.0.0-20231006140011-7918f672742d // indirect
 	golang.org/x/image v0.13.0 // indirect
