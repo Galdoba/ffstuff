@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -15,24 +16,28 @@ func main() {
 		return
 	}
 	clipData := uhd + sep + "clip.txt"
-	err = os.Remove(clipData)
-	if err != nil {
-		println(err.Error())
-		return
-	}
-	f, err := os.OpenFile(clipData, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	os.Remove(clipData)
+	f, err := os.OpenFile(clipData, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
 		println(err.Error())
 		return
 	}
 	defer f.Close()
 	data := clipboard.Read(clipboard.FmtText)
-	f.WriteString(string(data))
+	wr, err := f.WriteString(string(data))
+	if err != nil {
+		println(err.Error())
+	}
+	fmt.Println("bytes written to file", wr)
 	for i, arg := range os.Args {
 		if i == 0 {
 			continue
 		}
-		f.WriteString("\n" + string(arg))
+		wr, err := f.WriteString("\n" + string(arg))
+		if err != nil {
+			println(err.Error())
+		}
+		fmt.Println("bytes written to file", wr)
 	}
 	clipBytes, err := os.ReadFile(clipData)
 	if err != nil {
@@ -40,4 +45,5 @@ func main() {
 		return
 	}
 	clipboard.Write(clipboard.FmtText, clipBytes)
+
 }
