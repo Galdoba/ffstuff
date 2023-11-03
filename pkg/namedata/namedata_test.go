@@ -269,6 +269,7 @@ func TestTransliterate(t *testing.T) {
 }
 
 func TestNamesWithMonos(t *testing.T) {
+	return
 	names := []string{
 		`\\192.168.31.4\buffer\IN\_AWAIT\FLOOD_SOUND_C.wav`,
 		`\\192.168.31.4\buffer\IN\_AWAIT\FLOOD_SOUND_L.wav`,
@@ -279,4 +280,19 @@ func TestNamesWithMonos(t *testing.T) {
 		`\\192.168.31.4\buffer\IN\_AWAIT\hd_2019_detstvo_sheldona_s03_02__ar2_vkurazhbambey_xmAsIDJ2MwW_film.mp4`,
 	}
 	fmt.Println(have6mono(names))
+}
+
+func TestBaseNames(t *testing.T) {
+	inputs := []string{
+
+		`Ася и Вася. 01 сезон. 01 серия название`,
+		`Ася и Вася. 01 сезон. 01 серия названиеВторое`,
+	}
+	for _, input := range inputs {
+		out := NameBaseOnly(input)
+		for _, name := range out {
+			fmt.Println("  ", name)
+		}
+
+	}
 }

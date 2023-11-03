@@ -103,11 +103,83 @@ func main() {
 	app.After = func(c *cli.Context) error {
 		return nil
 	}
-	app.Commands = []*cli.Command{}
+	app.Commands = []*cli.Command{
+		{
+			Name:  "run",
+			Usage: "Sort list",
+			Flags: []cli.Flag{
+				&cli.StringFlag{
+					Name:     "method",
+					Usage:    "REQUIRED: Choose sorting rule name",
+					Required: true,
+				},
+				&cli.BoolFlag{
+					Name:    "clip",
+					Usage:   "Send output to clipboard",
+					Aliases: []string{"c"},
+				},
+				&cli.StringFlag{
+					Name:  "file",
+					Usage: "Send output to file (rewrite if file exists)",
+				},
+				&cli.StringFlag{
+					Name:  "file_append",
+					Usage: "--                  (append to file if file exists)",
+				},
+				&cli.StringFlag{
+					Name:  "file_safe",
+					Usage: "--                  (will not if file file exists)",
+				},
+				&cli.BoolFlag{
+					Name:    "error",
+					Usage:   "Send output to StdErr",
+					Aliases: []string{"e"},
+				},
+
+				&cli.BoolFlag{
+					Name:    "silent",
+					Usage:   "DO NOT send output to StdOut",
+					Aliases: []string{"s"},
+				},
+			},
+			Action: func(c *cli.Context) error {
+				fmt.Println("EMULATE Picking a method")
+				name := c.String("method")
+				method := NewSortMethod(name)
+				err := method.Compile(name)
+				if err != nil {
+					return err
+				}
+				fmt.Println("EMULATE SORTING")
+				fmt.Println(method)
+				args := c.Args().Slice()
+				fmt.Println("INPUT:")
+				inputNum := 1
+				for _, inp := range args {
+					fmt.Println(inp)
+					if inp == method.ListSeparator {
+						inputNum++
+						continue
+					}
+					input_key := fmt.Sprintf("%v", inputNum)
+					method.input[input_key] = append(method.input[input_key], inp)
+				}
+				if err := method.Execute(); err != nil {
+					fmt.Println("method Err", err.Error())
+				}
+				fmt.Println("OUTPUT:")
+				for k, v := range method.input {
+					fmt.Println(k, v)
+				}
+				panic("TODO: нужно протестировать ввести работу с аргументами, написать экшен фильтрацтт по белому/черному списку")
+				return nil
+			},
+		},
+	}
 
 	args0 := os.Args
 	if err := app.Run(args0); err != nil {
-		fmt.Printf("application returned error: %v\n", err.Error())
+		fmt.Printf("\napplication returned error: %v\n", err.Error())
 	}
 	os.Exit(3)
 	// exit := ""
@@ -197,5 +269,23 @@ func defineConfigPath() string {
 		panic(err.Error())
 	}
 	sep := string(filepath.Separator)
+
 	return fmt.Sprintf("%v%v.config%v%v%vglisort.json", userdir, sep, sep, programName, sep)
 }
+
+/*
+FILTERS
+FullMatch
+PartialMatch
+
+
+White Part Reg : [0-9]
+Black Part Reg : "D"
+FindBase
+
+
+
+
+REVERSE
+
+*/

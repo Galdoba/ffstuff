@@ -196,7 +196,18 @@ func main() {
 
 				loop := 1
 				lastScr := ""
+				s, err := tsize.GetSize()
+				if err != nil {
+					return fmt.Errorf("width checking: %v", err.Error())
+				}
+				width := s.Width
 				for loop > 0 {
+					// s, _ := tsize.GetSize()
+					// if s.Width < 40 {
+					// 	if s.Width != 0 {
+					// 		return fmt.Errorf("console width is to small: %v (minimum 40)", s.Width)
+					// 	}
+					// }
 					list, err := scanRoots(c)
 					if err != nil {
 						return err
@@ -205,11 +216,7 @@ func main() {
 						return err
 					}
 
-					s, _ := tsize.GetSize()
-					if s.Width < 40 {
-						return fmt.Errorf("console width is to small: %v (minimum 40)", s.Width)
-					}
-					scr := onScreenBW(s.Width)
+					scr := onScreenBW(width)
 					if scr != lastScr {
 						lastScr = scr
 						terminal.Clear()

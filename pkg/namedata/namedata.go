@@ -955,3 +955,116 @@ func Words(name string) []string {
 	wds = append(wds, strings.Split(name, "_")...)
 	return wds
 }
+
+func numbers() []string {
+	out := []string{}
+	for i := 0; i < 1000; i++ {
+		n := strconv.Itoa(i)
+		if i < 10 {
+			n = "0" + n
+		}
+		out = append(out, n)
+	}
+	return out
+}
+
+func NameBaseOnly(tableName string) []string {
+	//fmt.Println(tableName)
+	out := []string{}
+	for _, tag := range []string{" SD", " 4K", "_3D"} {
+		tableName = strings.ReplaceAll(tableName, tag, "")
+	}
+	if strings.Contains(tableName, "(") {
+		prebracket := strings.Split(tableName, "(")
+		postBracket := strings.Join(prebracket[1:], "(")
+		tailBracket := strings.Split(postBracket[len(postBracket)-1:], ")")
+		tableName = prebracket[0] + tailBracket[len(tailBracket)-1]
+	}
+	tableNameLow := strings.ToLower(tableName)
+	trNameLow := strings.ToLower(translit.Transliterate(tableNameLow))
+	data := strings.Split(trNameLow, "_sezon_")
+	base := ""
+	switch len(data) {
+	case 1:
+		base := data[0]
+		out = append(out, base)
+		//return out
+	default:
+		for _, n := range numbers() {
+			if strings.HasSuffix(data[0], "_"+n) {
+				base = strings.TrimSuffix(data[0], "_"+n) + "_s" + n
+				break
+			}
+		}
+		for _, serTag := range []string{"_seriya", "_serii", "_seriy"} {
+			if !strings.Contains(data[1], serTag) {
+				continue
+			}
+			switch serTag {
+			case "_seriya":
+				data[1] = strings.TrimSuffix(data[1], serTag)
+				out = append(out, base+"_"+data[1])
+
+			default:
+
+				data[1] = strings.TrimSuffix(data[1], serTag)
+				episodes := strings.Split(data[1], "_")
+				//fmt.Println(episodes)
+				max := -1
+				min := 1
+				for _, ep := range episodes {
+					eNum, _ := strconv.Atoi(ep)
+					if eNum == 0 {
+						continue
+					}
+					if max < 0 {
+						max = eNum
+						continue
+					}
+					min = max
+					max = eNum
+				}
+				for e := min; e <= max; e++ {
+					out = append(out, base+"_"+num2Str(e))
+				}
+			}
+		}
+	}
+	for i, o := range out {
+		l := strings.Split(o, "")
+		l[0] = strings.ToUpper(l[0])
+		o = strings.Join(l, "")
+		out[i] = o
+	}
+	return out
+	// if strings.Contains(tableNameLow, " сезон") {
+	// 	for _, n := range numbers() {
+	// 		if strings.Contains(tableNameLow, n+" сезон") {
+	// 			tableName = strings.ReplaceAll(tableNameLow, n+" сезон", "")
+	// 			seasonData = n
+	// 			break
+	// 		}
+	// 	}
+	// }
+	// if strings.Contains(tableName, " сери") {
+	// 	for _, n := range numbers() {
+	// 		if strings.Contains(tableName, n+" сезон") {
+	// 			tableName = strings.ReplaceAll(tableName, n+" сезон", "")
+	// 			seasonData = n
+	// 			break
+	// 		}
+	// 	}
+	// }
+
+}
+
+func num2Str(n int) string {
+	s := fmt.Sprintf("%v", n)
+	if n < 0 {
+		return s
+	}
+	if n < 10 {
+		s = "0" + s
+	}
+	return s
+}
