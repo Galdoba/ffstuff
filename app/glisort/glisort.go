@@ -205,6 +205,11 @@ func main() {
 	// fmt.Println("l1", list1)
 	// fmt.Println("l2", list2)
 
+	/*
+		{1} REGEXP "[0-3]+" ==> {1}
+
+	*/
+
 	//os.Exit(0)
 
 	// list2 := []string{

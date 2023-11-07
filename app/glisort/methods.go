@@ -7,26 +7,21 @@ import (
 	"strings"
 )
 
-const (
-	Action_Reverse = " Reverse "
-)
-
 var method map[string]func([]string) ([]string, error)
-var sortAction map[string]func(map[string][]string, string, string, []string, string) (map[string][]string, error)
-
-func init() {
-	sortAction = make(map[string]func(map[string][]string, string, string, []string, string) (map[string][]string, error))
-	sortAction[Action_Reverse] = reverseAction
+var sortAction map[string]func(map[string][]string, *sequanceData) (map[string][]string, error)
+var definedActions = []string{
+	Action_Reverse,
+	Action_MergeLists,
+	Action_Regexp,
+	Action_Clean,
 }
 
-func reverseAction(data map[string][]string, source string, action string, args []string, out string) (map[string][]string, error) {
-	input := data[source]
-	output, err := reverse(input)
-	if err != nil {
-		return data, err
-	}
-	data[out] = output
-	return data, nil
+func init() {
+	sortAction = make(map[string]func(map[string][]string, *sequanceData) (map[string][]string, error))
+	sortAction[Action_Reverse] = reverseAction
+	sortAction[Action_MergeLists] = mergeListsAction
+	sortAction[Action_Regexp] = regexpAction
+	sortAction[Action_Clean] = cleanAction
 }
 
 func reverse(sl []string) ([]string, error) {
@@ -42,7 +37,7 @@ type sortMethod struct {
 	ListSeparator string              `json:"ListSeparator",omitempty`
 	input         map[string][]string //tag:list
 	Sequance      []string            `json:"Sequance"`
-	actions       []func(map[string][]string, string, string, []string, string) (map[string][]string, error)
+	actions       []func(map[string][]string, *sequanceData) (map[string][]string, error)
 	output        []string
 }
 
@@ -100,12 +95,11 @@ func (sm *sortMethod) Compile(name string) error {
 
 func (sm *sortMethod) Execute() error {
 	for i, _ := range sm.Sequance {
-		sorc := parseSource(sm.Sequance[i])
-		actn := parseActions(sm.Sequance[i])
-		args := parseArguments(sm.Sequance[i])
-		trgt := parseTarget(sm.Sequance[i])
-
-		output, err := sm.actions[i](sm.input, sorc, actn, args, trgt)
+		seqData, err := parseSequance(sm.Sequance[i])
+		if err != nil {
+			return err
+		}
+		output, err := sm.actions[i](sm.input, seqData)
 		if err != nil {
 			return err
 		}
@@ -121,64 +115,123 @@ func (sm *sortMethod) Execute() error {
 
 func (sm *sortMethod) constructActions() error {
 	for _, action := range sm.Sequance {
-		//sorc := parseSource(action)
 		actn := parseActions(action)
-		//args := parseArguments(action)
-		//trgt := parseTarget(action)
-		switch actn {
-		case Action_Reverse:
-			actFunc := sortAction[actn]
-			sm.actions = append(sm.actions, actFunc)
+		for _, action := range definedActions {
+			if action == actn {
+				actFunc := sortAction[actn]
+				sm.actions = append(sm.actions, actFunc)
+				continue
+			}
 		}
-		//sm.Sequance = append(sm.Sequance)
-		//fmt.Println(sorc, actn, args, trgt, sm.Sequance)
 	}
 	return nil
 }
 
-func parseSource(a string) string {
-	if strings.HasPrefix(a, "(") {
-		source := strings.TrimPrefix(a, "(")
-		sParts := strings.Split(source, ") ")
-		if len(sParts) == 1 {
-			return ""
-		}
-		return sParts[0]
-	}
-	return ""
-}
+// func parseSource(a string) string {
+// 	if strings.HasPrefix(a, "(") {
+// 		source := strings.TrimPrefix(a, "(")
+// 		sParts := strings.Split(source, ") ")
+// 		if len(sParts) == 1 {
+// 			return ""
+// 		}
+// 		return sParts[0]
+// 	}
+// 	return ""
+// }
 
 func parseActions(a string) string {
-	if strings.Contains(a, Action_Reverse) {
-		return Action_Reverse
+	for _, action := range definedActions {
+		if strings.Contains(a, action) {
+			return action
+		}
 	}
+	panic(fmt.Sprintf("action undefined: -%v-", a))
 	return ""
 }
 
-func parseArguments(a string) []string {
-	args := []string{}
-	aParts := strings.Split(a, " [")
-	for _, part := range aParts {
-		if strings.HasSuffix(part, "] ") {
-			args = append(args, strings.TrimSuffix(part, "] "))
+// func parseArguments(a string) []string {
+// 	argLine := strings.ReplaceAll(a, " [", "$$$$$$")
+// 	argLine = strings.ReplaceAll(argLine, "]", "$$$$$$")
+// 	args := strings.Split(argLine, "$$$")
+// 	out := []string{}
+// 	for i, ar := range args {
+// 		switch i {
+// 		case 0, len(args) - 1:
+// 			continue
+// 		default:
+// 		}
+// 		if ar != "" {
+// 			out = append(out, ar)
+// 		}
+// 	}
+// 	return out
+// }
+
+// func parseTarget(a string) string {
+// 	sl := strings.Split(a, " {")
+// 	if len(sl) < 1 {
+// 		return ""
+// 	}
+// 	trgt := strings.Join(sl[len(sl)-1:], "")
+// 	if !strings.HasSuffix(trgt, "}") {
+// 		return ""
+// 	}
+// 	return strings.TrimSuffix(trgt, "}")
+// }
+
+//1 ==> REGEXP aaa "bbb ccc" ddd ==> paths
+//1 ==> REVERSE ==> 2
+type sequanceData struct {
+	inputList  string
+	action     string
+	args       []string
+	outputList string
+}
+
+func parseSequance(seq string) (*sequanceData, error) {
+	sq := sequanceData{}
+	words := strings.Split(seq, " ==>")
+	seqParts := []string{}
+	for _, w := range words {
+		if w != "" {
+			seqParts = append(seqParts, w)
 		}
 	}
-	return args
-}
-
-func parseTarget(a string) string {
-	sl := strings.Split(a, " {")
-	if len(sl) < 1 {
-		return ""
+	if len(seqParts) != 3 {
+		return nil, fmt.Errorf("can't parse sequance [%v]:\n expecting 3 part structure with ' ==>' delimeters, have %v", seq, len(seqParts))
 	}
-	trgt := strings.Join(sl[len(sl)-1:], "")
-	if !strings.HasSuffix(trgt, "}") {
-		return ""
+	sq.inputList = strings.TrimSpace(words[0])
+	sq.outputList = strings.TrimSpace(words[2])
+	sq.action = parseActions(seqParts[1])
+	argsStr := strings.Replace(seqParts[1], sq.action, "", 1)
+	argsStr = strings.TrimSpace(argsStr)
+	switch sq.action {
+	case Action_Regexp:
+		fmt.Printf("argStr |%v|\n", argsStr)
 	}
-	return strings.TrimSuffix(trgt, "}")
-}
 
-/*
-	PartWhite (1) (2)==>
-	Reverse (1)
-*/
+	args := strings.Split(argsStr, " ")
+	clearedArgs := []string{}
+	currentArg := ""
+	closed := true
+	for _, arg := range args {
+		if strings.HasPrefix(arg, `"`) || strings.HasPrefix(arg, "`") {
+			closed = false
+		}
+		if strings.HasSuffix(arg, `"`) || strings.HasSuffix(arg, "`") {
+			closed = true
+		}
+		switch currentArg {
+		case "":
+			currentArg = arg
+		default:
+			currentArg += " " + arg
+		}
+		if closed {
+			clearedArgs = append(clearedArgs, currentArg)
+			currentArg = ""
+		}
+	}
+	sq.args = clearedArgs
+	return &sq, nil
+}
