@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 
@@ -24,20 +23,20 @@ func main() {
 	}
 	defer f.Close()
 	data := clipboard.Read(clipboard.FmtText)
-	wr, err := f.WriteString(string(data))
+	_, err = f.WriteString(string(data))
 	if err != nil {
 		println(err.Error())
 	}
-	fmt.Println("bytes written to file", wr)
+	//fmt.Println("bytes written to file", wr)
 	for i, arg := range os.Args {
 		if i == 0 {
 			continue
 		}
-		wr, err := f.WriteString("\n" + string(arg))
+		_, err := f.WriteString("\n" + string(arg))
 		if err != nil {
 			println(err.Error())
 		}
-		fmt.Println("bytes written to file", wr)
+		//fmt.Println("bytes written to file", wr)
 	}
 	clipBytes, err := os.ReadFile(clipData)
 	if err != nil {
