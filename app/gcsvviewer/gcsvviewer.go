@@ -11,6 +11,12 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
+/*
+run
+
+
+*/
+
 const (
 	programName = "gcsvviewer"
 )
@@ -64,9 +70,11 @@ func main() {
 	app.Name = programName
 	app.Usage = "отображает/редактирует csv файл"
 	app.Flags = []cli.Flag{}
-	panic("ok")
+
 	//ДО НАЧАЛА ДЕЙСТВИЯ
-	p := tea.NewProgram(newTableData("path"))
+	tb := newTableData(gconfig.DefineProgramDirectory(programName) + "taskSpreadsheet2.csv")
+	fmt.Println(len(tb.data))
+	p := tea.NewProgram(tb)
 	app.Before = func(c *cli.Context) error {
 
 		return nil
@@ -75,26 +83,15 @@ func main() {
 	app.After = func(c *cli.Context) error {
 		return nil
 	}
-	app.Commands = []*cli.Command{
-		{
-			Name:  "run",
-			Usage: "Show csv file",
-			Flags: []cli.Flag{},
-			Action: func(c *cli.Context) error {
 
-				if _, err := p.Run(); err != nil {
-					fmt.Printf("error: %v\n", err.Error())
-					os.Exit(1)
-				}
-				return nil
-			},
-		},
+	//args0 := os.Args
+	// if err := app.Run(args0); err != nil {
+	// 	fmt.Printf("\napplication returned error: %v\n", err.Error())
+	// 	os.Exit(3)
+	// }
+	if _, err := p.Run(); err != nil {
+		fmt.Println("critical error:", err.Error())
+		os.Exit(2)
 	}
-
-	args0 := os.Args
-	if err := app.Run(args0); err != nil {
-		fmt.Printf("\napplication returned error: %v\n", err.Error())
-	}
-	os.Exit(3)
 
 }
