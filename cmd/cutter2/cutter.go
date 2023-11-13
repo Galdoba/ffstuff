@@ -24,13 +24,16 @@ var preMuxFolder string
 func init() {
 	conf, err := config.ReadProgramConfig("ffstuff")
 	if err != nil {
-		fmt.Println(err)
+		println(err.Error())
+		os.Exit(1)
+		//fmt.Println(err)
 	}
 	configMap = conf.Field
 	if err != nil {
 		switch err.Error() {
 		case "Config file not found":
-			fmt.Print("Expecting config file in:\n", conf.Path)
+			println(fmt.Sprintf("Expecting config file in:\n", conf.Path))
+			//fmt.Print("Expecting config file in:\n", conf.Path)
 			os.Exit(1)
 		}
 	}
@@ -100,7 +103,8 @@ func main() {
 					edi, err := ediread.NewEdlData(edlFile)
 					if err != nil {
 						errors = append(errors, err.Error())
-						fmt.Println(err.Error())
+						//fmt.Println(err.Error())
+						println(err.Error())
 					}
 					path := namedata.RetrieveDirectory(edlFile)
 					targetDir = path
@@ -132,13 +136,15 @@ func main() {
 						//////////////////////////////////
 						cl, err := clipmaker.NewClip(clipData)
 						if err != nil {
-							fmt.Println(err)
+							//fmt.Println(err)
+							println(err.Error())
 						}
 						clipMap[cl.Index()] = cl
 						newTask := gcli.NewTask(clipmaker.CutClipD(cl, sourceDir, targetDir))
 						cliTasks = append(cliTasks, newTask)
 						if _, err = f.WriteString(newTask.String() + "\n"); err != nil {
-							fmt.Println(err)
+							//fmt.Println(err)
+							println(err.Error())
 						}
 					}
 					cliTasks = sortTasks(cliTasks)
@@ -148,7 +154,8 @@ func main() {
 						taskErr := task.Run()
 						if taskErr != nil {
 							errors = append(errors, taskErr.Error())
-							fmt.Println(taskErr.Error())
+							//fmt.Println(taskErr.Error())
+							println(taskErr.Error())
 						}
 					}
 				}
@@ -161,11 +168,11 @@ func main() {
 				*/
 				return nil
 			},
-			OnUsageError: func(context *cli.Context, err error, isSubcommand bool) error {
-				fmt.Println("Start on error action")
-				return nil
-			},
-			Subcommands: []*cli.Command{},
+			// OnUsageError: func(context *cli.Context, err error, isSubcommand bool) error {
+			// 	fmt.Println("Start on error action")
+			// 	return nil
+			// },
+			//Subcommands: []*cli.Command{},
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:  "targetfolder, tf",
@@ -183,7 +190,9 @@ func main() {
 	}
 	args := os.Args
 	if err := app.Run(args); err != nil {
-		fmt.Println(err.Error())
+		println(err.Error())
+		os.Exit(1)
+		//fmt.Println(err.Error())
 	}
 }
 
