@@ -25,7 +25,7 @@ import (
 	"os/user"
 
 	"github.com/Galdoba/ffstuff/pkg/gconfig"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/urfave/cli/v2"
 )
 
@@ -119,10 +119,16 @@ func main() {
 					Aliases: []string{"s"},
 				},
 				&cli.StringFlag{
+					Name:     "to_chat",
+					Usage:    "where message to send to",
+					Required: true,
+					Aliases:  []string{"tc"},
+				},
+				&cli.StringFlag{
 					Name:     "message",
 					Usage:    "set message text",
 					Required: true,
-					Aliases:  []string{"m"},
+					Aliases:  []string{"m", "text"},
 				},
 				&cli.StringFlag{
 					Name:    "title",
@@ -144,7 +150,13 @@ func main() {
 				if len(c.Args().Slice()) != 0 {
 					return fmt.Errorf("action 'send' must not use arguments. \ncheck if text of the message have spaces and not encaplated with quotes" + ` (")`)
 				}
-				chatID := int64(programConfig.ChatID)
+
+				// chatID := int64(programConfig.ChatID)
+				// chatID_data := strings.Split(c.String("chat"), "_")
+				// switch len(chatID_data) {
+				// case 1:
+
+				// }
 				token := programConfig.Token
 				bot, err := tgbotapi.NewBotAPI(token)
 				if err != nil {
@@ -165,11 +177,29 @@ func main() {
 					if err != nil {
 						println("can't get user name")
 					}
-					message = "from user: " + usr.Username + "\n" + message
+					signanure := usr.Name
+					if signanure == "" {
+						signanure = usr.Username
+					}
+					message = "from user: " + signanure + "\n" + message
+				}
+
+				chatKey := c.String("to_chat")
+				if _, ok := programConfig.ChatData[chatKey]; ok != true {
+					return fmt.Errorf("no key '%v' found in config file", chatKey)
+				}
+
+				chatID, topic, err := ProcessInfo(chatKey)
+				if err != nil {
+					return err
 				}
 
 				msg := tgbotapi.NewMessage(chatID, message)
 				msg.ParseMode = tgbotapi.ModeHTML
+				if topic > -1 {
+					msg.ReplyToMessageID = int(topic)
+				}
+
 				_, err = bot.Send(msg)
 				if err != nil {
 					return fmt.Errorf("send message: %v", err.Error())
@@ -181,12 +211,20 @@ func main() {
 			Name:  "config",
 			Usage: "print current config",
 			Action: func(c *cli.Context) error {
-				fmt.Println("Config path :", configPath)
-				fmt.Println("     ChatID :", programConfig.ChatID)
-				fmt.Println("      Token :", programConfig.Token)
+				fmt.Println(programConfig.String())
 				return nil
 			},
 		},
+		// { TODO
+		// 	Name:  "add_chat",
+		// 	Usage: "add chat key to config from url",
+		// 	Action: func(c *cli.Context) error {
+		// 		fmt.Println("Config path :", configPath)
+		// 		fmt.Println("  Chat Data :", programConfig.ChatData)
+		// 		fmt.Println("      Token :", programConfig.Token)
+		// 		return nil
+		// 	},
+		// },
 	}
 
 	//ПО ОКОНЧАНИЮ ДЕЙСТВИЯ
