@@ -5,7 +5,7 @@ go 1.18
 require (
 	github.com/Galdoba/devtools v0.0.0-20231102092809-b1ad175e856d
 	github.com/Galdoba/utils v0.0.0-20211006043430-41d7b3fa4b0a
-	github.com/fatih/color v1.15.0
+	github.com/fatih/color v1.16.0
 	github.com/k0kubun/go-ansi v0.0.0-20180517002512-3bf9e2903213
 	github.com/kopoli/go-terminal-size v0.0.0-20170219200355-5c97524c8b54
 	github.com/malashin/ffinfo v0.0.0-20221209093859-4b0670e459ad
@@ -39,7 +39,7 @@ require (
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-localereader v0.0.1 // indirect
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d // indirect
-	github.com/muesli/ansi v0.0.0-20211018074035-2e021307bc4b // indirect
+	github.com/muesli/ansi v0.0.0-20230316100256-276c6243b2f6 // indirect
 	github.com/muesli/cancelreader v0.2.2 // indirect
 	github.com/muesli/reflow v0.3.0 // indirect
 	github.com/muesli/termenv v0.15.2 // indirect
@@ -50,12 +50,12 @@ require (
 	github.com/stretchr/objx v0.5.1 // indirect
 	github.com/swallowstalker/postopush v0.0.0-20190802102728-6ec7e791aff1 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
-	golang.org/x/exp/shiny v0.0.0-20231006140011-7918f672742d // indirect
-	golang.org/x/image v0.13.0 // indirect
-	golang.org/x/mobile v0.0.0-20231006135142-2b44d11868fe // indirect
-	golang.org/x/sync v0.4.0 // indirect
-	golang.org/x/sys v0.13.0 // indirect
-	golang.org/x/term v0.6.0 // indirect
-	golang.org/x/text v0.13.0 // indirect
+	golang.org/x/exp/shiny v0.0.0-20231110203233-9a3e6036ecaa // indirect
+	golang.org/x/image v0.14.0 // indirect
+	golang.org/x/mobile v0.0.0-20231108233038-35478a0c49da // indirect
+	golang.org/x/sync v0.5.0 // indirect
+	golang.org/x/sys v0.14.0 // indirect
+	golang.org/x/term v0.14.0 // indirect
+	golang.org/x/text v0.14.0 // indirect
 	gopkg.in/toast.v1 v1.0.0-20180812000517-0a84660828b2 // indirect
 )

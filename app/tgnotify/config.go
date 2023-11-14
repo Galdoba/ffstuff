@@ -36,6 +36,8 @@ var programConfig *config
 func defaultConfig() *config {
 	cfg := config{}
 	cfg.path = gconfig.DefineConfigPath(programName)
+	cfg.ChatID = 0
+	cfg.Token = "TOKEN"
 
 	return &cfg
 }

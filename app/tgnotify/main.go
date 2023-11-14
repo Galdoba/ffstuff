@@ -52,6 +52,16 @@ func init() {
 		}
 		errEx := fmt.Sprintf("config file not exist: %v", configPath)
 		println(errEx)
+		data, err := json.MarshalIndent(defaultConfig(), "", "  ")
+		if err != nil {
+			println(err.Error())
+			//os.Exit(1)
+		}
+		f, _ := os.OpenFile(configPath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0777)
+		f.Write(data)
+		println("config template created")
+		println("fill TOKEN and ChatID")
+		os.Exit(0)
 	}
 	data, err := os.ReadFile(configPath)
 	if err != nil {
@@ -155,7 +165,7 @@ func main() {
 					if err != nil {
 						println("can't get user name")
 					}
-					message = "from user: " + usr.Name + "\n" + message
+					message = "from user: " + usr.Username + "\n" + message
 				}
 
 				msg := tgbotapi.NewMessage(chatID, message)
@@ -191,3 +201,7 @@ func main() {
 	}
 
 }
+
+/*
+tgnotyfier send -t "--------------------" -m "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum." -ps "PS: Владыка, услышь меня!"
+*/
