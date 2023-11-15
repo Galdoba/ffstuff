@@ -44,6 +44,7 @@ func main() {
 
 		if strings.Contains(pi.FileName(), "--") {
 			editname := namedata.EditForm(pi.FileName()).EditName()
+			prt := namedata.EditForm(pi.FileName()).PRT()
 			sheet, err := spreadsheet.New()
 			if err == nil {
 				taskList := tablemanager.TaskListFrom(sheet)
@@ -51,7 +52,7 @@ func main() {
 				for _, check := range readyList {
 					if strings.Contains(translit.Transliterate(check.Name()), editname) {
 						fmt.Println(fmt.Sprintf(`FILE="%v"`, pi.FileName()))
-						fmt.Println(fmt.Sprintf(`OUTBASE="%v"`, editname))
+						fmt.Println(fmt.Sprintf(`OUTBASE="%v"`, editname+prt))
 						fmt.Println(fmt.Sprintf(`EDIT_PATH="/mnt/pemaltynov/ROOT/EDIT/%v"`, tablemanager.ProposeTargetDirectory(taskList, check)))
 						fmt.Println(fmt.Sprintf(`ARCHIVE_PATH="/mnt/pemaltynov/ROOT/IN/%v"`, tablemanager.ProposeArchiveDirectory(check)))
 					}

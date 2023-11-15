@@ -218,7 +218,7 @@ func main() {
 			},
 		},
 		{ //TODO
-			Name:  "add_chat",
+			Name:  "add",
 			Usage: "add chat key to config from url",
 			Flags: []cli.Flag{
 				&cli.StringFlag{
@@ -269,7 +269,7 @@ func main() {
 
 				}
 				if chatDataLine == "" {
-					return fmt.Errorf("parsing failed")
+					return fmt.Errorf("parsing failed\nenshure value of a flag '--link' is url of telegram chat")
 				}
 
 				programConfig.ChatData[newKey] = chatDataLine
@@ -281,6 +281,7 @@ func main() {
 				if ee != nil {
 					return ee
 				}
+				f.Truncate(0)
 				if _, err := f.Write(bts); err != nil {
 					return err
 				}
@@ -294,6 +295,43 @@ func main() {
 				return nil
 			},
 		},
+		{ //TODO
+			Name:  "delete",
+			Usage: "delete chat key from config",
+			Action: func(c *cli.Context) error {
+				keys := c.Args().Slice()
+				if len(keys) < 1 {
+					return fmt.Errorf("action 'delete' uses arguments for keys")
+				}
+				chatData := programConfig.ChatData
+				userOutput := "keys deleted: 0"
+				deleted := 0
+				for _, k := range keys {
+					if _, ok := chatData[k]; !ok {
+						println(fmt.Sprintf("key '%v' is not found", k))
+						continue
+					}
+					delete(programConfig.ChatData, k)
+					deleted++
+					userOutput = fmt.Sprintf("keys deleted: %v", deleted)
+				}
+
+				bts, errM := json.MarshalIndent(programConfig, "", "  ")
+				if errM != nil {
+					return errM
+				}
+				f, ee := os.OpenFile(configPath, os.O_WRONLY, 0777)
+				if ee != nil {
+					return ee
+				}
+				f.Truncate(0)
+				if _, err := f.Write(bts); err != nil {
+					return err
+				}
+				println(userOutput)
+				return nil
+			},
+		},
 	}
 
 	//ПО ОКОНЧАНИЮ ДЕЙСТВИЯ
@@ -302,7 +340,7 @@ func main() {
 	}
 	args := os.Args
 	if err := app.Run(args); err != nil {
-		errOut := fmt.Sprintf("\n%v error: %v", programName, err.Error())
+		errOut := fmt.Sprintf("%v error: %v", programName, err.Error())
 		println(errOut)
 		os.Exit(1)
 	}

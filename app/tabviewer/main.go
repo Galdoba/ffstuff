@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/Galdoba/ffstuff/pkg/gconfig"
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/urfave/cli/v2"
 )
 
@@ -18,12 +17,24 @@ run
 */
 
 const (
-	programName = "gcsvviewer"
+	programName = "tabviewer"
 )
 
-func init() {
+var dataPath string
+var configPath string
 
-	configPath := gconfig.DefineConfigPath(programName)
+func init() {
+	dataPath = gconfig.DefineProgramDirectory(programName) + "DataFile.csv"
+	f, err := os.OpenFile(dataPath, os.O_CREATE|os.O_RDWR, 0777)
+	defer f.Close()
+	if err != nil {
+		err = os.MkdirAll(gconfig.DefineProgramDirectory(programName), 0777)
+		if err != nil {
+			panic(err.Error())
+		}
+
+	}
+	configPath = gconfig.DefineConfigPath(programName)
 	data, err := os.ReadFile(configPath)
 	if err != nil {
 		switch {
@@ -55,12 +66,11 @@ func init() {
 			fmt.Println("ok")
 		}
 	}
-
 	err = json.Unmarshal(data, &programConfig)
 	if err != nil {
 		panic(err.Error())
 	}
-
+	programConfig.path = configPath
 }
 
 func main() {
@@ -72,26 +82,45 @@ func main() {
 	app.Flags = []cli.Flag{}
 
 	//ДО НАЧАЛА ДЕЙСТВИЯ
-	tb := newTableData(gconfig.DefineProgramDirectory(programName) + "taskSpreadsheet2.csv")
-	fmt.Println(len(tb.data))
-	p := tea.NewProgram(tb)
-	app.Before = func(c *cli.Context) error {
+	//	tb := newTableData(gconfig.DefineProgramDirectory(programName) + "taskSpreadsheet2.csv")
 
+	//p := tea.NewProgram(tb)
+	app.Before = func(c *cli.Context) error {
 		return nil
+	}
+	app.Commands = []*cli.Command{
+		{
+			Name:  "config",
+			Usage: "print current config",
+			Action: func(c *cli.Context) error {
+
+				fmt.Println(programConfig.String())
+				return nil
+			},
+		},
+		{ //TODO
+			Name:  "update",
+			Usage: "add chat key to config from url",
+
+			Action: func(c *cli.Context) error {
+
+				return UpdateTable()
+			},
+		},
 	}
 	//ПО ОКОНЧАНИЮ ДЕЙСТВИЯ
 	app.After = func(c *cli.Context) error {
 		return nil
 	}
 
-	//args0 := os.Args
-	// if err := app.Run(args0); err != nil {
-	// 	fmt.Printf("\napplication returned error: %v\n", err.Error())
-	// 	os.Exit(3)
-	// }
-	if _, err := p.Run(); err != nil {
-		fmt.Println("critical error:", err.Error())
-		os.Exit(2)
+	args0 := os.Args
+	if err := app.Run(args0); err != nil {
+		fmt.Printf("\napplication returned error: %v\n", err.Error())
+		os.Exit(3)
 	}
+	// if _, err := p.Run(); err != nil {
+	// 	fmt.Println("critical error:", err.Error())
+	// 	os.Exit(2)
+	// }
 
 }

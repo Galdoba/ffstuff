@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/csv"
-	"fmt"
 	"os"
 )
 
@@ -28,7 +27,7 @@ func newTableData(path string) tableData {
 	tb.data, _ = reader.ReadAll()
 	tb.hiddenRows = make(map[int]bool)
 	tb.hiddenCols = make(map[int]bool)
-	fmt.Println(tb.data[4][13])
+	//fmt.Println(tb.data[4][13])
 
 	return tb
 }

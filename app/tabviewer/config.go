@@ -1,6 +1,9 @@
 package main
 
 import (
+	"fmt"
+	"os"
+
 	"github.com/Galdoba/devtools/cli/command"
 	"github.com/Galdoba/ffstuff/pkg/gconfig"
 )
@@ -10,30 +13,34 @@ type config struct {
 	UpdateTicker int    `json:"Update cycle (seconds)"`
 	Curl         string `json:"CURL request"` //-s --use-ascii --proxy http://proxy.local:3128 https://docs.google.com/spreadsheets/d/1Waa58usrgEal2Da6tyayaowiWujpm0rzd06P5ASYlsg/gviz/tq?tqx=out:csv -k --output
 	CSV_DataFile string `json:"CSV path"`     //c:\Users\pemaltynov\.ffstuff\data\taskSpreadsheet.csv
+	KeyLayout    map[string]string
 }
 
 //curl --use-ascii --proxy http://proxy.local:3128 https://docs.google.com/spreadsheets/d/1Waa58usrgEal2Da6tyayaowiWujpm0rzd06P5ASYlsg/gviz/tq?tqx=out:csv -k --output c:\Users\pemaltynov\.ffstuff\data\taskSpreadsheet2.csv
 
 func UpdateTable() error {
-	command.RunSilent("curl", "")
-	// comm, err := command.New(
-	// 	command.CommandLineArguments("curl "+sp.curl+sp.csvPath),
-	// 	command.Set(command.BUFFER_OFF),
-	// 	command.Set(command.TERMINAL_ON),
-	// )
-	// if err != nil {
-	// 	return err
-	// }
-	// fmt.Println("Updating Spreadsheet:")
-	// comm.Run()
-	// if err := sp.fillCSVData(); err != nil {
-	// 	return fmt.Errorf("sp Update(): sp.fillCSVData() = %v", err.Error())
-	// }
-	// fmt.Println("Update Status: ok")
-	return nil
+
+	_, err := command.RunSilent("curl", programConfig.Curl+programConfig.CSV_DataFile+".tmp")
+	if err != nil {
+		return err
+	}
+	newPath := programConfig.CSV_DataFile + ".tmp"
+	fmt.Println("emulate checking")
+	oldPath := programConfig.CSV_DataFile
+	return os.Rename(newPath, oldPath)
+
 }
 
 var programConfig *config
+
+func (cfg *config) String() string {
+	str := fmt.Sprintf("path: %v\n", cfg.path)
+	str += fmt.Sprintf("data file: %v\n", cfg.CSV_DataFile)
+	if cfg.UpdateTicker > 0 {
+		str += fmt.Sprintf("Auto Update: %v\n", cfg.UpdateTicker)
+	}
+	return str
+}
 
 func defaultConfig() *config {
 	cfg := config{}
@@ -43,3 +50,6 @@ func defaultConfig() *config {
 	cfg.CSV_DataFile = gconfig.DefineProgramDirectory(programName) + "DataFile.csv"
 	return &cfg
 }
+
+//https://docs.google.com/spreadsheets/d/1Waa58usrgEal2Da6tyayaowiWujpm0rzd06P5ASYlsg/gviz/tq?tqx=out:csv&sheet=График работ 2.0
+//https://docs.google.com/spreadsheets/d/1pIrdfVbUy5I9NF70USDMfgr_H8by3CwGJstFfWTTaug/gviz/tq?tqx=out:json&sheet=Factions

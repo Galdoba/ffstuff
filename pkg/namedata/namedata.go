@@ -707,7 +707,9 @@ func serialData(name string) (string, string, string) {
 }
 
 func (ed *EditNameForm) PRT() string {
-	return ed.prt
+	re2 := regexp.MustCompile(`(_PRT[0-9]{1,})`)
+	return re2.FindString(ed.source)
+
 }
 
 func RetrieveAudioTag(name string) string {
