@@ -4,9 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"strings"
 
-	"github.com/Galdoba/ffstuff/pkg/gconfig"
+	"github.com/Galdoba/devtools/gpath"
 	"github.com/urfave/cli/v2"
 )
 
@@ -24,51 +23,69 @@ var dataPath string
 var configPath string
 
 func init() {
-	dataPath = gconfig.DefineProgramDirectory(programName) + "DataFile.csv"
-	f, err := os.OpenFile(dataPath, os.O_CREATE|os.O_RDWR, 0777)
-	defer f.Close()
-	if err != nil {
-		err = os.MkdirAll(gconfig.DefineProgramDirectory(programName), 0777)
+	dataPath = gpath.StdPath("Datafile.csv", []string{".ffstuff", "data", programName}...)
+	if err := gpath.Touch(dataPath); err != nil {
+		panic(err.Error())
+	}
+
+	configPath = gpath.StdPath(programName+".json", []string{".config", programName}...)
+	if err := gpath.Touch(configPath); err != nil {
+		panic(err.Error())
+	}
+	data, err := os.ReadFile(configPath)
+	fmt.Println(len(data))
+	if len(data) == 0 {
+		programConfig = defaultConfig()
+		data, err = json.MarshalIndent(programConfig, "", "  ")
+		if err != nil {
+			panic("can't create default config: " + err.Error())
+		}
+		f, err := os.OpenFile(configPath, os.O_WRONLY, 0777)
 		if err != nil {
 			panic(err.Error())
 		}
-
+		f.Write(data)
+		defer f.Close()
+		println(fmt.Sprintf("default config created at %v: ", configPath))
 	}
-	configPath = gconfig.DefineConfigPath(programName)
-	data, err := os.ReadFile(configPath)
-	if err != nil {
-		switch {
-		default:
-			fmt.Println("Неизвестная ошибка при проверки наличия конфига:")
-			println(err.Error())
-			panic(0)
-		case strings.Contains(err.Error(), "The system cannot find the file specified"), strings.Contains(err.Error(), "The system cannot find the path specified"):
-			fmt.Println("Config file not found")
-			err := os.MkdirAll(strings.TrimSuffix(configPath, programName+".json"), 0777)
-			if err != nil {
-				panic(err.Error())
-			}
-			programConfig = defaultConfig()
-			data, err = json.MarshalIndent(programConfig, "", "  ")
-			if err != nil {
-				panic(err.Error())
-			}
-			fmt.Printf("Creating default config at %v: ", configPath)
-			f, err := os.Create(configPath)
-			if err != nil {
-				panic(err.Error())
-			}
-			defer f.Close()
-			_, err = f.Write(data)
-			if err != nil {
-				panic(err.Error())
-			}
-			fmt.Println("ok")
+	data, err = os.ReadFile(dataPath)
+	if len(data) == 0 {
+		print(fmt.Sprintf("no data in %v\nupdating. . .   ", dataPath))
+		err = UpdateTable()
+		if err != nil {
+			println("fatal error")
+			panic(err.Error())
 		}
+		println("ok")
 	}
+	// if err != nil {
+	// 	switch {
+	// 	default:
+	// 		fmt.Println("Неизвестная ошибка при проверки наличия конфига:")
+	// 		println(err.Error())
+	// 		panic(0)
+	// 	case strings.Contains(err.Error(), "The system cannot find the file specified"), strings.Contains(err.Error(), "The system cannot find the path specified"):
+	// 		fmt.Println("Config file not found")
+	// 		err := os.MkdirAll(strings.TrimSuffix(configPath, programName+".json"), 0777)
+	// 		if err != nil {
+	// 			panic(err.Error())
+	// 		}
+
+	// 		f, err := os.Create(configPath)
+	// 		if err != nil {
+	// 			panic(err.Error())
+	// 		}
+	// 		defer f.Close()
+	// 		_, err = f.Write(data)
+	// 		if err != nil {
+	// 			panic(err.Error())
+	// 		}
+	// 		fmt.Println("ok")
+	// 	}
+	// }
 	err = json.Unmarshal(data, &programConfig)
 	if err != nil {
-		panic(err.Error())
+		panic(err.Error() + "asdasd")
 	}
 	programConfig.path = configPath
 }
