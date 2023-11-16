@@ -33,7 +33,6 @@ func init() {
 		panic(err.Error())
 	}
 	data, err := os.ReadFile(configPath)
-	fmt.Println(len(data))
 	if len(data) == 0 {
 		programConfig = defaultConfig()
 		data, err = json.MarshalIndent(programConfig, "", "  ")
@@ -48,6 +47,11 @@ func init() {
 		defer f.Close()
 		println(fmt.Sprintf("default config created at %v: ", configPath))
 	}
+	err = json.Unmarshal(data, &programConfig)
+	if err != nil {
+		panic(err.Error() + "asdasd")
+	}
+	programConfig.path = configPath
 	data, err = os.ReadFile(dataPath)
 	if len(data) == 0 {
 		print(fmt.Sprintf("no data in %v\nupdating. . .   ", dataPath))
@@ -83,11 +87,7 @@ func init() {
 	// 		fmt.Println("ok")
 	// 	}
 	// }
-	err = json.Unmarshal(data, &programConfig)
-	if err != nil {
-		panic(err.Error() + "asdasd")
-	}
-	programConfig.path = configPath
+
 }
 
 func main() {
@@ -106,22 +106,31 @@ func main() {
 		return nil
 	}
 	app.Commands = []*cli.Command{
-		{
+		{ //config
 			Name:  "config",
-			Usage: "print current config",
+			Usage: "Print current config",
 			Action: func(c *cli.Context) error {
-
-				fmt.Println(programConfig.String())
+				_, err := json.Marshal(programConfig)
+				if err != nil {
+					return err
+				}
+				fmt.Println(programConfig)
 				return nil
 			},
 		},
-		{ //TODO
-			Name:  "update",
-			Usage: "add chat key to config from url",
-
+		{ //update
+			Name:        "update",
+			Usage:       "Add chat key to config from url",
+			UsageText:   "This is usage text",
+			Description: "This is a descr",
 			Action: func(c *cli.Context) error {
-
-				return UpdateTable()
+				println("Updating...")
+				err := UpdateTable()
+				if err != nil {
+					return err
+				}
+				println("ok")
+				return nil
 			},
 		},
 	}
