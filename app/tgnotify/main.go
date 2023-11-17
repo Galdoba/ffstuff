@@ -19,13 +19,12 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 	"os/user"
 	"strings"
 
-	"github.com/Galdoba/ffstuff/pkg/gconfig"
+	"github.com/Galdoba/devtools/gpath"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/urfave/cli/v2"
 )
@@ -44,52 +43,23 @@ const (
 
 func init() {
 
-	configPath = gconfig.DefineConfigPath(programName)
-	exs, err := fileExists(configPath)
-
-	if !exs {
-		if err != nil {
-			panic(err.Error)
-		}
-		errEx := fmt.Sprintf("config file not exist: %v", configPath)
-		println(errEx)
-		data, err := json.MarshalIndent(defaultConfig(), "", "  ")
+	configPath = gpath.StdPath(programName+".json", []string{".config", programName}...)
+	err := gpath.Touch(configPath)
+	assertNoError(err)
+	data, err := os.ReadFile(configPath)
+	assertNoError(err)
+	if len(data) == 0 {
+		data, err = json.MarshalIndent(defaultConfig(), "", "  ")
 		if err != nil {
 			println(err.Error())
 			//os.Exit(1)
 		}
-		f, _ := os.OpenFile(configPath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0777)
-		f.Write(data)
-		println("config template created")
-		println("fill TOKEN and ChatID")
-		os.Exit(0)
 	}
-	data, err := os.ReadFile(configPath)
-	if err != nil {
-		switch {
-		default:
-			errText := fmt.Sprintf("unexpected config error: %v", err.Error())
-			println(errText)
-			os.Exit(1)
-		}
-	}
-
 	err = json.Unmarshal(data, &programConfig)
 	if err != nil {
 		errText := fmt.Sprintf("can't unmarshal config data: %v", err.Error())
 		println(errText)
 		os.Exit(1)
-	}
-
-}
-
-func fileExists(path string) (bool, error) {
-	if _, err := os.Stat(path); err == nil {
-		return true, nil
-	} else if errors.Is(err, os.ErrNotExist) {
-		return false, nil
-	} else {
-		return false, fmt.Errorf("file may or may not exist: %v", err.Error())
 	}
 
 }
@@ -152,12 +122,6 @@ func main() {
 					return fmt.Errorf("action 'send' must not use arguments. \ncheck if text of the message have spaces and not encaplated with quotes" + ` (")`)
 				}
 
-				// chatID := int64(programConfig.ChatID)
-				// chatID_data := strings.Split(c.String("chat"), "_")
-				// switch len(chatID_data) {
-				// case 1:
-
-				// }
 				token := programConfig.Token
 				bot, err := tgbotapi.NewBotAPI(token)
 				if err != nil {
@@ -285,13 +249,6 @@ func main() {
 				if _, err := f.Write(bts); err != nil {
 					return err
 				}
-				/*
-					https://t.me/c/2069775360/6/28
-					https://web.telegram.org/a/#-1002069775360_6
-					https://t.me/c/2069775360/6/28
-					https://t.me/c/1338947033/102215
-				*/
-
 				return nil
 			},
 		},
@@ -350,3 +307,9 @@ func main() {
 /*
 tgnotyfier send -t "--------------------" -m "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum." -ps "PS: Владыка, услышь меня!"
 */
+
+func assertNoError(err error) {
+	if err != nil {
+		panic(err.Error())
+	}
+}
