@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/csv"
+	"fmt"
 	"os"
 )
 
@@ -32,43 +33,85 @@ func newTableData(path string) tableData {
 	return tb
 }
 
-type coord struct {
-	r int
-	c int
+type content struct {
+	cells map[coordinates]*cell
 }
 
-func coordinates(r, c int) coord {
-	return coord{r, c}
+func newContent(data [][]string) *content {
+	cn := content{}
+	cn.cells = make(map[string]*cell)
+	cn.update(data)
+	return &cn
 }
 
-func RowOf(a coord) int {
-	return a.r
+func (cn *content) update(data [][]string) {
+	columnLen := columnSizes(data)
+	for r, line := range data {
+		for c, rawtext := range line {
+			crd := coord(r, c)
+			if _, ok := cn.cells[crd]; !ok {
+				cn.cells[crd] = newCell(r, c, rawtext)
+			}
+
+		}
+	}
 }
 
-func ColOf(a coord) int {
-	return a.c
+type coordinates struct {
+	row int
+	col int
 }
 
-func coordMatch(a, b coord) bool {
-	if a.r != b.r {
+func coord(r, c int) coordinates {
+	return coordinates{r, c}
+}
+
+func (c *coordinates) String() string {
+	return fmt.Sprintf("R%vC%v", c.row, c.col)
+}
+
+func sameCell(a, b coordinates) bool {
+	if a.col != b.col {
 		return false
 	}
-	if a.c != b.c {
+	if a.row != b.row {
 		return false
 	}
 	return true
 }
 
-func sameRow(a, b coord) bool {
-	if a.r != b.r {
+func sameRow(a, b coordinates) bool {
+	if a.row != b.row {
 		return false
 	}
 	return true
 }
 
-func sameCol(a, b coord) bool {
-	if a.c != b.c {
+func sameCol(a, b coordinates) bool {
+	if a.col != b.col {
 		return false
 	}
 	return true
+}
+
+func newCell(r, c int, rawText string) *cell {
+	cl := cell{}
+	cl.row = r
+	cl.col = c
+	cl.rawText = rawText
+	cl.maxWidth = -1
+	return &cl
+}
+
+type cell struct {
+	letters  []string
+	canTrim  bool
+	hidden   bool
+	maxWidth int
+	rawText  string
+	fmtText  string
+	fgCol    int
+	bgCol    int
+	row      int
+	col      int
 }

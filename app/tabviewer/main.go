@@ -1,11 +1,13 @@
 package main
 
 import (
+	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"os"
 
 	"github.com/Galdoba/devtools/gpath"
+	tsize "github.com/kopoli/go-terminal-size"
 	"github.com/urfave/cli/v2"
 )
 
@@ -23,71 +25,67 @@ var dataPath string
 var configPath string
 
 func init() {
+	configPath = gpath.StdPath(programName+".json", []string{".config", programName}...)
 	dataPath = gpath.StdPath("Datafile.csv", []string{".ffstuff", "data", programName}...)
-	if err := gpath.Touch(dataPath); err != nil {
-		panic(err.Error())
+
+	for _, err := range []error{
+		checkConfig(),
+		checkDataFile(),
+	} {
+		if err != nil {
+			panic(err.Error())
+		}
 	}
 
-	configPath = gpath.StdPath(programName+".json", []string{".config", programName}...)
+}
+
+func checkConfig() error {
 	if err := gpath.Touch(configPath); err != nil {
-		panic(err.Error())
+		return fmt.Errorf("can't confirm config path: " + err.Error())
 	}
 	data, err := os.ReadFile(configPath)
 	if len(data) == 0 {
 		programConfig = defaultConfig()
 		data, err = json.MarshalIndent(programConfig, "", "  ")
 		if err != nil {
-			panic("can't create default config: " + err.Error())
+			return fmt.Errorf("can't create default config: " + err.Error())
 		}
 		f, err := os.OpenFile(configPath, os.O_WRONLY, 0777)
 		if err != nil {
-			panic(err.Error())
+			return fmt.Errorf("can't open config: " + err.Error())
 		}
-		f.Write(data)
+		_, err = f.Write(data)
+		if err != nil {
+			return fmt.Errorf("can't write config: " + err.Error())
+		}
 		defer f.Close()
-		println(fmt.Sprintf("default config created at %v: ", configPath))
+		println(fmt.Sprintf("default config created: %v", configPath))
 	}
 	err = json.Unmarshal(data, &programConfig)
 	if err != nil {
-		panic(err.Error() + "asdasd")
+		return fmt.Errorf("can't unmarhal config: %v", err.Error())
+	}
+	return nil
+}
+
+func checkDataFile() error {
+	if err := gpath.Touch(dataPath); err != nil {
+		return fmt.Errorf("can't confirm dataPath: %v", err.Error())
 	}
 	programConfig.path = configPath
-	data, err = os.ReadFile(dataPath)
+	data, err := os.ReadFile(dataPath)
+	if err != nil {
+		return fmt.Errorf("can't read dataPath: %v", err.Error())
+	}
 	if len(data) == 0 {
 		print(fmt.Sprintf("no data in %v\nupdating. . .   ", dataPath))
 		err = UpdateTable()
 		if err != nil {
-			println("fatal error")
-			panic(err.Error())
+			return fmt.Errorf("can't update %v: %v", dataPath, err.Error())
 		}
 		println("ok")
 	}
-	// if err != nil {
-	// 	switch {
-	// 	default:
-	// 		fmt.Println("Неизвестная ошибка при проверки наличия конфига:")
-	// 		println(err.Error())
-	// 		panic(0)
-	// 	case strings.Contains(err.Error(), "The system cannot find the file specified"), strings.Contains(err.Error(), "The system cannot find the path specified"):
-	// 		fmt.Println("Config file not found")
-	// 		err := os.MkdirAll(strings.TrimSuffix(configPath, programName+".json"), 0777)
-	// 		if err != nil {
-	// 			panic(err.Error())
-	// 		}
-
-	// 		f, err := os.Create(configPath)
-	// 		if err != nil {
-	// 			panic(err.Error())
-	// 		}
-	// 		defer f.Close()
-	// 		_, err = f.Write(data)
-	// 		if err != nil {
-	// 			panic(err.Error())
-	// 		}
-	// 		fmt.Println("ok")
-	// 	}
-	// }
-
+	return nil
 }
 
 func main() {
@@ -119,10 +117,8 @@ func main() {
 			},
 		},
 		{ //update
-			Name:        "update",
-			Usage:       "Add chat key to config from url",
-			UsageText:   "This is usage text",
-			Description: "This is a descr",
+			Name:  "update",
+			Usage: "Update current tabledata with curl",
 			Action: func(c *cli.Context) error {
 				println("Updating...")
 				err := UpdateTable()
@@ -130,6 +126,36 @@ func main() {
 					return err
 				}
 				println("ok")
+				return nil
+			},
+		},
+		{ //run
+			Name:  "run",
+			Usage: "Show table",
+			Action: func(c *cli.Context) error {
+				tablefile, err := os.OpenFile(dataPath, os.O_RDWR, 0777)
+				if err != nil {
+					return fmt.Errorf("can't read data file: %v", err.Error())
+				}
+				defer tablefile.Close()
+				csvReader := csv.NewReader(tablefile)
+				data, err := csvReader.ReadAll()
+
+				columnLen := columnSizes(data)
+
+				for _, line := range data {
+					fmt.Println(FormatLineSize(line, columnLen))
+
+				}
+
+				sz, err := tsize.GetSize()
+				width := sz.Width
+				for i, line := range data {
+					if i > 50 {
+						fmt.Println(FormatLine(line, width))
+					}
+				}
+				fmt.Println(columnLen)
 				return nil
 			},
 		},
