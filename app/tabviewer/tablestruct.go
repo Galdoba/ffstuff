@@ -4,6 +4,9 @@ import (
 	"encoding/csv"
 	"fmt"
 	"os"
+	"strings"
+
+	"github.com/gookit/color"
 )
 
 type tableData struct {
@@ -34,23 +37,51 @@ func newTableData(path string) tableData {
 }
 
 type content struct {
-	cells map[coordinates]*cell
+	columns []columnData
+	cells   map[string]*cell
 }
 
-func newContent(data [][]string) *content {
+func newContent(data [][]string, preset string) *content {
 	cn := content{}
 	cn.cells = make(map[string]*cell)
-	cn.update(data)
+	cn.update(data, preset)
 	return &cn
 }
 
-func (cn *content) update(data [][]string) {
+func letters(s string) []string {
+	return strings.Split(s, "")
+}
+
+func merge(sl []string) string {
+	return strings.Join(sl, "")
+}
+
+func widen(text string, i int) string {
+	lText := letters(text)
+	if i > 2 && len(lText) > i-2 {
+		lText = lText[:i-2]
+		lText = append(lText, ".")
+		lText = append(lText, ".")
+	}
+	for len(lText) < i {
+		lText = append(lText, " ")
+	}
+	return merge(lText)
+}
+
+func (cn *content) update(data [][]string, preset string) {
 	columnLen := columnSizes(data)
 	for r, line := range data {
 		for c, rawtext := range line {
 			crd := coord(r, c)
-			if _, ok := cn.cells[crd]; !ok {
-				cn.cells[crd] = newCell(r, c, rawtext)
+			if _, ok := cn.cells[crd.String()]; !ok {
+				cll := newCell(r, c, rawtext)
+				ltrText := letters(rawtext)
+				for len(ltrText) < columnLen[r] {
+					ltrText = append(ltrText, " ")
+				}
+				cll.fmtText = merge(ltrText)
+				cn.cells[crd.String()] = cll
 			}
 
 		}
@@ -106,12 +137,12 @@ func newCell(r, c int, rawText string) *cell {
 type cell struct {
 	letters  []string
 	canTrim  bool
+	canBrake bool
 	hidden   bool
 	maxWidth int
 	rawText  string
 	fmtText  string
-	fgCol    int
-	bgCol    int
+	colStyle *color.Style256
 	row      int
 	col      int
 }

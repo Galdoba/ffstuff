@@ -5,9 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/Galdoba/devtools/gpath"
-	tsize "github.com/kopoli/go-terminal-size"
+	"github.com/gookit/color"
 	"github.com/urfave/cli/v2"
 )
 
@@ -23,14 +24,16 @@ const (
 
 var dataPath string
 var configPath string
+var presetDir string
 
 func init() {
 	configPath = gpath.StdPath(programName+".json", []string{".config", programName}...)
 	dataPath = gpath.StdPath("Datafile.csv", []string{".ffstuff", "data", programName}...)
-
+	presetDir = gpath.StdPath("", []string{".config", programName, "presets"}...)
 	for _, err := range []error{
 		checkConfig(),
 		checkDataFile(),
+		checkPresets(),
 	} {
 		if err != nil {
 			panic(err.Error())
@@ -88,6 +91,47 @@ func checkDataFile() error {
 	return nil
 }
 
+func checkPresets() error {
+	if err := gpath.Touch(presetDir); err != nil {
+		return fmt.Errorf("can't confirm preset directory: " + err.Error())
+	}
+	presets, err := listPresets()
+	if err != nil {
+		return fmt.Errorf("can't confirm presets: " + err.Error())
+	}
+	if len(presets) < 1 {
+		print(fmt.Sprintf("no presets found: creating default . . . "))
+		if err := createDefaultPreset(); err != nil {
+			return fmt.Errorf("can't create default preset: " + err.Error())
+		}
+		println(fmt.Sprintf("ok"))
+	}
+	panic("===")
+	data, err := os.ReadFile(configPath)
+	if len(data) == 0 {
+		programConfig = defaultConfig()
+		data, err = json.MarshalIndent(programConfig, "", "  ")
+		if err != nil {
+			return fmt.Errorf("can't create default config: " + err.Error())
+		}
+		f, err := os.OpenFile(configPath, os.O_WRONLY, 0777)
+		if err != nil {
+			return fmt.Errorf("can't open config: " + err.Error())
+		}
+		_, err = f.Write(data)
+		if err != nil {
+			return fmt.Errorf("can't write config: " + err.Error())
+		}
+		defer f.Close()
+		println(fmt.Sprintf("default config created: %v", configPath))
+	}
+	err = json.Unmarshal(data, &programConfig)
+	if err != nil {
+		return fmt.Errorf("can't unmarhal config: %v", err.Error())
+	}
+	return nil
+}
+
 func main() {
 
 	app := cli.NewApp()
@@ -101,6 +145,8 @@ func main() {
 
 	//p := tea.NewProgram(tb)
 	app.Before = func(c *cli.Context) error {
+		listPresets()
+		panic("STOP")
 		return nil
 	}
 	app.Commands = []*cli.Command{
@@ -142,20 +188,37 @@ func main() {
 				data, err := csvReader.ReadAll()
 
 				columnLen := columnSizes(data)
+				columnLen[1] = 10
 
-				for _, line := range data {
-					fmt.Println(FormatLineSize(line, columnLen))
+				// red := color.S256(1)
+				// yellow := color.S256(11)
+				// green := color.S256(2)
 
-				}
-
-				sz, err := tsize.GetSize()
-				width := sz.Width
+				/*
+				   ЧТО ДЕЛАЕМ
+				   форматируем ширину
+				   Форматируем внешний вид (раскладку)
+				   Форматируем внешний вид (цвет)
+				*/
+				lineSized := []string{}
 				for i, line := range data {
-					if i > 50 {
-						fmt.Println(FormatLine(line, width))
+					if i == 100 {
+						lineSized = FormatLineSize(line, columnLen)
+						st := color.S256(6, 234)
+						lin := st.Sprintf(strings.Join(lineSized, "-"))
+						fmt.Println(lin)
+						//fmt.Println(FormatLineSize(line, columnLen, "|"))
 					}
 				}
-				fmt.Println(columnLen)
+
+				// sz, err := tsize.GetSize()
+				// width := sz.Width
+				// for i, line := range data {
+				// 	if i > 50 {
+				// 		fmt.Println(FormatLine(line, width))
+				// 	}
+				// }
+				// fmt.Println(columnLen)
 				return nil
 			},
 		},

@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/fatih/color"
+	"github.com/gookit/color"
 )
 
 func (td tableData) Init() tea.Cmd {
@@ -56,47 +56,47 @@ func (td tableData) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return td, nil
 }
 
-func FormatLine(line []string, width int) string {
-	textByLetter := [][]string{}
-	for _, cell := range line {
-		textByLetter = append(textByLetter, strings.Split(cell, ""))
-	}
-	//coment 0
-	//path 1
-	//Trailer 4
-	//Poster 6
-	//Name 8
-	//Agent 13
-	//Date 14
-	out := "|"
-	for i, cellByLetter := range textByLetter {
-		datatype := ""
-		switch i {
-		case 4:
-			datatype = "t"
-		case 6:
-			datatype = "p"
-		case 0, 1, 8, 13, 14:
-			datatype = "f"
-		default:
-			continue
+// func FormatLine(line []string, width int) string {
+// 	textByLetter := [][]string{}
+// 	for _, cell := range line {
+// 		textByLetter = append(textByLetter, strings.Split(cell, ""))
+// 	}
+// 	//coment 0
+// 	//path 1
+// 	//Trailer 4
+// 	//Poster 6
+// 	//Name 8
+// 	//Agent 13
+// 	//Date 14
+// 	out := "|"
+// 	for i, cellByLetter := range textByLetter {
+// 		datatype := ""
+// 		switch i {
+// 		case 4:
+// 			datatype = "t"
+// 		case 6:
+// 			datatype = "p"
+// 		case 0, 1, 8, 13, 14:
+// 			datatype = "f"
+// 		default:
+// 			continue
 
-		}
-		switch len(cellByLetter) {
+// 		}
+// 		switch len(cellByLetter) {
 
-		default:
-			text := strings.Join(cellByLetter, "")
-			col := colorCode(textByLetter, datatype)
-			text = colorText(text, col)
-			out += text + "|"
-		case 0:
-			out += "???|"
-		}
-	}
-	out += fmt.Sprintf("%v", width)
-	//fmt.Println(out)
-	return out
-}
+// 		default:
+// 			text := strings.Join(cellByLetter, "")
+// 			col := colorCode(textByLetter, datatype)
+// 			text = colorText(text, col)
+// 			out += text + "|"
+// 		case 0:
+// 			out += "???|"
+// 		}
+// 	}
+// 	out += fmt.Sprintf("%v", width)
+// 	//fmt.Println(out)
+// 	return out
+// }
 
 func columnSizes(data [][]string) []int {
 	columnLen := []int{}
@@ -124,107 +124,91 @@ func columnSizes(data [][]string) []int {
 	return columnLen
 }
 
-func FormatLineSize(line []string, widths []int) string {
-	textByLetter := [][]string{}
-	for _, cell := range line {
-		textByLetter = append(textByLetter, strings.Split(cell, ""))
-	}
-	//coment 0
-	//path 1
-	//Trailer 4
-	//Poster 6
-	//Name 8
-	//Agent 13
-	//Date 14
-	out := "|"
-	for i, cellByLetter := range textByLetter {
-		datatype := ""
-		switch i {
-		case 4:
-			datatype = "t"
-		case 6:
-			datatype = "p"
-		case 0, 1, 8, 13, 14:
-			datatype = "f"
-		default:
-			continue
+func FormatLineSize(line []string, widths []int) []string {
+	out := []string{}
 
-		}
-		switch len(cellByLetter) {
-
-		default:
-			text := strings.Join(cellByLetter, "")
-			col := colorCode(textByLetter, datatype)
-			text = colorText(text, col)
-			out += text + "|"
-		case 0:
-			out += "???|"
-		}
+	for r, word := range line {
+		word = widen(word, widths[r])
+		out = append(out, word)
 	}
 
-	//fmt.Println(out)
 	return out
 }
 
-const (
-	colorWhite = iota
-	colorGreen
-	colorYellow
-	colorRed
-	colorCyan
-	colorBlue
-)
+// const (
+// 	colorWhite = iota
+// 	colorGreen
+// 	colorYellow
+// 	colorRed
+// 	colorCyan
+// 	colorBlue
+// )
 
-func colorText(text string, colorCode int) string {
-	switch colorCode {
-	default:
-		return text
-	case colorGreen:
-		return color.GreenString(text)
-	case colorYellow:
-		return color.YellowString(text)
-	case colorRed:
-		return color.RedString(text)
-	case colorCyan:
-		return color.CyanString(text)
-	}
+// func colorText(text string, colorCode int) string {
+// 	switch colorCode {
+// 	default:
+// 		return text
+// 	case colorGreen:
+// 		return color.GreenString(text)
+// 	case colorYellow:
+// 		return color.YellowString(text)
+// 	case colorRed:
+// 		return color.RedString(text)
+// 	case colorCyan:
+// 		return color.CyanString(text)
+// 	}
+// }
+
+// func colorCode(textByLetter [][]string, datatype string) int {
+// 	switch datatype {
+// 	default:
+// 		return colorWhite
+// 	case "t":
+// 		col := colorWhite
+// 		if strings.Join(textByLetter[4], "") != "" {
+// 			col = colorRed
+// 		}
+// 		codeByCell := colorDataToCode(strings.Join(textByLetter[3], ""))
+// 		switch codeByCell {
+// 		case colorWhite:
+// 			return col
+// 		default:
+// 			return codeByCell
+// 		}
+// 	case "p":
+// 		return colorDataToCode(strings.Join(textByLetter[5], ""))
+// 	case "f":
+// 		return colorDataToCode(strings.Join(textByLetter[10], ""))
+// 	}
+// }
+
+// func colorDataToCode(colorData string) int {
+// 	switch colorData {
+// 	default:
+// 		return colorWhite
+// 	case "R", "r", "К", "к":
+// 		return colorRed
+// 	case "Y", "y", "Н", "н":
+// 		return colorYellow
+// 	case "G", "g", "П", "п":
+// 		return colorGreen
+// 	case "B", "b", "И", "и":
+// 		return colorCyan
+
+// 	}
+// }
+
+type outPreset struct {
+	Name string
 }
 
-func colorCode(textByLetter [][]string, datatype string) int {
-	switch datatype {
-	default:
-		return colorWhite
-	case "t":
-		col := colorWhite
-		if strings.Join(textByLetter[4], "") != "" {
-			col = colorRed
-		}
-		codeByCell := colorDataToCode(strings.Join(textByLetter[3], ""))
-		switch codeByCell {
-		case colorWhite:
-			return col
-		default:
-			return codeByCell
-		}
-	case "p":
-		return colorDataToCode(strings.Join(textByLetter[5], ""))
-	case "f":
-		return colorDataToCode(strings.Join(textByLetter[10], ""))
-	}
-}
-
-func colorDataToCode(colorData string) int {
-	switch colorData {
-	default:
-		return colorWhite
-	case "R", "r", "К", "к":
-		return colorRed
-	case "Y", "y", "Н", "н":
-		return colorYellow
-	case "G", "g", "П", "п":
-		return colorGreen
-	case "B", "b", "И", "и":
-		return colorCyan
-
-	}
+type columnData struct {
+	Key                string                       //A
+	Comment            string                       //What is it do?
+	Hidden             bool                         //true
+	AllowBrake         bool                         //false
+	ColorRule          func(string) *color.Style256 //DefaultRule(coord.String()) *color.Style256
+	MaxWidth           int                          //999
+	OutSourceScript    string                       //path/to/script
+	OutSourceArguments []string                     //script arguments
 }
