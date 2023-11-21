@@ -26,6 +26,8 @@ var dataPath string
 var configPath string
 var presetDir string
 
+var activePreset *preset
+
 func init() {
 	configPath = gpath.StdPath(programName+".json", []string{".config", programName}...)
 	dataPath = gpath.StdPath("Datafile.csv", []string{".ffstuff", "data", programName}...)
@@ -96,38 +98,20 @@ func checkPresets() error {
 		return fmt.Errorf("can't confirm preset directory: " + err.Error())
 	}
 	presets, err := listPresets()
+
 	if err != nil {
 		return fmt.Errorf("can't confirm presets: " + err.Error())
 	}
 	if len(presets) < 1 {
-		print(fmt.Sprintf("no presets found: creating default . . . "))
+		print(fmt.Sprintf("no presets found: creating Default . . . "))
 		if err := createDefaultPreset(); err != nil {
 			return fmt.Errorf("can't create default preset: " + err.Error())
 		}
 		println(fmt.Sprintf("ok"))
 	}
-	panic("===")
-	data, err := os.ReadFile(configPath)
-	if len(data) == 0 {
-		programConfig = defaultConfig()
-		data, err = json.MarshalIndent(programConfig, "", "  ")
-		if err != nil {
-			return fmt.Errorf("can't create default config: " + err.Error())
-		}
-		f, err := os.OpenFile(configPath, os.O_WRONLY, 0777)
-		if err != nil {
-			return fmt.Errorf("can't open config: " + err.Error())
-		}
-		_, err = f.Write(data)
-		if err != nil {
-			return fmt.Errorf("can't write config: " + err.Error())
-		}
-		defer f.Close()
-		println(fmt.Sprintf("default config created: %v", configPath))
-	}
-	err = json.Unmarshal(data, &programConfig)
+	activePreset, err = loadPreset(programConfig.ActivePreset)
 	if err != nil {
-		return fmt.Errorf("can't unmarhal config: %v", err.Error())
+		return fmt.Errorf("can't initiate active preset: %v", err.Error())
 	}
 	return nil
 }
@@ -145,8 +129,7 @@ func main() {
 
 	//p := tea.NewProgram(tb)
 	app.Before = func(c *cli.Context) error {
-		listPresets()
-		panic("STOP")
+
 		return nil
 	}
 	app.Commands = []*cli.Command{
@@ -179,7 +162,7 @@ func main() {
 			Name:  "run",
 			Usage: "Show table",
 			Action: func(c *cli.Context) error {
-				tablefile, err := os.OpenFile(dataPath, os.O_RDWR, 0777)
+				tablefile, err := os.Open(dataPath)
 				if err != nil {
 					return fmt.Errorf("can't read data file: %v", err.Error())
 				}
@@ -188,8 +171,10 @@ func main() {
 				data, err := csvReader.ReadAll()
 
 				columnLen := columnSizes(data)
-				columnLen[1] = 10
 
+				cont := newContent(data)
+				fmt.Println(cont.cells["R101C8"])
+				panic(0)
 				// red := color.S256(1)
 				// yellow := color.S256(11)
 				// green := color.S256(2)
@@ -202,7 +187,7 @@ func main() {
 				*/
 				lineSized := []string{}
 				for i, line := range data {
-					if i == 100 {
+					if i >= 100 && i <= 110 {
 						lineSized = FormatLineSize(line, columnLen)
 						st := color.S256(6, 234)
 						lin := st.Sprintf(strings.Join(lineSized, "-"))

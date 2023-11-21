@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/gookit/color"
 )
 
 func (td tableData) Init() tea.Cmd {
@@ -16,10 +15,8 @@ func FormatData(td tableData) []string {
 	viewLen := []int{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 	out := ""
 	outText := []string{}
-	for row, line := range td.data {
-		if td.hiddenRows[row] {
-			continue
-		}
+	for _, line := range td.data {
+
 		for col, text := range line {
 			switch col {
 			default:
@@ -202,13 +199,24 @@ type outPreset struct {
 	Name string
 }
 
-type columnData struct {
-	Key                string                       //A
-	Comment            string                       //What is it do?
-	Hidden             bool                         //true
-	AllowBrake         bool                         //false
-	ColorRule          func(string) *color.Style256 //DefaultRule(coord.String()) *color.Style256
-	MaxWidth           int                          //999
-	OutSourceScript    string                       //path/to/script
-	OutSourceArguments []string                     //script arguments
+type ColumnData struct {
+	Key             string   `json:"Key"`
+	Hidden          bool     `json:"Is Hidden",omniempty`
+	AllowBrake      bool     `json:"Allow Brake",omniempty`
+	ColorRule       string   `json:"Color Rule",omniempty`
+	MaxWidth        int      `json:"Max Width",omniempty`
+	OutSourceScript string   `json:"Outsource Script",omniempty`
+	PreArguments    []string `json:"Pre Arguments",omniempty`
+	PostArguments   []string `json:"Post Arguments",omniempty`
+	Comment         string   `json:"Comment",omniempty`
+}
+
+func (cl *ColumnData) Evaluate() error {
+	if cl.Key == "" {
+		return fmt.Errorf("columnData has no Key")
+	}
+	if cl.MaxWidth < 0 {
+		return fmt.Errorf("columnData with key [%v] has MaxWidth < 1", cl.Key)
+	}
+	return nil
 }

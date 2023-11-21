@@ -10,41 +10,34 @@ import (
 )
 
 type tableData struct {
-	filepath     string
-	tableName    string
 	data         [][]string
 	filters      map[string]string
 	cursorRow    int
 	cursorCol    int
 	selectedRows []int
 	selectedCols []int
-	hiddenRows   map[int]bool
-	hiddenCols   map[int]bool
 }
 
 func newTableData(path string) tableData {
 	tb := tableData{}
-	tb.filepath = path
-	file, _ := os.Open(tb.filepath)
-
-	reader := csv.NewReader(file)
+	f, _ := os.Open(path)
+	defer f.Close()
+	reader := csv.NewReader(f)
 	tb.data, _ = reader.ReadAll()
-	tb.hiddenRows = make(map[int]bool)
-	tb.hiddenCols = make(map[int]bool)
-	//fmt.Println(tb.data[4][13])
 
 	return tb
 }
 
 type content struct {
-	columns []columnData
+	columns int
+	rows    int
 	cells   map[string]*cell
 }
 
-func newContent(data [][]string, preset string) *content {
+func newContent(data [][]string) *content {
 	cn := content{}
 	cn.cells = make(map[string]*cell)
-	cn.update(data, preset)
+	cn.update(data)
 	return &cn
 }
 
@@ -58,7 +51,7 @@ func merge(sl []string) string {
 
 func widen(text string, i int) string {
 	lText := letters(text)
-	if i > 2 && len(lText) > i-2 {
+	if i > 2 && len(lText) > i {
 		lText = lText[:i-2]
 		lText = append(lText, ".")
 		lText = append(lText, ".")
@@ -69,15 +62,16 @@ func widen(text string, i int) string {
 	return merge(lText)
 }
 
-func (cn *content) update(data [][]string, preset string) {
+func (cn *content) update(data [][]string) {
 	columnLen := columnSizes(data)
+	cn.columns = len(columnLen)
 	for r, line := range data {
 		for c, rawtext := range line {
 			crd := coord(r, c)
 			if _, ok := cn.cells[crd.String()]; !ok {
 				cll := newCell(r, c, rawtext)
 				ltrText := letters(rawtext)
-				for len(ltrText) < columnLen[r] {
+				for len(ltrText) < columnLen[c] {
 					ltrText = append(ltrText, " ")
 				}
 				cll.fmtText = merge(ltrText)
@@ -85,7 +79,12 @@ func (cn *content) update(data [][]string, preset string) {
 			}
 
 		}
+		cn.rows++
 	}
+}
+
+func (cn *content) Cell(key string) string {
+	return cn.cells[key].fmtText
 }
 
 type coordinates struct {

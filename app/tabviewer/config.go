@@ -14,6 +14,7 @@ type config struct {
 	Curl         string            `json:"CURL request"` //-s --use-ascii --proxy http://proxy.local:3128 https://docs.google.com/spreadsheets/d/1Waa58usrgEal2Da6tyayaowiWujpm0rzd06P5ASYlsg/gviz/tq?tqx=out:csv -k --output
 	CSV_DataFile string            `json:"CSV path"`     //c:\Users\pemaltynov\.ffstuff\data\taskSpreadsheet.csv
 	KeyLayout    map[string]string `json:"Key Layout",omniempty"`
+	ActivePreset string            `json:"Active Preset"`
 }
 
 //curl --use-ascii --proxy http://proxy.local:3128 https://docs.google.com/spreadsheets/d/1Waa58usrgEal2Da6tyayaowiWujpm0rzd06P5ASYlsg/gviz/tq?tqx=out:csv -k --output c:\Users\pemaltynov\.ffstuff\data\taskSpreadsheet2.csv
@@ -47,6 +48,7 @@ func defaultConfig() *config {
 	cfg.UpdateTicker = 10
 	cfg.Curl = "-s --use-ascii --proxy http://proxy.local:3128 https://docs.google.com/spreadsheets/d/1Waa58usrgEal2Da6tyayaowiWujpm0rzd06P5ASYlsg/gviz/tq?tqx=out:csv -k --output "
 	cfg.CSV_DataFile = dataPath
+	cfg.ActivePreset = "Default"
 	return &cfg
 }
 
