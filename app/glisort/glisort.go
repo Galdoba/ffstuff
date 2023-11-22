@@ -155,7 +155,34 @@ func main() {
 				args := c.Args().Slice()
 				fmt.Println("INPUT:")
 				inputNum := 1
+				skipArgs := []string{}
 				for _, inp := range args {
+					path, err := filepath.Abs(inp)
+					if err != nil {
+						continue
+					}
+					bt, err := os.ReadFile(path)
+					if err != nil {
+						continue
+					}
+					data := strings.Split(string(bt), "\n")
+					input_key := fmt.Sprintf("%v", inputNum)
+					for _, d := range data {
+						method.input[input_key] = append(method.input[input_key], d)
+						//						fmt.Println("add", d, "to", input_key)
+					}
+
+					inputNum++
+					skipArgs = append(skipArgs, inp)
+				}
+			argums:
+				for _, inp := range args {
+					for _, check := range skipArgs {
+						if check == inp {
+							fmt.Println("skip", check)
+							continue argums
+						}
+					}
 					fmt.Println(inp)
 					if inp == method.ListSeparator {
 						inputNum++
@@ -163,6 +190,7 @@ func main() {
 					}
 					input_key := fmt.Sprintf("%v", inputNum)
 					method.input[input_key] = append(method.input[input_key], inp)
+					fmt.Println("add", inp, "to", input_key)
 				}
 				if err := method.Execute(); err != nil {
 					fmt.Println("method Err", err.Error())
@@ -171,7 +199,7 @@ func main() {
 				for k, v := range method.input {
 					fmt.Println(k, v)
 				}
-				panic("TODO: нужно протестировать ввести работу с аргументами, написать экшен фильтрацтт по белому/черному списку")
+				//panic("TODO: нужно протестировать ввести работу с аргументами, написать экшен фильтрацтт по белому/черному списку")
 				return nil
 			},
 		},

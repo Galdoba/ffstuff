@@ -60,7 +60,7 @@ func regexpAction(data map[string][]string, seq *sequanceData) (map[string][]str
 		fmt.Println("arg:", arg)
 		rg, err := regexp.Compile(arg)
 		if err != nil {
-			return data, fmt.Errorf("regexp %v can't complile: %v", err.Error())
+			return data, fmt.Errorf("regexp %v can't complile: %v", arg, err.Error())
 		}
 		for i, out := range output {
 			fmt.Println(i, out, "|||")
