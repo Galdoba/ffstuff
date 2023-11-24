@@ -83,7 +83,7 @@ func (cn *content) update(data [][]string) {
 				cll.fmtText = merge(ltrText)
 
 				cn.cells[crd.String()] = cll
-				panic("Что-то я с фильтрами запутался - думать надо")
+
 			}
 
 		}
