@@ -53,7 +53,9 @@ func main() {
 					if strings.Contains(translit.Transliterate(check.Name()), editname) {
 						fmt.Println(fmt.Sprintf(`FILE="%v"`, pi.FileName()))
 						fmt.Println(fmt.Sprintf(`OUTBASE="%v"`, editname+prt))
-						fmt.Println(fmt.Sprintf(`EDIT_PATH="/mnt/pemaltynov/ROOT/EDIT/%v"`, tablemanager.ProposeTargetDirectory(taskList, check)))
+						fmt.Println(fmt.Sprintf(`ROOT="/mnt/pemaltynov"`))
+						fmt.Println(fmt.Sprintf(`EDIT="/ROOT/EDIT/%v"`, tablemanager.ProposeTargetDirectory(taskList, check)))
+						fmt.Println(fmt.Sprintf(`EDIT_PATH="${ROOT}${EDIT}"`))
 						fmt.Println(fmt.Sprintf(`ARCHIVE_PATH="/mnt/pemaltynov/ROOT/IN/%v"`, tablemanager.ProposeArchiveDirectory(check)))
 					}
 				}
