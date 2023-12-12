@@ -65,17 +65,25 @@ func widen(text string, i int) string {
 func (cn *content) update(data [][]string) {
 	columnLen := columnSizes(data)
 	cn.columns = len(columnLen)
+	//rowList:
 	for r, line := range data {
+		//	cellList:
 		for c, rawtext := range line {
 			crd := coord(r, c)
+
 			if _, ok := cn.cells[crd.String()]; !ok {
 				cll := newCell(r, c, rawtext)
+
+				//maxLen := columnLen[c]
+
 				ltrText := letters(rawtext)
-				for len(ltrText) < columnLen[c] {
-					ltrText = append(ltrText, " ")
-				}
+				// for len(ltrText) < maxLen {
+				// 	ltrText = append(ltrText, " ")
+				// }
 				cll.fmtText = merge(ltrText)
+
 				cn.cells[crd.String()] = cll
+
 			}
 
 		}
@@ -84,6 +92,7 @@ func (cn *content) update(data [][]string) {
 }
 
 func (cn *content) Cell(key string) string {
+
 	return cn.cells[key].fmtText
 }
 

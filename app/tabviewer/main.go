@@ -173,7 +173,21 @@ func main() {
 				columnLen := columnSizes(data)
 
 				cont := newContent(data)
-				fmt.Println(cont.cells["R101C8"])
+
+				rw := cont.rows
+				cl := cont.columns
+				fmt.Println(rw, cl)
+
+				for row := 0; row < rw; row++ {
+					for col := 0; col < cl; col++ {
+						crd := coord(row, col)
+						coords := crd.String()
+						fmt.Print(cont.cells[coords].fmtText)
+					}
+					fmt.Print("\n")
+
+				}
+
 				panic(0)
 				// red := color.S256(1)
 				// yellow := color.S256(11)

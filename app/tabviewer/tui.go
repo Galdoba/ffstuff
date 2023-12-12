@@ -201,14 +201,14 @@ type outPreset struct {
 
 type ColumnData struct {
 	Key             string   `json:"Key"`
-	Hidden          bool     `json:"Is Hidden",omniempty`
-	AllowBrake      bool     `json:"Allow Brake",omniempty`
-	ColorRule       string   `json:"Color Rule",omniempty`
-	MaxWidth        int      `json:"Max Width",omniempty`
-	OutSourceScript string   `json:"Outsource Script",omniempty`
-	PreArguments    []string `json:"Pre Arguments",omniempty`
-	PostArguments   []string `json:"Post Arguments",omniempty`
-	Comment         string   `json:"Comment",omniempty`
+	Hidden          bool     `json:"Is Hidden,omitempty"`
+	AllowBrake      bool     `json:"Allow Brake,omitempty"`
+	ColorRule       string   `json:"Color Rule,omitempty"`
+	MaxWidth        int      `json:"Max Width,omitempty"`
+	OutSourceScript string   `json:"Outsource Script,omitempty"`
+	PreArguments    []string `json:"Pre Arguments,omitempty"`
+	PostArguments   []string `json:"Post Arguments,omitempty"`
+	Comment         string   `json:"Comment,omitempty"`
 }
 
 func (cl *ColumnData) Evaluate() error {
