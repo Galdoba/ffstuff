@@ -9,12 +9,6 @@ import (
 	"github.com/Galdoba/ffstuff/pkg/gconfig"
 )
 
-type config struct {
-	path     string
-	Token    string            `json:"Token"`
-	ChatData map[string]string `json:"Chat Data"`
-}
-
 //curl --use-ascii --proxy http://proxy.local:3128 https://docs.google.com/spreadsheets/d/1Waa58usrgEal2Da6tyayaowiWujpm0rzd06P5ASYlsg/gviz/tq?tqx=out:csv -k --output c:\Users\pemaltynov\.ffstuff\data\taskSpreadsheet2.csv
 
 // func UpdateTable() error {
