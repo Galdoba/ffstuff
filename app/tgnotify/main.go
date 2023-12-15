@@ -1,22 +1,5 @@
 package main
 
-// token := "6963211405:AAEQqcDDAnueLx0iE3Imu_fIj0i6mCLw8qo"
-// 	chatID := int64(-4083924452)
-// 	message := "aaaббб"
-// 	bot, err := tgbotapi.NewBotAPI(token)
-// 	if err != nil {
-// 		fmt.Println(err.Error())
-// 		return
-// 	}
-
-// 	msg := tgbotapi.NewMessage(chatID, message)
-// 	msg.ParseMode = tgbotapi.ModeHTML
-// 	_, err = bot.Send(msg)
-// 	//fmt.Println(ms)
-// 	if err != nil {
-// 		panic(err.Error())
-// 	}
-
 import (
 	"encoding/json"
 	"fmt"
