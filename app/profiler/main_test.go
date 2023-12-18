@@ -6,17 +6,34 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/Galdoba/ffstuff/app/profiler/ump"
 )
 
 func Test_ConsumeJSON(t *testing.T) {
+
+	pr, err := ump.New(`\\192.168.31.4\buffer\IN\ScanData\input\Shifter_5.1_RUS.mov`)
+	fmt.Println("test struct:", pr)
+	if pr != nil {
+		fmt.Println(pr.Short())
+	}
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	bitMap := make(map[string]int)
+	//	return
 	dir := `\\192.168.31.4\buffer\IN\ScanData\input\files\`
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		log.Fatal(err)
 	}
 	for testNum, e := range entries {
+		if testNum > 0 {
+			break
+		}
+		fmt.Printf("%v\r", testNum)
 		path := dir + e.Name()
-		sr, err := ConsumeJSON(path)
+		sr, err := ump.ConsumeJSON(path)
 		if err != nil {
 			t.Errorf("%v", err.Error())
 		}
@@ -26,14 +43,21 @@ func Test_ConsumeJSON(t *testing.T) {
 		for _, warn := range sr.Warnings() {
 			warnMsg += warn + "\n"
 		}
+
+		// 	fmt.Println(sr.Short())
 		if warnMsg != "" {
 			fmt.Println(testNum, "-------")
 			fmt.Println(sr.Format.Filename)
-			fmt.Println(sr.Short())
+			fmt.Println("SHORT:", sr.Short())
+			fmt.Println("LONG :", sr.Long())
+			fmt.Println("WARNINGS :")
 			fmt.Println(warnMsg)
 
 		}
 
+	}
+	for k, v := range bitMap {
+		fmt.Println(k, v)
 	}
 }
 

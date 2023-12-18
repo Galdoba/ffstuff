@@ -19,7 +19,7 @@ func main() {
 	app := cli.NewApp()
 	app.Version = "v 0.0.1"
 	app.Name = programName
-	app.Usage = "Что делаем"
+	app.Usage = "send message to telegram channel"
 	app.Flags = []cli.Flag{}
 	//ДО НАЧАЛА ДЕЙСТВИЯ
 	app.Before = func(c *cli.Context) error {

@@ -30,6 +30,12 @@ import (
 // 	return nil
 // }
 
+type config struct {
+	path     string
+	Token    string            `json:"Token"`
+	ChatData map[string]string `json:"Chat Data"`
+}
+
 var programConfig *config
 
 func defaultConfig() *config {
