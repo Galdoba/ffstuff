@@ -7,12 +7,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Galdoba/ffstuff/app/profiler/ump"
+	"github.com/Galdoba/ffstuff/app/mfline/ump"
 )
 
 func Test_ConsumeJSON(t *testing.T) {
-
-	pr, err := ump.New(`\\192.168.31.4\buffer\IN\ScanData\input\Shifter_5.1_RUS.mov`)
+	pr := ump.NewProfile()
+	err := ump.NewProfile().ConsumeFile(`/home/galdoba/workbench/work/IN/kino_3--FILM--kino_3.mp4`)
 	fmt.Println("test struct:", pr)
 	if pr != nil {
 		fmt.Println(pr.Short())
@@ -22,7 +22,7 @@ func Test_ConsumeJSON(t *testing.T) {
 	}
 	bitMap := make(map[string]int)
 	//	return
-	dir := `\\192.168.31.4\buffer\IN\ScanData\input\files\`
+	dir := `/home/galdoba/workbench/work/IN/`
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		log.Fatal(err)
@@ -33,7 +33,8 @@ func Test_ConsumeJSON(t *testing.T) {
 		}
 		fmt.Printf("%v\r", testNum)
 		path := dir + e.Name()
-		sr, err := ump.ConsumeJSON(path)
+		sr := ump.NewProfile()
+		err := sr.ConsumeJSON(path)
 		if err != nil {
 			t.Errorf("%v", err.Error())
 		}

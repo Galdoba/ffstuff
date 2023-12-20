@@ -10,37 +10,33 @@ import (
 	"github.com/Galdoba/devtools/cli/command"
 )
 
-func main() {
-	fmt.Println("Here be profiler")
-}
-
-func newProfile() *mediaProfile {
+func NewProfile() *mediaProfile {
 	sr := &mediaProfile{}
 	//	sr.Format = &Format{}
 	return sr
 }
 
-func New(path string) (*mediaProfile, error) {
-	prof := mediaProfile{}
+func (prof *mediaProfile) ConsumeFile(path string) error {
 	stdout, stderr, err := command.Execute("ffprobe "+fmt.Sprintf("-v quiet -print_format json -show_format -show_streams -show_programs %v", path), command.Set(command.BUFFER_ON))
 	if err != nil {
 		if err.Error() != "exit status 1" {
-			return nil, fmt.Errorf("execution error: %v", err.Error())
+			return fmt.Errorf("execution error: %v", err.Error())
 		}
 	}
 	if stderr != "" {
 		fmt.Println("stderr:")
 		fmt.Println(stderr)
 		panic("неожиданный выхлоп")
+		//
 	}
 	data := []byte(stdout)
 	if len(data) == 0 {
 		flbts, err := os.ReadFile(path)
 		if err != nil {
-			return nil, fmt.Errorf("file reading error: %v", err.Error())
+			return fmt.Errorf("file reading error: %v", err.Error())
 		}
 		if len(flbts) == 0 {
-			return nil, fmt.Errorf("file empty: %v", path)
+			return fmt.Errorf("file empty: %v", path)
 		}
 		check, _ := command.New(
 			command.CommandLineArguments("ffprobe", fmt.Sprintf("-hide_banner "+fmt.Sprintf("-i %v", path))),
@@ -50,40 +46,39 @@ func New(path string) (*mediaProfile, error) {
 		check.Run()
 		checkOut := check.StdOut() + check.StdErr()
 		if checkOut != "" {
-			return nil, fmt.Errorf("can't read: %v", checkOut)
+			return fmt.Errorf("can't read: %v", checkOut)
 		}
 	}
 	err = json.Unmarshal(data, &prof)
 	if err != nil {
-		return nil, fmt.Errorf("can't unmarshal data from file: %v (%v)\n%v", err.Error(), path, string(data))
+		return fmt.Errorf("can't unmarshal data from file: %v (%v)\n%v", err.Error(), path, string(data))
 	}
 	err = prof.validate()
 	if err != nil {
-		return &prof, fmt.Errorf("validation error: %v", err.Error())
+		return fmt.Errorf("validation error: %v", err.Error())
 	}
 	//fmt.Println(prof.Short())
 
-	return &prof, nil
+	return nil
 }
 
-func ConsumeJSON(path string) (*mediaProfile, error) {
+func (prof *mediaProfile) ConsumeJSON(path string) error {
 	if !strings.HasSuffix(path, ".json") {
-		return nil, fmt.Errorf("file is nit json")
+		return fmt.Errorf("file is not json")
 	}
-	sr := &mediaProfile{}
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return nil, fmt.Errorf("can't read json: %v", err.Error())
+		return fmt.Errorf("can't read json: %v", err.Error())
 	}
-	err = json.Unmarshal(data, &sr)
+	err = json.Unmarshal(data, &prof)
 	if err != nil {
-		return nil, fmt.Errorf("can't unmarshal json: %v (%v)", err.Error(), path)
+		return fmt.Errorf("can't unmarshal json: %v (%v)", err.Error(), path)
 	}
-	err = sr.validate()
+	err = prof.validate()
 	if err != nil {
-		return sr, fmt.Errorf("validation error: %v", err.Error())
+		return fmt.Errorf("validation error: %v", err.Error())
 	}
-	return sr, nil
+	return nil
 }
 
 func assertNoError(err error) {
@@ -113,10 +108,10 @@ TZ:
 
 //
 Input #0, mov,mp4,m4a,3gp,3g2,mj2, from 'Barri_4s_treyler_a_teka.mp4':
-  Duration: 00:01:26.08, start: 0.000000, bitrate: 15338 kb/s
-    Stream #0:0(eng): Video: h264 (Main) (avc1 / 0x31637661), yuv420p, 1920x1080 [SAR 1:1 DAR 16:9], 14831 kb/s, 25 fps, 25 tbr, 25k tbn, 50 tbc (default)
-    Stream #0:1(eng): Audio: aac (LC) (mp4a / 0x6134706D), 48000 Hz, stereo, fltp, 317 kb/s (default)
 
+	Duration: 00:01:26.08, start: 0.000000, bitrate: 15338 kb/s
+	  Stream #0:0(eng): Video: h264 (Main) (avc1 / 0x31637661), yuv420p, 1920x1080 [SAR 1:1 DAR 16:9], 14831 kb/s, 25 fps, 25 tbr, 25k tbn, 50 tbc (default)
+	  Stream #0:1(eng): Audio: aac (LC) (mp4a / 0x6134706D), 48000 Hz, stereo, fltp, 317 kb/s (default)
 
 //
 [1100]
@@ -154,11 +149,6 @@ h = герцовка                    формат: F                   (F = �
 i = битрейт                     формат: I                   (I = целое число значение kbit/s)        int
 C = количество потоков данных   формат: eHex                (eHex = целое число с базой 32)          int??????????
 
-
-
-
-
-
 e = битрейт      формат: [I]   (I = целое число)
 d = количество srt потоков
 e = количество хз чего
@@ -167,9 +157,9 @@ f = количество замечаний от библиотеки парса
 Определения:
 1.Профиль - форматированная информация о внутренней медиа структуре файла.
 2.Аргументы = файлы к которым нужно составить профайл
-
-
 */
+
+// validate - проверяет данные на целостность и формирует отчетные строки
 func (p *mediaProfile) validate() error {
 	vSNum := 0
 	aSNum := 0
