@@ -61,6 +61,11 @@ func main() {
 					Usage:   "print name of the file",
 					Aliases: []string{"n"},
 				},
+				&cli.BoolFlag{
+					Name:    "split",
+					Usage:   "print separation line between different files",
+					Aliases: []string{"sp"},
+				},
 			},
 			Action: func(c *cli.Context) error {
 				args := c.Args().Slice()
@@ -71,6 +76,7 @@ func main() {
 				lng := c.Bool("long")
 				wrn := c.Bool("warning")
 				nme := c.Bool("name")
+				split := c.Bool("split")
 				if !srt && !lng && !wrn {
 					srt = true
 				}
@@ -91,6 +97,9 @@ func main() {
 						}
 					}
 
+					if split {
+						fmt.Fprintf(os.Stdout, "\n")
+					}
 					if nme {
 						fmt.Fprintf(os.Stdout, "%v\n", path)
 					}
