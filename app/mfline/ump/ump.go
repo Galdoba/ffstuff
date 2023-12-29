@@ -370,6 +370,7 @@ func (p *mediaProfile) combineLong(vSNum, aSNum, dSNum, sSNum int) {
 	}
 	//p.long = strings.TrimSuffix(p.long, ";")
 	p.long += fmt.Sprintf("w%v", len(p.warnings))
+	p.long = strings.ReplaceAll(p.long, " ", "_")
 }
 
 func ehex(i int) string {
