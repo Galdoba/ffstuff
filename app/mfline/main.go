@@ -39,21 +39,30 @@ func main() {
 				//-short
 				&cli.BoolFlag{
 					Name:        "short",
+					Category:    "Output",
 					Usage:       "print short profile line",
 					Aliases:     []string{"s"},
 					DefaultText: "true if all Output flags false",
 				},
 				//-long
 				&cli.BoolFlag{
-					Name:    "long",
-					Usage:   "print long profile line",
-					Aliases: []string{"l"},
+					Name:     "long",
+					Category: "Output",
+					Usage:    "print long profile line",
+					Aliases:  []string{"l"},
+				},
+				&cli.BoolFlag{
+					Name:     "audio_layout",
+					Category: "Output",
+					Usage:    "print audio layout line",
+					Aliases:  []string{"a"},
 				},
 				//-warnings
 				&cli.BoolFlag{
-					Name:    "warning",
-					Usage:   "print list of warnings",
-					Aliases: []string{"w"},
+					Name:     "warning",
+					Category: "Output",
+					Usage:    "print list of warnings",
+					Aliases:  []string{"w"},
 				},
 				//
 				&cli.BoolFlag{
@@ -74,10 +83,11 @@ func main() {
 				}
 				srt := c.Bool("short")
 				lng := c.Bool("long")
+				aud := c.Bool("audio_layout")
 				wrn := c.Bool("warning")
 				nme := c.Bool("name")
 				split := c.Bool("split")
-				if !srt && !lng && !wrn {
+				if !srt && !lng && !wrn && !aud {
 					srt = true
 				}
 				for _, path := range args {
@@ -108,6 +118,9 @@ func main() {
 					}
 					if lng {
 						fmt.Fprintf(os.Stdout, "%v\n", scan.Long())
+					}
+					if aud {
+						fmt.Fprintf(os.Stdout, "%v\n", scan.AudioLayout())
 					}
 					if wrn {
 						for _, w := range scan.Warnings() {
