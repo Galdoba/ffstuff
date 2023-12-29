@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/Galdoba/devtools/cli/command"
 	"github.com/Galdoba/ffstuff/pkg/mdm/inputinfo"
 	"github.com/Galdoba/ffstuff/pkg/namedata"
 	"github.com/Galdoba/ffstuff/pkg/spreadsheet"
@@ -41,7 +42,9 @@ func main() {
 			}
 		}
 		fmt.Println(shortBuf)
-
+		com := fmt.Sprintf("mfline show -l -w %v", pi.FileName())
+		out, _, _ := command.Execute(com, command.Set(command.TERMINAL_ON))
+		fmt.Println(out)
 		if strings.Contains(pi.FileName(), "--") {
 			editname := namedata.EditForm(pi.FileName()).EditName()
 			prt := namedata.EditForm(pi.FileName()).PRT()
@@ -62,8 +65,8 @@ func main() {
 			}
 		}
 
-		for _, w := range pi.Warnings() {
-			fmt.Println("warning:", w)
-		}
+		// for _, w := range pi.Warnings() {
+		// 	fmt.Println("warning:", w)
+		// }
 	}
 }

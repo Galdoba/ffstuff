@@ -12,7 +12,7 @@ import (
 
 func Test_ConsumeJSON(t *testing.T) {
 	pr := ump.NewProfile()
-	err := ump.NewProfile().ConsumeFile(`/home/galdoba/workbench/work/IN/kino_3--FILM--kino_3.mp4`)
+	err := ump.NewProfile().ConsumeFile(`\\192.168.31.4\buffer\IN\_DONE\Dusha_ne_slyshit_s01e13--SER--dusha_ne_slyshit_coid5355824_s01e13_sdr_r1920x1080p25_arus2tur2_d2312111225.mov`)
 	fmt.Println("test struct:", pr)
 	if pr != nil {
 		fmt.Println(pr.Short())

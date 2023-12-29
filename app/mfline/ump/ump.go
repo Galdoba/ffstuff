@@ -94,12 +94,14 @@ type mediaProfile struct {
 	streamInfo map[string]string
 	short      string
 	long       string
+	chanLayout string
 }
 
 type MediaProfile interface {
 	Warnings() []string
 	Short() string
 	Long() string
+	AudioLayout() string
 }
 
 /*
@@ -207,6 +209,7 @@ func (p *mediaProfile) validate() error {
 	}
 	p.short = fmt.Sprintf("%v%v%v%v-%v", ehex(vSNum), ehex(aSNum), ehex(dSNum), ehex(sSNum), ehex(len(p.warnings)))
 	p.combineLong(vSNum, aSNum, dSNum, sSNum)
+	p.chanLayout = strings.TrimSuffix(p.chanLayout, " ")
 	return nil
 }
 
@@ -304,6 +307,8 @@ func (p *mediaProfile) validateAudio(stream *Stream, aSNum int) {
 	}
 	p.streamInfo[currentBlock] += "#" + fmt.Sprintf("%v", chan_lay)
 
+	p.chanLayout += fmt.Sprintf("%v ", ehex(channel_num))
+
 	switch channel_num {
 	case 1, 2, 6:
 	default:
@@ -358,13 +363,13 @@ func (p *mediaProfile) combineLong(vSNum, aSNum, dSNum, sSNum int) {
 		//[1{#1920x1080#25#5822#[]#[[SAR 1:1 DAR 16:9]]#5.3%};2{#5.1#48.0#341}{#stereo#48.0#129};0;1]
 		for i := 0; i < 50; i++ {
 			if val, ok := p.streamInfo[fmt.Sprintf("0:%v:%v", stTp, i)]; ok {
-				p.long += "{" + val + "}"
+				p.long += fmt.Sprintf("%v%v{%v}", stTp, i, val)
 			}
 		}
 		p.long += ";"
 	}
 	//p.long = strings.TrimSuffix(p.long, ";")
-	p.long += fmt.Sprintf("%v", len(p.warnings))
+	p.long += fmt.Sprintf("w%v", len(p.warnings))
 }
 
 func ehex(i int) string {
@@ -434,6 +439,10 @@ func (p *mediaProfile) Short() string {
 
 func (p *mediaProfile) Long() string {
 	return p.long
+}
+
+func (p *mediaProfile) AudioLayout() string {
+	return p.chanLayout
 }
 
 func fpsToFloat(fps string) float64 {
