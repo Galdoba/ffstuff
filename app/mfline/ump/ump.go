@@ -121,6 +121,9 @@ Input #0, mov,mp4,m4a,3gp,3g2,mj2, from 'Barri_4s_treyler_a_teka.mp4':
 
 ffprobe -v quiet -of json -show_format -show_streams Barri_4s_treyler_a_teka.mp4
 
+
+
+
 Структура Профиля:
 краткий:
 [ABCDE-F], где
@@ -242,16 +245,18 @@ func (p *mediaProfile) validateVideo(stream *Stream, vSNum int) {
 	p.streamInfo[currentBlock] += "#" + fmt.Sprintf("%v", fps_block)
 
 	sardar := "SAR=" + stream.Sample_aspect_ratio + " DAR=" + stream.Display_aspect_ratio
+	sardar = strings.ReplaceAll(sardar, " ", "_")
 	switch sardar {
-	case "SAR=1:1 DAR=16:9", "":
-	case "SAR= DAR=":
+	case "SAR=1:1_DAR=16:9", "":
+	case "SAR=_DAR=":
 		p.warnings = append(p.warnings, fmt.Sprintf("stream [0:v:%v] ==> blank SAR DAR data present", vSNum))
 		sardar = "???"
-	case "SAR=1:1 DAR=1024:429", "SAR=1:1 DAR=37:20", "SAR=1:1 DAR=160:67":
+	case "SAR=1:1_DAR=1024:429", "SAR=1:1_DAR=37:20", "SAR=1:1_DAR=160:67":
 		//p.warnings = append(p.warnings, fmt.Sprintf("stream [0:v:%v] ==> bad (but possible) SAR DAR: [%v]", vSNum, sardar))
 	default:
 		p.warnings = append(p.warnings, fmt.Sprintf("stream [0:v:%v] ==> bad SAR DAR: [%v]", vSNum, sardar))
 	}
+
 	p.streamInfo[currentBlock] += "#" + fmt.Sprintf("[%v]", sardar)
 
 	btrate := stream.Bit_rate
@@ -440,6 +445,10 @@ func (p *mediaProfile) Short() string {
 
 func (p *mediaProfile) Long() string {
 	return p.long
+}
+
+func (p *mediaProfile) ByStream() map[string]string {
+	return p.streamInfo
 }
 
 func (p *mediaProfile) AudioLayout() string {
