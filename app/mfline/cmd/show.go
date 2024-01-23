@@ -168,7 +168,7 @@ func Show() *cli.Command {
 						fmt.Fprintf(os.Stderr, "%v\n", err)
 					}
 					if len(errors) > 0 && printed == 0 {
-						err := fmt.Sprintf("possible keys: ")
+						err := "possible keys: "
 						stream_keys = []string{}
 						for k := range info {
 							stream_keys = append(stream_keys, k)
@@ -187,14 +187,14 @@ func Show() *cli.Command {
 
 }
 
-func sliceHas(sl []string, s string) bool {
-	for _, st := range sl {
-		if st == s {
-			return true
-		}
-	}
-	return false
-}
+// func sliceHas(sl []string, s string) bool {
+// 	for _, st := range sl {
+// 		if st == s {
+// 			return true
+// 		}
+// 	}
+// 	return false
+// }
 
 func sortStreamKeys(keys []string) ([]string, error) {
 	video := []string{}

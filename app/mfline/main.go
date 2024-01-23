@@ -17,7 +17,26 @@ func main() {
 	app.Version = "v 0.1.0"
 	app.Name = programName
 	app.Usage = "Parse media stream data from file\nRequires ffprobe to work"
-	app.Flags = []cli.Flag{}
+	app.Flags = []cli.Flag{
+		&cli.StringFlag{
+			Name:        "test",
+			Category:    "",
+			DefaultText: "",
+			FilePath:    "",
+			Usage:       "",
+			Required:    false,
+			Hidden:      false,
+			HasBeenSet:  false,
+			Value:       "",
+			Destination: new(string),
+			Aliases:     []string{},
+			EnvVars:     []string{},
+			TakesFile:   false,
+			Action: func(*cli.Context, string) error {
+				return nil
+			},
+		},
+	}
 	//ДО НАЧАЛА ДЕЙСТВИЯ
 	app.Before = func(c *cli.Context) error {
 		//
