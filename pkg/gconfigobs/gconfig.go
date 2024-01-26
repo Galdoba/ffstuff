@@ -1,4 +1,4 @@
-package gconfig
+package gconfigobs
 
 import (
 	"fmt"

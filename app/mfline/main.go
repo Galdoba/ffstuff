@@ -3,17 +3,49 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 
+	"github.com/Galdoba/devtools/gconfig"
 	"github.com/Galdoba/ffstuff/app/mfline/cmd"
 	"github.com/urfave/cli/v2"
 )
 
 const (
-	programName = "mfline"
+	programName    = "mfline"
+	opt_storageDir = "some dir"
 )
+
+var configuration *gconfig.Config
+
+func init() {
+	conf, err := gconfig.Load(programName)
+	if err != nil {
+		fmt.Printf("can't initiate %v: %v\n", programName, err.Error())
+		if strings.Contains(err.Error(), " The system cannot find") {
+			fmt.Printf("creating default config:")
+			conf, err = gconfig.NewConfig(programName, gconfig.Default())
+			if err != nil {
+				fmt.Printf("can't create default config: %v\n", err.Error())
+				os.Exit(1)
+			}
+
+			conf.Option_STR[opt_storageDir] = "created"
+			if conf.Save() != nil {
+				fmt.Printf("can't create default config: %v\n", err.Error())
+				os.Exit(1)
+			}
+			fmt.Printf("    ok\n")
+			fmt.Printf("restart mfline")
+			os.Exit(0)
+		}
+		os.Exit(1)
+	}
+	configuration = conf
+}
 
 func main() {
 	app := cli.NewApp()
+
 	app.Version = "v 0.1.0"
 	app.Name = programName
 	app.Usage = "Parse media stream data from file\nRequires ffprobe to work"
