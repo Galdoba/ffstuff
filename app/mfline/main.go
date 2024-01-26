@@ -11,8 +11,11 @@ import (
 )
 
 const (
-	programName    = "mfline"
-	opt_storageDir = "some dir"
+	programName      = "mfline"
+	opt_storageDir   = "Default Storage Directory"
+	opt_logFile      = "Log File"
+	opt_oldScanHours = "Old Scan (hours)"
+	opt_autoDelete   = "Auto Delete Old Scans"
 )
 
 var configuration *gconfig.Config
@@ -20,7 +23,7 @@ var configuration *gconfig.Config
 func init() {
 	conf, err := gconfig.Load(programName)
 	if err != nil {
-		fmt.Printf("can't initiate %v: %v\n", programName, err.Error())
+		fmt.Printf("%v\n", err.Error())
 		if strings.Contains(err.Error(), " The system cannot find") {
 			fmt.Printf("creating default config:")
 			conf, err = gconfig.NewConfig(programName, gconfig.Default())
@@ -29,7 +32,11 @@ func init() {
 				os.Exit(1)
 			}
 
-			conf.Option_STR[opt_storageDir] = "created"
+			conf.Option_STR[opt_storageDir] = defaultStorageDir()
+			conf.Option_STR[opt_logFile] = defaultLogFile()
+			conf.Option_FLOAT64[opt_oldScanHours] = 72.0
+			conf.Option_BOOL[opt_autoDelete] = false
+
 			if conf.Save() != nil {
 				fmt.Printf("can't create default config: %v\n", err.Error())
 				os.Exit(1)
