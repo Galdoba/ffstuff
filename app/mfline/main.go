@@ -35,7 +35,7 @@ func main() {
 		cfg, err := config.Load(app.Name)
 		if err != nil {
 			switch {
-			case strings.Contains(err.Error(), "The system cannot find the file specified"):
+			case strings.Contains(err.Error(), "The system cannot find "):
 				cfg, err = config.NewConfig(c.App.Name)
 				if err = cfg.Save(); err != nil {
 					return fmt.Errorf("can't setup config: %v", err.Error())

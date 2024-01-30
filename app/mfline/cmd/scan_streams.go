@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/Galdoba/ffstuff/app/mfline/config"
@@ -48,16 +49,41 @@ func ScanStreams() *cli.Command {
 			ArgsUsage:   "ARGS",
 			Category:    "",
 			Action: func(c *cli.Context) error {
-				fmt.Println("Storage:", cfg.StorageDir)
-				panic(9)
-				fmt.Println("sub1 command used")
-				fmt.Println("global fl", c.String("test"))
-				fmt.Println("sub fl", c.String("fl1"))
-				fmt.Println(c.Command.HelpName)
-				fmt.Println("sub fl", c.String("fl2"))
-				if c.String("?") != "" {
-					fmt.Println("Args usage:", c.Command.ArgsUsage)
+				sourceFile := c.String("source")
+				fmt.Println("Check source")
+				fmt.Printf("source: '%v'\n", sourceFile)
+				srcInfo, err := os.Stat(sourceFile)
+				if os.IsNotExist(err) {
+					return fmt.Errorf("source is not exist: %v", sourceFile)
 				}
+				if srcInfo.IsDir() {
+					return fmt.Errorf("source must not be a directory: %v", sourceFile)
+				}
+				if err != nil {
+					return fmt.Errorf("os.Stat: %v", err.Error())
+				}
+				//////////
+				dest := c.String("destination")
+				if dest == "" {
+					dest = cfg.StorageDir
+				}
+				fmt.Println("Check dest")
+				destInfo, err := os.Stat(dest)
+				if os.IsNotExist(err) {
+					return fmt.Errorf("destination is not exist: %v", dest)
+				}
+				if !destInfo.IsDir() {
+					return fmt.Errorf("destination must be a directory: %v", dest)
+				}
+				if err != nil {
+					return fmt.Errorf("os.Stat: %v", err.Error())
+				}
+				fmt.Println("Storage:", dest)
+				//////////
+				fmt.Println("Override?")
+
+				fmt.Println("Retry if err?")
+
 				return nil
 			},
 			OnUsageError: func(cCtx *cli.Context, err error, isSubcommand bool) error {
