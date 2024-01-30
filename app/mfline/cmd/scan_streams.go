@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/Galdoba/ffstuff/app/mfline/config"
 	"github.com/urfave/cli/v2"
 )
 
 func ScanStreams() *cli.Command {
+	cfg := &config.Config{}
 	cm := &cli.Command{
 		Name:      "scan",
 		Usage:     "scan file ('mfline scan --help' for discription)",
@@ -24,7 +26,8 @@ func ScanStreams() *cli.Command {
 		//Category:    "Scan",
 		BashComplete: func(*cli.Context) {
 		},
-		Before: func(*cli.Context) error {
+		Before: func(c *cli.Context) error {
+			cfg, _ = config.Load(c.App.Name)
 			return nil
 		},
 		After: func(*cli.Context) error {
@@ -45,6 +48,8 @@ func ScanStreams() *cli.Command {
 			ArgsUsage:   "ARGS",
 			Category:    "",
 			Action: func(c *cli.Context) error {
+				fmt.Println("Storage:", cfg.StorageDir)
+				panic(9)
 				fmt.Println("sub1 command used")
 				fmt.Println("global fl", c.String("test"))
 				fmt.Println("sub fl", c.String("fl1"))

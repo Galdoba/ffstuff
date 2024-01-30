@@ -5,80 +5,63 @@ import (
 	"os"
 	"strings"
 
-	"github.com/Galdoba/devtools/gconfig"
 	"github.com/Galdoba/ffstuff/app/mfline/cmd"
+	"github.com/Galdoba/ffstuff/app/mfline/config"
 	"github.com/urfave/cli/v2"
 )
 
 const (
-	programName      = "mfline"
-	opt_storageDir   = "Default Storage Directory"
-	opt_logFile      = "Log File"
-	opt_oldScanHours = "Old Scan (hours)"
-	opt_autoDelete   = "Auto Delete Old Scans"
+	CONFIG = "cfg"
 )
-
-var configuration *gconfig.Config
-
-func init() {
-	conf, err := gconfig.Load(programName)
-	if err != nil {
-		fmt.Printf("%v\n", err.Error())
-		if strings.Contains(err.Error(), " The system cannot find") {
-			fmt.Printf("creating default config:")
-			conf, err = gconfig.NewConfig(programName, gconfig.Default())
-			if err != nil {
-				fmt.Printf("can't create default config: %v\n", err.Error())
-				os.Exit(1)
-			}
-
-			conf.Option_STR[opt_storageDir] = defaultStorageDir()
-			conf.Option_STR[opt_logFile] = defaultLogFile()
-			conf.Option_FLOAT64[opt_oldScanHours] = 72.0
-			conf.Option_BOOL[opt_autoDelete] = false
-
-			if conf.Save() != nil {
-				fmt.Printf("can't create default config: %v\n", err.Error())
-				os.Exit(1)
-			}
-			fmt.Printf("    ok\n")
-			fmt.Printf("restart mfline")
-			os.Exit(0)
-		}
-		os.Exit(1)
-	}
-	configuration = conf
-}
 
 func main() {
 	app := cli.NewApp()
 
 	app.Version = "v 0.1.0"
-	app.Name = programName
 	app.Usage = "Parse media stream data from file\nRequires ffprobe to work"
 	app.Flags = []cli.Flag{
 		&cli.StringFlag{
-			Name:        "test",
-			Category:    "",
-			DefaultText: "",
-			FilePath:    "",
-			Usage:       "",
-			Required:    false,
-			Hidden:      false,
-			HasBeenSet:  false,
-			Value:       "",
-			Destination: new(string),
-			Aliases:     []string{},
-			EnvVars:     []string{},
-			TakesFile:   false,
+			Name:      "use_config",
+			Usage:     "use alternative config",
+			TakesFile: false,
 			Action: func(*cli.Context, string) error {
 				return nil
 			},
 		},
 	}
+
 	//ДО НАЧАЛА ДЕЙСТВИЯ
 	app.Before = func(c *cli.Context) error {
-		//
+		cfg, err := config.Load(app.Name)
+		if err != nil {
+			switch {
+			case strings.Contains(err.Error(), "The system cannot find the file specified"):
+				cfg, err = config.NewConfig(c.App.Name)
+				if err = cfg.Save(); err != nil {
+					return fmt.Errorf("can't setup config: %v", err.Error())
+				}
+				fmt.Printf("default config created at %v: restart %v\n", cfg.Location, cfg.AppName)
+				os.Exit(0)
+			default:
+				return err
+			}
+		}
+		if _, err := os.ReadDir(cfg.StorageDir); err != nil {
+			return fmt.Errorf("can't read storage dir: %v", err.Error())
+		}
+
+		if cfg.WriteLogs {
+			f, err := os.OpenFile(cfg.LogFile, os.O_CREATE|os.O_WRONLY, 0777)
+			if err != nil {
+				return fmt.Errorf("can't write to log file: %v", err.Error())
+			}
+			defer f.Close()
+		}
+		for _, dir := range cfg.TrackDirs {
+			if _, err := os.ReadDir(dir); err != nil {
+				return fmt.Errorf("can't read tracked dir: %v", err.Error())
+			}
+		}
 		return nil
 	}
 	app.Commands = []*cli.Command{
@@ -226,6 +209,8 @@ func main() {
 		// 		return nil
 		// 	},
 		// },
+
+		cmd.Config(),
 		cmd.Show(),
 		cmd.ScanStreams(),
 	}
@@ -236,7 +221,7 @@ func main() {
 	}
 	args := os.Args
 	if err := app.Run(args); err != nil {
-		errOut := fmt.Sprintf("%v error: %v", programName, err.Error())
+		errOut := fmt.Sprintf("%v error: %v", app.Name, err.Error())
 		println(errOut)
 		os.Exit(1)
 	}
