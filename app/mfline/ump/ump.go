@@ -10,6 +10,11 @@ import (
 	"github.com/Galdoba/devtools/cli/command"
 )
 
+const (
+	ScanBasic     = "basic"
+	ScanInterlace = "interlace"
+)
+
 func NewProfile() *mediaProfile {
 	sr := &mediaProfile{}
 	//	sr.Format = &Format{}
@@ -81,6 +86,15 @@ func (prof *mediaProfile) ConsumeJSON(path string) error {
 	return nil
 }
 
+func (mp *mediaProfile) MarshalJSON() ([]byte, error) {
+	type MediaProfileAlias mediaProfile
+	return json.MarshalIndent(&struct {
+		*MediaProfileAlias
+	}{
+		MediaProfileAlias: (*MediaProfileAlias)(mp),
+	}, "", "  ")
+}
+
 func assertNoError(err error) {
 	if err != nil {
 		panic(err.Error())
@@ -88,13 +102,14 @@ func assertNoError(err error) {
 }
 
 type mediaProfile struct {
-	Format     *Format   `json:"format"`
-	Streams    []*Stream `json:"streams,omitempty"`
-	warnings   []string
-	streamInfo map[string]string
-	short      string
-	long       string
-	chanLayout string
+	Format         *Format   `json:"format"`
+	Streams        []*Stream `json:"streams,omitempty"`
+	warnings       []string
+	streamInfo     map[string]string
+	short          string
+	long           string
+	chanLayout     string
+	ScansCompleted []string `json:"scans completed,omitempty"`
 }
 
 type MediaProfile interface {
@@ -102,6 +117,7 @@ type MediaProfile interface {
 	Short() string
 	Long() string
 	AudioLayout() string
+	ConfirmScan(string) error
 }
 
 /*
@@ -470,6 +486,16 @@ func hzFormat(hz string) string {
 		return "???"
 	}
 	return fmt.Sprintf("%v", float64(h)/1000)
+}
+
+func (mp *mediaProfile) ConfirmScan(scan string) error {
+	for _, completed := range mp.ScansCompleted {
+		if scan == completed {
+			return fmt.Errorf("%v scan was already completed", scan)
+		}
+	}
+	mp.ScansCompleted = append(mp.ScansCompleted, scan)
+	return nil
 }
 
 // func (sr *mediaProfile) String() string {

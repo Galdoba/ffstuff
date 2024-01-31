@@ -3,9 +3,11 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/Galdoba/ffstuff/app/mfline/config"
+	"github.com/Galdoba/ffstuff/app/mfline/ump"
 	"github.com/urfave/cli/v2"
 )
 
@@ -40,96 +42,213 @@ func ScanStreams() *cli.Command {
 		OnUsageError: func(cCtx *cli.Context, err error, isSubcommand bool) error {
 			return err
 		},
-		Subcommands: []*cli.Command{&cli.Command{
-			Name:        "basic",
-			Aliases:     []string{},
-			Usage:       "get common data from file header",
-			UsageText:   "mfline scan basic --source FILE [--destination DIR]\n\ndestination priority:\n -flag        (special case: 'local' = runtime dir)\n -config value\n -runtime dir\n\nno arguments expected\n\nmfline scan basic -? - for detailed args usage",
-			Description: "DESCR",
-			ArgsUsage:   "ARGS",
-			Category:    "",
-			Action: func(c *cli.Context) error {
-				sourceFile := c.String("source")
-				fmt.Println("Check source")
-				fmt.Printf("source: '%v'\n", sourceFile)
-				srcInfo, err := os.Stat(sourceFile)
-				if os.IsNotExist(err) {
-					return fmt.Errorf("source is not exist: %v", sourceFile)
-				}
-				if srcInfo.IsDir() {
-					return fmt.Errorf("source must not be a directory: %v", sourceFile)
-				}
-				if err != nil {
-					return fmt.Errorf("os.Stat: %v", err.Error())
-				}
-				//////////
-				dest := c.String("destination")
-				if dest == "" {
-					dest = cfg.StorageDir
-				}
-				fmt.Println("Check dest")
-				destInfo, err := os.Stat(dest)
-				if os.IsNotExist(err) {
-					return fmt.Errorf("destination is not exist: %v", dest)
-				}
-				if !destInfo.IsDir() {
-					return fmt.Errorf("destination must be a directory: %v", dest)
-				}
-				if err != nil {
-					return fmt.Errorf("os.Stat: %v", err.Error())
-				}
-				fmt.Println("Storage:", dest)
-				//////////
-				fmt.Println("Override?")
+		Subcommands: []*cli.Command{
+			{
+				Name:        "basic",
+				Aliases:     []string{},
+				Usage:       "get common data from file header",
+				UsageText:   "mfline scan basic --source FILE [--destination DIR]\n\ndestination priority:\n -flag        (special case: 'local' = runtime dir)\n -config value\n -runtime dir\n\nno arguments expected\n\nmfline scan basic -? - for detailed args usage",
+				Description: "DESCR",
+				ArgsUsage:   "ARGS",
+				Category:    "",
+				Action: func(c *cli.Context) error {
+					//CHECK SOURCE
+					sourceFile := c.String("source")
+					if err := checkSource(c.String("source")); err != nil {
+						return err
+					}
+					//CHECK DESTINATION
+					dest := c.String("destination")
+					if dest == "" {
+						dest = cfg.StorageDir
+					}
+					destInfo, err := os.Stat(dest)
+					if os.IsNotExist(err) {
+						return fmt.Errorf("destination is not exist: %v", dest)
+					}
+					if !destInfo.IsDir() {
+						return fmt.Errorf("destination must be a directory: %v", dest)
+					}
+					if err != nil {
+						return fmt.Errorf("os.Stat: %v", err.Error())
+					}
+					//COMENCE BASIC SCAN
+					mp := ump.NewProfile()
+					err = mp.ConsumeFile(sourceFile)
+					if err != nil {
+						return err
+					}
+					if mp.ConfirmScan(ump.ScanBasic) != nil {
+						return err
+					}
+					//SAVE TO TARGET FILE
+					bt, err := mp.MarshalJSON()
+					if err != nil {
+						return err
+					}
+					fname := filepath.Base(sourceFile)
+					trgInfo, err := os.Stat(dest + fname + ".json")
+					overwrite := c.Bool("overwrite")
+					if trgInfo != nil && !overwrite {
+						return fmt.Errorf("previous scan data exist: overwrite forbidden")
+					}
+					f, err := os.OpenFile(dest+fname+".json", os.O_CREATE|os.O_WRONLY, 0777)
+					if err != nil {
+						return fmt.Errorf("can't save target file: %v", err.Error())
+					}
+					defer f.Close()
+					f.Truncate(0)
+					_, err = f.Write(bt)
+					return err
+				},
+				OnUsageError: func(cCtx *cli.Context, err error, isSubcommand bool) error {
+					fmt.Println("usage error")
+					fmt.Println(err.Error())
+					fmt.Println("sub =", isSubcommand)
+					return nil
+				},
+				Subcommands: []*cli.Command{},
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name: "source",
+						//Category:  "path",
+						Usage:     "path to file which will be scanned   (required)",
+						Required:  true,
+						Aliases:   []string{},
+						TakesFile: true,
+					},
 
-				fmt.Println("Retry if err?")
+					&cli.StringFlag{
+						Name: "destination",
+						//Category:  "path",
+						Usage:     "path to file data will be written to           \n\nother:",
+						Required:  false,
+						TakesFile: true,
+					},
+					&cli.BoolFlag{
+						Name:               "overwrite",
+						Usage:              "rewrite destination file",
+						DisableDefaultText: true,
+						Aliases:            []string{"o"},
+					},
+					&cli.BoolFlag{
+						Name:               "args",
+						Usage:              "show detailed args usage",
+						Aliases:            []string{"?"},
+						DisableDefaultText: true,
+					},
+				},
+				SkipFlagParsing:        false,
+				HideHelp:               false,
+				HideHelpCommand:        false,
+				Hidden:                 false,
+				UseShortOptionHandling: false,
+				HelpName:               "",
+			},
+			{
+				Name:        "interlace",
+				Aliases:     []string{},
+				Usage:       "use idet to scan file for interlace data",
+				UsageText:   "mfline scan interlace --source FILE [--destination DIR]\n\ndestination priority:\n -flag        (special case: 'local' = runtime dir)\n -config value\n -runtime dir\n\nno arguments expected\n\nmfline scan basic -? - for detailed args usage",
+				Description: "DESCR",
+				ArgsUsage:   "ARGS",
+				Category:    "",
+				Action: func(c *cli.Context) error {
+					//CHECK SOURCE
+					sourceFile := c.String("source")
+					if err := checkSource(sourceFile); err != nil {
+						return err
+					}
 
-				return nil
-			},
-			OnUsageError: func(cCtx *cli.Context, err error, isSubcommand bool) error {
-				fmt.Println("usage error")
-				fmt.Println(err.Error())
-				fmt.Println("sub =", isSubcommand)
-				return nil
-			},
-			Subcommands: []*cli.Command{},
-			Flags: []cli.Flag{
-				&cli.StringFlag{
-					Name: "source",
-					//Category:  "path",
-					Usage:     "path to file which will be scanned   (required)",
-					Required:  true,
-					Aliases:   []string{},
-					TakesFile: true,
+					//CHECK DESTINATION
+					dest := c.String("destination")
+					if dest == "" {
+						dest = cfg.StorageDir
+					}
+					destInfo, err := os.Stat(dest)
+					if os.IsNotExist(err) {
+						return fmt.Errorf("destination is not exist: %v", dest)
+					}
+					if !destInfo.IsDir() {
+						return fmt.Errorf("destination must be a directory: %v", dest)
+					}
+					if err != nil {
+						return fmt.Errorf("os.Stat: %v", err.Error())
+					}
+					//COMENCE BASIC SCAN
+					mp := ump.NewProfile()
+					err = mp.ConsumeFile(sourceFile)
+					if err != nil {
+						return err
+					}
+					if mp.ConfirmScan(ump.ScanBasic) != nil {
+						return err
+					}
+					//SAVE TO TARGET FILE
+					bt, err := mp.MarshalJSON()
+					if err != nil {
+						return err
+					}
+					fname := filepath.Base(sourceFile)
+					trgInfo, err := os.Stat(dest + fname + ".json")
+					overwrite := c.Bool("overwrite")
+					if trgInfo != nil && !overwrite {
+						return fmt.Errorf("previous scan data exist: overwrite forbidden")
+					}
+					f, err := os.OpenFile(dest+fname+".json", os.O_CREATE|os.O_WRONLY, 0777)
+					if err != nil {
+						return fmt.Errorf("can't save target file: %v", err.Error())
+					}
+					defer f.Close()
+					f.Truncate(0)
+					_, err = f.Write(bt)
+					return err
 				},
+				OnUsageError: func(cCtx *cli.Context, err error, isSubcommand bool) error {
+					fmt.Println("usage error")
+					fmt.Println(err.Error())
+					fmt.Println("sub =", isSubcommand)
+					return nil
+				},
+				Subcommands: []*cli.Command{},
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name: "source",
+						//Category:  "path",
+						Usage:     "path to file which will be scanned   (required)",
+						Required:  true,
+						Aliases:   []string{},
+						TakesFile: true,
+					},
 
-				&cli.StringFlag{
-					Name: "destination",
-					//Category:  "path",
-					Usage:     "path to file data will be written to           \n\nother:",
-					Required:  false,
-					TakesFile: true,
+					&cli.StringFlag{
+						Name: "destination",
+						//Category:  "path",
+						Usage:     "path to file data will be written to           \n\nother:",
+						Required:  false,
+						TakesFile: true,
+					},
+					&cli.BoolFlag{
+						Name:               "overwrite",
+						Usage:              "rewrite destination file",
+						DisableDefaultText: true,
+						Aliases:            []string{"o"},
+					},
+					&cli.BoolFlag{
+						Name:               "args",
+						Usage:              "show detailed args usage",
+						Aliases:            []string{"?"},
+						DisableDefaultText: true,
+					},
 				},
-				&cli.BoolFlag{
-					Name:               "overwrite",
-					Usage:              "rewrite destination file",
-					DisableDefaultText: true,
-					Aliases:            []string{"o"},
-				},
-				&cli.BoolFlag{
-					Name:               "args",
-					Usage:              "show detailed args usage",
-					Aliases:            []string{"?"},
-					DisableDefaultText: true,
-				},
+				SkipFlagParsing:        false,
+				HideHelp:               false,
+				HideHelpCommand:        false,
+				Hidden:                 false,
+				UseShortOptionHandling: false,
+				HelpName:               "",
 			},
-			SkipFlagParsing:        false,
-			HideHelp:               false,
-			HideHelpCommand:        false,
-			Hidden:                 false,
-			UseShortOptionHandling: false,
-			HelpName:               "",
-		}},
+		},
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:        "fl1",
@@ -156,4 +275,18 @@ func ScanStreams() *cli.Command {
 		CustomHelpTemplate:     "",
 	}
 	return cm
+}
+
+func checkSource(sourceFile string) error {
+	srcInfo, err := os.Stat(sourceFile)
+	if os.IsNotExist(err) {
+		return fmt.Errorf("source is not exist: %v", sourceFile)
+	}
+	if srcInfo.IsDir() {
+		return fmt.Errorf("source must not be a directory: %v", sourceFile)
+	}
+	if err != nil {
+		return fmt.Errorf("os.Stat: %v", err.Error())
+	}
+	return nil
 }
