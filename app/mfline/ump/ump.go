@@ -292,13 +292,17 @@ func (p *mediaProfile) validateVideo(stream *Stream, vSNum int) {
 		btrate = fmt.Sprintf("%v", btr/1000)
 	}
 	p.streamInfo[currentBlock] += "#" + fmt.Sprintf("%v", btrate)
-
-	p.streamInfo[currentBlock] += `#ns`
+	prog := stream.Progressive_frames_pct
+	switch prog {
+	case 0.0:
+		p.streamInfo[currentBlock] += `#ns`
+	default:
+		p.streamInfo[currentBlock] += `#` + fmt.Sprintf("%v", prog) + "%"
+	}
 }
 
 func (p *mediaProfile) validateAudio(stream *Stream, aSNum int) {
 	currentBlock := fmt.Sprintf("0:a:%v", aSNum)
-
 	chan_lay := stream.Channel_layout
 	channel_num := stream.Channels
 	switch chan_lay {
@@ -370,6 +374,7 @@ func (p *mediaProfile) validateAudio(stream *Stream, aSNum int) {
 }
 
 func (p *mediaProfile) combineLong(vSNum, aSNum, dSNum, sSNum int) {
+	p.long = ""
 	for _, stTp := range []string{"v", "a", "d", "s"} {
 		switch stTp {
 		case "v":
@@ -494,6 +499,9 @@ func (mp *mediaProfile) ConfirmScan(scan string) error {
 			return fmt.Errorf("%v scan was already completed", scan)
 		}
 	}
+	if err := mp.validate(); err != nil {
+		return fmt.Errorf("can't validate profile: %v", err.Error())
+	}
 	mp.ScansCompleted = append(mp.ScansCompleted, scan)
 	return nil
 }
@@ -519,60 +527,61 @@ type Format struct {
 }
 
 type Stream struct {
-	Avg_frame_rate       string                  `json:"avg_frame_rate,omitempty"`
-	Bit_rate             string                  `json:"bit_rate,omitempty"`
-	Bits_per_raw_sample  string                  `json:"bits_per_raw_sample,omitempty"`
-	Bits_per_sample      int                     `json:"bits_per_sample,omitempty"`
-	Channel_layout       string                  `json:"channel_layout,omitempty"`
-	Channels             int                     `json:"channels,omitempty"`
-	Chroma_location      string                  `json:"chroma_location,omitempty"`
-	Closed_captions      int                     `json:"closed_captions,omitempty"`
-	Codec_long_name      string                  `json:"codec_long_name,omitempty"`
-	Codec_name           string                  `json:"codec_name,omitempty"`
-	Codec_tag            string                  `json:"codec_tag,omitempty"`
-	Codec_tag_string     string                  `json:"codec_tag_string,omitempty"`
-	Codec_time_base      string                  `json:"codec_time_base,omitempty"`
-	Codec_type           string                  `json:"codec_type,omitempty"`
-	Coded_height         int                     `json:"coded_height,omitempty"`
-	Coded_width          int                     `json:"coded_width,omitempty"`
-	Color_primaries      string                  `json:"color_primaries,omitempty"`
-	Color_range          string                  `json:"color_range,omitempty"`
-	Color_space          string                  `json:"color_space,omitempty"`
-	Color_transfer       string                  `json:"color_transfer,omitempty"`
-	Display_aspect_ratio string                  `json:"display_aspect_ratio,omitempty"`
-	Divx_packed          string                  `json:"divx_packed,omitempty"`
-	Dmix_mode            string                  `json:"dmix_mode,omitempty"`
-	Duration             string                  `json:"duration,omitempty"`
-	Duration_ts          int                     `json:"duration_ts,omitempty"`
-	Field_order          string                  `json:"field_order,omitempty"`
-	Has_b_frames         int                     `json:"has_b_frames,omitempty"`
-	Height               int                     `json:"height,omitempty"`
-	Id                   string                  `json:"id,omitempty"`
-	Index                int                     `json:"index,omitempty"`
-	Is_avc               string                  `json:"is_avc,omitempty"`
-	Level                int                     `json:"level,omitempty"`
-	Loro_cmixlev         string                  `json:"loro_cmixlev,omitempty"`
-	Loro_surmixlev       string                  `json:"loro_surmixlev,omitempty"`
-	Ltrt_cmixlev         string                  `json:"ltrt_cmixlev,omitempty"`
-	Ltrt_surmixlev       string                  `json:"ltrt_surmixlev,omitempty"`
-	Max_bit_rate         string                  `json:"max_bit_rate,omitempty"`
-	Nal_length_size      string                  `json:"nal_length_size,omitempty"`
-	Nb_frames            string                  `json:"nb_frames,omitempty"`
-	Pix_fmt              string                  `json:"pix_fmt,omitempty"`
-	Profile              string                  `json:"profile,omitempty"`
-	Quarter_sample       string                  `json:"quarter_sample,omitempty"`
-	R_frame_rate         string                  `json:"r_frame_rate,omitempty"`
-	Refs                 int                     `json:"refs,omitempty"`
-	Sample_aspect_ratio  string                  `json:"sample_aspect_ratio,omitempty"`
-	Sample_fmt           string                  `json:"sample_fmt,omitempty"`
-	Sample_rate          string                  `json:"sample_rate,omitempty"`
-	Start_pts            int                     `json:"start_pts,omitempty"`
-	Start_time           string                  `json:"start_time,omitempty"`
-	Time_base            string                  `json:"time_base,omitempty"`
-	Width                int                     `json:"width,omitempty"`
-	Side_data_list       []Side_data_list_struct `json:"side_data_list,omitempty"`
-	Tags                 map[string]string       `json:"tags,omitempty"`
-	Disposition          map[string]int          `json:"disposition,omitempty"`
+	Avg_frame_rate         string                  `json:"avg_frame_rate,omitempty"`
+	Bit_rate               string                  `json:"bit_rate,omitempty"`
+	Bits_per_raw_sample    string                  `json:"bits_per_raw_sample,omitempty"`
+	Bits_per_sample        int                     `json:"bits_per_sample,omitempty"`
+	Channel_layout         string                  `json:"channel_layout,omitempty"`
+	Channels               int                     `json:"channels,omitempty"`
+	Chroma_location        string                  `json:"chroma_location,omitempty"`
+	Closed_captions        int                     `json:"closed_captions,omitempty"`
+	Codec_long_name        string                  `json:"codec_long_name,omitempty"`
+	Codec_name             string                  `json:"codec_name,omitempty"`
+	Codec_tag              string                  `json:"codec_tag,omitempty"`
+	Codec_tag_string       string                  `json:"codec_tag_string,omitempty"`
+	Codec_time_base        string                  `json:"codec_time_base,omitempty"`
+	Codec_type             string                  `json:"codec_type,omitempty"`
+	Coded_height           int                     `json:"coded_height,omitempty"`
+	Coded_width            int                     `json:"coded_width,omitempty"`
+	Color_primaries        string                  `json:"color_primaries,omitempty"`
+	Color_range            string                  `json:"color_range,omitempty"`
+	Color_space            string                  `json:"color_space,omitempty"`
+	Color_transfer         string                  `json:"color_transfer,omitempty"`
+	Display_aspect_ratio   string                  `json:"display_aspect_ratio,omitempty"`
+	Divx_packed            string                  `json:"divx_packed,omitempty"`
+	Dmix_mode              string                  `json:"dmix_mode,omitempty"`
+	Duration               string                  `json:"duration,omitempty"`
+	Duration_ts            int                     `json:"duration_ts,omitempty"`
+	Field_order            string                  `json:"field_order,omitempty"`
+	Has_b_frames           int                     `json:"has_b_frames,omitempty"`
+	Height                 int                     `json:"height,omitempty"`
+	Id                     string                  `json:"id,omitempty"`
+	Index                  int                     `json:"index,omitempty"`
+	Is_avc                 string                  `json:"is_avc,omitempty"`
+	Level                  int                     `json:"level,omitempty"`
+	Loro_cmixlev           string                  `json:"loro_cmixlev,omitempty"`
+	Loro_surmixlev         string                  `json:"loro_surmixlev,omitempty"`
+	Ltrt_cmixlev           string                  `json:"ltrt_cmixlev,omitempty"`
+	Ltrt_surmixlev         string                  `json:"ltrt_surmixlev,omitempty"`
+	Max_bit_rate           string                  `json:"max_bit_rate,omitempty"`
+	Nal_length_size        string                  `json:"nal_length_size,omitempty"`
+	Nb_frames              string                  `json:"nb_frames,omitempty"`
+	Pix_fmt                string                  `json:"pix_fmt,omitempty"`
+	Profile                string                  `json:"profile,omitempty"`
+	Progressive_frames_pct float64                 `json:"progressive_frames_pct,omitempty"`
+	Quarter_sample         string                  `json:"quarter_sample,omitempty"`
+	R_frame_rate           string                  `json:"r_frame_rate,omitempty"`
+	Refs                   int                     `json:"refs,omitempty"`
+	Sample_aspect_ratio    string                  `json:"sample_aspect_ratio,omitempty"`
+	Sample_fmt             string                  `json:"sample_fmt,omitempty"`
+	Sample_rate            string                  `json:"sample_rate,omitempty"`
+	Start_pts              int                     `json:"start_pts,omitempty"`
+	Start_time             string                  `json:"start_time,omitempty"`
+	Time_base              string                  `json:"time_base,omitempty"`
+	Width                  int                     `json:"width,omitempty"`
+	Side_data_list         []Side_data_list_struct `json:"side_data_list,omitempty"`
+	Tags                   map[string]string       `json:"tags,omitempty"`
+	Disposition            map[string]int          `json:"disposition,omitempty"`
 }
 
 type Side_data_list_struct struct {

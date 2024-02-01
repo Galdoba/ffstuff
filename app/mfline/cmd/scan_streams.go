@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
+	"github.com/Galdoba/devtools/cli/command"
 	"github.com/Galdoba/ffstuff/app/mfline/config"
 	"github.com/Galdoba/ffstuff/app/mfline/ump"
 	"github.com/urfave/cli/v2"
@@ -175,17 +177,49 @@ func ScanStreams() *cli.Command {
 					if err != nil {
 						return fmt.Errorf("os.Stat: %v", err.Error())
 					}
-					//COMENCE BASIC SCAN
-					mp := ump.NewProfile()
-					err = mp.ConsumeFile(sourceFile)
+					fs, err := os.ReadDir(dest)
 					if err != nil {
 						return err
 					}
-					if mp.ConfirmScan(ump.ScanBasic) != nil {
+					validMP := ump.NewProfile()
+					path := ""
+					for _, f := range fs {
+						if f.IsDir() {
+							continue
+						}
+						mp := ump.NewProfile()
+						mp.ConsumeJSON(dest + f.Name())
+						if mp.Format.Filename == sourceFile {
+							validMP = mp
+							path = validMP.Format.Filename
+							continue
+						}
+					}
+					for _, scans := range validMP.ScansCompleted {
+						if scans == ump.ScanInterlace && !c.Bool("overwrite") {
+							return fmt.Errorf("previous scan data exist: overwrite forbidden")
+						}
+					}
+					//COMENCE INTERLACE SCAN
+					frames := 9999
+					devnull := "/dev/null"
+
+					com := fmt.Sprintf("ffmpeg -hide_banner -filter:v idet -frames:v %v -an -f rawvideo -y %v -i %v", frames, devnull, path)
+					fmt.Println("run:", com)
+					_, stderr, err := command.Execute(com, command.Set(command.BUFFER_ON))
+					if err != nil {
+						fmt.Println("3", err.Error())
+					}
+					idetReport := filterIdet(stderr)
+					sum := float64(idetReport["I"] + idetReport["P"])
+					progressive := float64(idetReport["P"]) / sum
+					progressive = float64(int(progressive*10000)) / 100
+					validMP.Streams[0].Progressive_frames_pct = progressive
+					if err := validMP.ConfirmScan(ump.ScanInterlace); err != nil {
 						return err
 					}
 					//SAVE TO TARGET FILE
-					bt, err := mp.MarshalJSON()
+					bt, err := validMP.MarshalJSON()
 					if err != nil {
 						return err
 					}
@@ -289,4 +323,67 @@ func checkSource(sourceFile string) error {
 		return fmt.Errorf("os.Stat: %v", err.Error())
 	}
 	return nil
+}
+
+func filterIdet(report string) map[string]int {
+	rMap := make(map[string]int)
+	lines := strings.Split(report, "\n")
+	for _, ln := range lines {
+		if !strings.Contains(ln, "Parsed_idet") {
+			continue
+		}
+		if strings.Contains(ln, "Repeated ") {
+			words := strings.Split(ln, " ")
+			fn := 0
+			for _, w := range words {
+				n, err := strconv.Atoi(w)
+				if err != nil {
+					continue
+				}
+				fn++
+				rMap["T"] += n
+				switch fn {
+				case 2, 3:
+					rMap["I"] += n
+				}
+			}
+		}
+		if strings.Contains(ln, "Single ") {
+			words := strings.Split(ln, " ")
+			fn := 0
+			for _, w := range words {
+				n, err := strconv.Atoi(w)
+				if err != nil {
+					continue
+				}
+				fn++
+				rMap["T"] += n
+				switch fn {
+				case 1, 2:
+					rMap["I"] += n
+				case 3:
+					rMap["P"] += n
+				}
+			}
+		}
+		if strings.Contains(ln, "Multi ") {
+			words := strings.Split(ln, " ")
+			fn := 0
+			for _, w := range words {
+				n, err := strconv.Atoi(w)
+				if err != nil {
+					continue
+				}
+				fn++
+				rMap["T"] += n
+				switch fn {
+				case 1, 2:
+					rMap["I"] += n
+				case 3:
+					rMap["P"] += n
+				}
+			}
+		}
+	}
+	return rMap
 }
