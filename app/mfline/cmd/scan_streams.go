@@ -4,8 +4,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/Galdoba/devtools/cli/command"
 	"github.com/Galdoba/ffstuff/app/mfline/config"
@@ -54,6 +57,7 @@ func ScanStreams() *cli.Command {
 				ArgsUsage:   "ARGS",
 				Category:    "",
 				Action: func(c *cli.Context) error {
+					overwrite := c.Bool("overwrite")
 					//CHECK SOURCE
 					sourceFile := c.String("source")
 					if err := checkSource(c.String("source")); err != nil {
@@ -80,7 +84,7 @@ func ScanStreams() *cli.Command {
 					if err != nil {
 						return err
 					}
-					if mp.ConfirmScan(ump.ScanBasic) != nil {
+					if mp.ConfirmScan(ump.ScanBasic, overwrite) != nil {
 						return err
 					}
 					//SAVE TO TARGET FILE
@@ -89,9 +93,9 @@ func ScanStreams() *cli.Command {
 						return err
 					}
 					fname := filepath.Base(sourceFile)
-					trgInfo, err := os.Stat(dest + fname + ".json")
-					overwrite := c.Bool("overwrite")
-					if trgInfo != nil && !overwrite {
+					trgInfo, _ := os.Stat(dest + fname + ".json")
+
+					if !overwrite && trgInfo != nil {
 						return fmt.Errorf("previous scan data exist: overwrite forbidden")
 					}
 					f, err := os.OpenFile(dest+fname+".json", os.O_CREATE|os.O_WRONLY, 0777)
@@ -101,6 +105,7 @@ func ScanStreams() *cli.Command {
 					defer f.Close()
 					f.Truncate(0)
 					_, err = f.Write(bt)
+
 					return err
 				},
 				OnUsageError: func(cCtx *cli.Context, err error, isSubcommand bool) error {
@@ -156,6 +161,7 @@ func ScanStreams() *cli.Command {
 				ArgsUsage:   "ARGS",
 				Category:    "",
 				Action: func(c *cli.Context) error {
+					overwrite := c.Bool("overwrite")
 					//CHECK SOURCE
 					sourceFile := c.String("source")
 					if err := checkSource(sourceFile); err != nil {
@@ -188,7 +194,10 @@ func ScanStreams() *cli.Command {
 							continue
 						}
 						mp := ump.NewProfile()
-						mp.ConsumeJSON(dest + f.Name())
+						err = mp.ConsumeJSON(dest + f.Name())
+						if err != nil {
+							return err
+						}
 						if mp.Format.Filename == sourceFile {
 							validMP = mp
 							path = validMP.Format.Filename
@@ -196,26 +205,62 @@ func ScanStreams() *cli.Command {
 						}
 					}
 					for _, scans := range validMP.ScansCompleted {
-						if scans == ump.ScanInterlace && !c.Bool("overwrite") {
-							return fmt.Errorf("previous scan data exist: overwrite forbidden")
+						if scans == ump.ScanInterlace && !overwrite {
+							return fmt.Errorf("previous scan data exist: overwrite forbidden \nuse -o flag to overwrite data")
 						}
 					}
 					//COMENCE INTERLACE SCAN
 					frames := 9999
-					devnull := "/dev/null"
+					devnull := ""
+					switch runtime.GOOS {
+					case "linux":
+						devnull = "/dev/null"
+					case "windows":
+						devnull = "NUL"
+					}
 
 					com := fmt.Sprintf("ffmpeg -hide_banner -filter:v idet -frames:v %v -an -f rawvideo -y %v -i %v", frames, devnull, path)
-					fmt.Println("run:", com)
-					_, stderr, err := command.Execute(com, command.Set(command.BUFFER_ON))
+					fmt.Fprintf(os.Stderr, "run: %v\n", com)
+					done := false
+					var wg sync.WaitGroup
+					process, err := command.New(command.CommandLineArguments(com),
+						command.AddBuffer("buf"),
+					)
 					if err != nil {
-						fmt.Println("3", err.Error())
+						return err
 					}
-					idetReport := filterIdet(stderr)
+					buf := process.Buffer("buf")
+					wg.Add(1)
+					go func() {
+						err = process.Run()
+						done = true
+						wg.Done()
+					}()
+					for !done {
+						time.Sleep(time.Millisecond * 500)
+						//bts, _ := os.ReadFile("aaa.txt")
+
+						ln := strings.Split(buf.String(), "\n")
+						last := len(ln) - 1
+						if last < 0 {
+							last = 0
+						}
+						if strings.Contains(ln[last], "s/s speed=") {
+							fmt.Fprintf(os.Stderr, "%v\r", ln[last])
+						}
+					}
+					fmt.Fprintf(os.Stderr, "\n")
+					wg.Wait()
+					if err != nil {
+						return err
+					}
+					//ANALYZE REPORT
+					idetReport := filterIdet(buf.String())
 					sum := float64(idetReport["I"] + idetReport["P"])
 					progressive := float64(idetReport["P"]) / sum
 					progressive = float64(int(progressive*10000)) / 100
 					validMP.Streams[0].Progressive_frames_pct = progressive
-					if err := validMP.ConfirmScan(ump.ScanInterlace); err != nil {
+					if err := validMP.ConfirmScan(ump.ScanInterlace, overwrite); err != nil {
 						return err
 					}
 					//SAVE TO TARGET FILE
@@ -224,11 +269,6 @@ func ScanStreams() *cli.Command {
 						return err
 					}
 					fname := filepath.Base(sourceFile)
-					trgInfo, err := os.Stat(dest + fname + ".json")
-					overwrite := c.Bool("overwrite")
-					if trgInfo != nil && !overwrite {
-						return fmt.Errorf("previous scan data exist: overwrite forbidden")
-					}
 					f, err := os.OpenFile(dest+fname+".json", os.O_CREATE|os.O_WRONLY, 0777)
 					if err != nil {
 						return fmt.Errorf("can't save target file: %v", err.Error())
@@ -236,6 +276,11 @@ func ScanStreams() *cli.Command {
 					defer f.Close()
 					f.Truncate(0)
 					_, err = f.Write(bt)
+					if err != nil {
+						return err
+					}
+					text := fmt.Sprintf("%v", validMP.Streams[0].Progressive_frames_pct) + "%" + " progressive"
+					fmt.Fprint(os.Stdout, text)
 					return err
 				},
 				OnUsageError: func(cCtx *cli.Context, err error, isSubcommand bool) error {

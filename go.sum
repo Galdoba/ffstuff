@@ -31,6 +31,8 @@ github.com/Galdoba/devtools v0.0.0-20240129032612-039cf492b298 h1:SeySFWEStTfu88
 github.com/Galdoba/devtools v0.0.0-20240129032612-039cf492b298/go.mod h1:Tr8F7F5YKyT39vfZLeHKI9yR3HGMrsZ3hG4nX5jvIBE=
 github.com/Galdoba/devtools v0.0.0-20240129035709-9f6cac9630df h1:X9CAsybu0D45moeyMYD/ZbVfBh5h9iKP466OJh5R5P4=
 github.com/Galdoba/devtools v0.0.0-20240129035709-9f6cac9630df/go.mod h1:Tr8F7F5YKyT39vfZLeHKI9yR3HGMrsZ3hG4nX5jvIBE=
+github.com/Galdoba/devtools v0.0.0-20240202052159-a09edd33aa0c h1:b9b+VwqSdXFGvCrk6mB6JDLnVG9k+tJoQ2Hqxbsb3hI=
+github.com/Galdoba/devtools v0.0.0-20240202052159-a09edd33aa0c/go.mod h1:Tr8F7F5YKyT39vfZLeHKI9yR3HGMrsZ3hG4nX5jvIBE=
 github.com/Galdoba/utils v0.0.0-20211006043430-41d7b3fa4b0a h1:G/xkIBAepccB7rBTs6m8MzdKsqmq4OY2EalD24kSoi8=
 github.com/Galdoba/utils v0.0.0-20211006043430-41d7b3fa4b0a/go.mod h1:WXWC9lUOMxvAvq3FT7RGDcBsGi2a3X3RX2ghULDNqpg=
 github.com/Netflix/go-expect v0.0.0-20180615182759-c93bf25de8e8 h1:xzYJEypr/85nBpB11F9br+3HUrpgb+fcm5iADzXXYEw=

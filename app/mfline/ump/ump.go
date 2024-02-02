@@ -298,6 +298,10 @@ func (p *mediaProfile) validateVideo(stream *Stream, vSNum int) {
 		p.streamInfo[currentBlock] += `#ns`
 	default:
 		p.streamInfo[currentBlock] += `#` + fmt.Sprintf("%v", prog) + "%"
+		if prog < 95 && prog > 0 {
+			text := fmt.Sprintf("stream [0:v:%v] ==> interlace suspected (%v", vSNum, 100-prog) + "%)"
+			p.warnings = append(p.warnings, text)
+		}
 	}
 }
 
@@ -493,17 +497,27 @@ func hzFormat(hz string) string {
 	return fmt.Sprintf("%v", float64(h)/1000)
 }
 
-func (mp *mediaProfile) ConfirmScan(scan string) error {
+func (mp *mediaProfile) ConfirmScan(scan string, overwrite bool) error {
 	for _, completed := range mp.ScansCompleted {
-		if scan == completed {
+		if scan == completed && !overwrite {
 			return fmt.Errorf("%v scan was already completed", scan)
 		}
+
 	}
 	if err := mp.validate(); err != nil {
 		return fmt.Errorf("can't validate profile: %v", err.Error())
 	}
-	mp.ScansCompleted = append(mp.ScansCompleted, scan)
+	mp.ScansCompleted = appendUnique(mp.ScansCompleted, scan)
 	return nil
+}
+
+func appendUnique(slice []string, newElem string) []string {
+	for i := range slice {
+		if slice[i] == newElem {
+			return slice
+		}
+	}
+	return append(slice, newElem)
 }
 
 // func (sr *mediaProfile) String() string {

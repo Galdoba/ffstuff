@@ -3,14 +3,17 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 
+	"github.com/Galdoba/ffstuff/app/mfline/config"
 	"github.com/Galdoba/ffstuff/app/mfline/ump"
 	"github.com/urfave/cli/v2"
 )
 
 func Show() *cli.Command {
+	cfg := &config.Config{}
 	return &cli.Command{
 		Name:      "show",
 		Usage:     "Create/print universal media profile",
@@ -71,6 +74,10 @@ func Show() *cli.Command {
 			},
 			&cli.BoolFlag{},
 		},
+		Before: func(c *cli.Context) error {
+			cfg, _ = config.Load(c.App.Name)
+			return nil
+		},
 		Action: func(c *cli.Context) error {
 			args := c.Args().Slice()
 			if len(args) < 1 {
@@ -96,10 +103,34 @@ func Show() *cli.Command {
 						continue
 					}
 				default:
-					err := scan.ConsumeFile(path)
+					storage := cfg.StorageDir
+					fs, err := os.ReadDir(storage)
 					if err != nil {
-						fmt.Fprintf(os.Stderr, "can't consume file: %v\n", err.Error())
-						continue
+						return fmt.Errorf("can't read storage directory")
+					}
+					fname := filepath.Base(path)
+					foundJSON := false
+					for _, f := range fs {
+						if f.IsDir() {
+							continue
+						}
+						if f.Name() != fname+".json" {
+							continue
+						}
+						err := scan.ConsumeJSON(storage + fname + ".json")
+						if err != nil {
+							fmt.Fprintf(os.Stderr, "can't consume json: %v\n", err.Error())
+							continue
+						}
+						foundJSON = true
+						break
+					}
+					if !foundJSON {
+						err := scan.ConsumeFile(path)
+						if err != nil {
+							fmt.Fprintf(os.Stderr, "can't consume file: %v\n", err.Error())
+							continue
+						}
 					}
 				}
 
