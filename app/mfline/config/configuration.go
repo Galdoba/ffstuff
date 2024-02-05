@@ -57,7 +57,7 @@ func (cfg *Config) setDefaultValues() error {
 	cfg.AutoDeleteOld = false
 	cfg.AutoScan = false
 	cfg.RescanIfErr = false
-	cfg.TrackDirs = []string{}
+	cfg.TrackDirs = []string{"[TEMPLATE]", "[TEMPLATE]"}
 	return nil
 }
 
@@ -126,4 +126,19 @@ func (cfg *Config) String() string {
 		return fmt.Sprintf("%v", err.Error())
 	}
 	return string(data)
+}
+
+func (cfg *Config) StoredScans() ([]string, error) {
+	fls, err := os.ReadDir(cfg.StorageDir)
+	if err != nil {
+		return nil, err
+	}
+	names := []string{}
+	for _, fl := range fls {
+		if fl.IsDir() {
+			continue
+		}
+		names = append(names, cfg.StorageDir+fl.Name())
+	}
+	return names, nil
 }

@@ -189,6 +189,7 @@ func ScanStreams() *cli.Command {
 					}
 					validMP := ump.NewProfile()
 					path := ""
+					basicScanConfirmed := false
 					for _, f := range fs {
 						if f.IsDir() {
 							continue
@@ -196,13 +197,23 @@ func ScanStreams() *cli.Command {
 						mp := ump.NewProfile()
 						err = mp.ConsumeJSON(dest + f.Name())
 						if err != nil {
+							fmt.Fprintf(os.Stderr, "read JSON: %v", err.Error())
 							return err
 						}
+
 						if mp.Format.Filename == sourceFile {
 							validMP = mp
 							path = validMP.Format.Filename
+							for _, scanMark := range mp.ScansCompleted {
+								if scanMark == ump.ScanBasic {
+									basicScanConfirmed = true
+								}
+							}
 							continue
 						}
+					}
+					if path == "" || !basicScanConfirmed {
+						return fmt.Errorf("path = '%v' for source '%v'\n", path, sourceFile)
 					}
 					for _, scans := range validMP.ScansCompleted {
 						if scans == ump.ScanInterlace && !overwrite {
@@ -221,18 +232,23 @@ func ScanStreams() *cli.Command {
 
 					com := fmt.Sprintf("ffmpeg -hide_banner -filter:v idet -frames:v %v -an -f rawvideo -y %v -i %v", frames, devnull, path)
 					fmt.Fprintf(os.Stderr, "run: %v\n", com)
+
 					done := false
 					var wg sync.WaitGroup
 					process, err := command.New(command.CommandLineArguments(com),
 						command.AddBuffer("buf"),
 					)
 					if err != nil {
+						fmt.Fprintf(os.Stderr, "subprocess error1: %v", err.Error())
 						return err
 					}
 					buf := process.Buffer("buf")
 					wg.Add(1)
 					go func() {
 						err = process.Run()
+						if err != nil {
+							fmt.Fprintf(os.Stderr, "subprocess error2: %v", err.Error())
+						}
 						done = true
 						wg.Done()
 					}()
@@ -252,8 +268,10 @@ func ScanStreams() *cli.Command {
 					fmt.Fprintf(os.Stderr, "\n")
 					wg.Wait()
 					if err != nil {
+						fmt.Fprintf(os.Stderr, "subprocess error3: %v", err.Error())
 						return err
 					}
+
 					//ANALYZE REPORT
 					idetReport := filterIdet(buf.String())
 					sum := float64(idetReport["I"] + idetReport["P"])
@@ -261,11 +279,13 @@ func ScanStreams() *cli.Command {
 					progressive = float64(int(progressive*10000)) / 100
 					validMP.Streams[0].Progressive_frames_pct = progressive
 					if err := validMP.ConfirmScan(ump.ScanInterlace, overwrite); err != nil {
+						fmt.Fprintf(os.Stderr, "subprocess error: %v", err.Error())
 						return err
 					}
 					//SAVE TO TARGET FILE
 					bt, err := validMP.MarshalJSON()
 					if err != nil {
+						fmt.Fprintf(os.Stderr, "subprocess error: %v", err.Error())
 						return err
 					}
 					fname := filepath.Base(sourceFile)

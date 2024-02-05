@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -86,6 +87,20 @@ func (prof *mediaProfile) ConsumeJSON(path string) error {
 	return nil
 }
 
+func MapStorage(dir string) map[string]*mediaProfile {
+	fls, _ := os.ReadDir(dir)
+	prfMap := make(map[string]*mediaProfile)
+	for _, fl := range fls {
+		if strings.HasSuffix(fl.Name(), ".json") {
+			mp := NewProfile()
+			mp.ConsumeJSON(dir + fl.Name())
+			key := filepath.Base(mp.Format.Filename)
+			prfMap[key] = mp
+		}
+	}
+	return prfMap
+}
+
 func (mp *mediaProfile) MarshalJSON() ([]byte, error) {
 	type MediaProfileAlias mediaProfile
 	return json.MarshalIndent(&struct {
@@ -93,6 +108,25 @@ func (mp *mediaProfile) MarshalJSON() ([]byte, error) {
 	}{
 		MediaProfileAlias: (*MediaProfileAlias)(mp),
 	}, "", "  ")
+}
+
+func (mp *mediaProfile) SaveAs(path string, overwrite bool) error {
+	bt, err := mp.MarshalJSON()
+	if err != nil {
+		return err
+	}
+	_, err = os.Stat(path)
+	if err == nil && !overwrite {
+		return fmt.Errorf("can't save target file: overwrite not allowed")
+	}
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY, 0666)
+	if err != nil {
+		return fmt.Errorf("can't save target file: %v", err.Error())
+	}
+	defer f.Close()
+	f.Truncate(0)
+	_, err = f.Write(bt)
+	return nil
 }
 
 func assertNoError(err error) {
