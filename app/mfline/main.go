@@ -32,10 +32,11 @@ func main() {
 
 	//ДО НАЧАЛА ДЕЙСТВИЯ
 	app.Before = func(c *cli.Context) error {
+		fmt.Println("RUN BEFIRE")
 		cfg, err := config.Load(app.Name)
 		if err != nil {
 			switch {
-			case strings.Contains(err.Error(), "The system cannot find "):
+			case strings.Contains(err.Error(), "The system cannot find "), strings.Contains(err.Error(), "no such file or directory"):
 				cfg, err = config.NewConfig(c.App.Name)
 				if err = cfg.Save(); err != nil {
 					return fmt.Errorf("can't setup config: %v", err.Error())
@@ -72,11 +73,13 @@ func main() {
 		cmd.Config(),
 		cmd.Show(),
 		cmd.ScanStreams(),
+		cmd.FullScan(),
 	}
 
 	//ПО ОКОНЧАНИЮ ДЕЙСТВИЯ
 	app.After = func(c *cli.Context) error {
-		return nil
+		fmt.Println("RUN AFTER")
+		return cmd.Sync().Run(c)
 	}
 	args := os.Args
 	if err := app.Run(args); err != nil {

@@ -16,7 +16,7 @@ func Show() *cli.Command {
 	cfg := &config.Config{}
 	return &cli.Command{
 		Name:      "show",
-		Usage:     "Create/print universal media profile",
+		Usage:     "Print/format basic scan level universal media profile",
 		ArgsUsage: "",
 		Flags: []cli.Flag{
 			//-short

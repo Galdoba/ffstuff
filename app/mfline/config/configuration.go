@@ -12,17 +12,18 @@ import (
 
 // config struct  
 type Config struct {
-	AppName       string
-	Location      string
-	header        string
-	StorageDir    string   `yaml:"Scan Storage Directory,omitempty"`
-	WriteLogs     bool     `yaml:"Write Logs,omitempty"`
-	LogFile       string   `yaml:"Log File,omitempty"`
-	OldScan       float64  `yaml:"Old Scan Age (hours),omitempty"`
-	AutoDeleteOld bool     `yaml:"Delete Old Scans,omitempty"`
-	AutoScan      bool     `yaml:"Scan All Files in Tracked Directories,omitempty"`
-	RescanIfErr   bool     `yaml:"Repeat Scans if Error is met,omitempty"`
-	TrackDirs     []string `yaml:"Track Directories,omitempty"`
+	AppName           string   `yaml:"App Name                               ,omitempty"`
+	Location          string   `yaml:"Location                               ,omitempty"`
+	StorageDir        string   `yaml:"Scan Storage Directory                 ,omitempty"`
+	WriteLogs         bool     `yaml:"Write Logs                             ,omitempty"`
+	LogFile           string   `yaml:"Log File                               ,omitempty"`
+	OldScan           float64  `yaml:"Old Scan Age (hours)                   ,omitempty"`
+	AutoDeleteOld     bool     `yaml:"Delete Old Scans                       ,omitempty"`
+	AutoRenameTracked bool     `yaml:"Change storage data if Tracked renamed ,omitempty"`
+	AutoScan          bool     `yaml:"Scan All Files in Tracked Directories  ,omitempty"`
+	RescanIfErr       bool     `yaml:"Repeat Scans if Error is met           ,omitempty"`
+	TrackDirs         []string `yaml:"Track Directories                      ,omitempty"`
+	header            string
 }
 
 func NewConfig(program string) (*Config, error) {
@@ -54,7 +55,8 @@ func (cfg *Config) setDefaultValues() error {
 	cfg.LogFile = home + sep + ".ffstuff" + sep + "logs" + sep + cfg.AppName + ".log"
 	cfg.WriteLogs = false
 	cfg.OldScan = 72.0
-	cfg.AutoDeleteOld = false
+	cfg.AutoDeleteOld = true
+	cfg.AutoRenameTracked = true
 	cfg.AutoScan = false
 	cfg.RescanIfErr = false
 	cfg.TrackDirs = []string{"[TEMPLATE]", "[TEMPLATE]"}
