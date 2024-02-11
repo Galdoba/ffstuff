@@ -31,23 +31,34 @@ func FullScan() *cli.Command {
 		},
 		Action: func(c *cli.Context) error {
 			cfg, _ := config.Load(c.App.Name)
-			// stored := ump.MapStorage(cfg.StorageDir)
+			stored := ump.MapStorage(cfg.StorageDir)
 			fileList := []string{}
 			for _, trcDir := range cfg.TrackDirs {
 				fileList = append(fileList, files.ListDir(trcDir)...)
 			}
 			for _, fl := range fileList {
-				fmt.Println(fl)
-				fmt.Println("basic scan")
 				mp := ump.NewProfile()
-				if err := mp.ScanBasic(fl); err != nil {
-					fmt.Fprintf(os.Stderr, "scan: %v", err.Error())
+				dataChanged := false
+				name := filepath.Base(fl)
+				if instore, ok := stored[name]; ok {
+					mp = instore
 				}
-				fmt.Println("interlace scan")
-				if err := mp.ScanInterlace(fl); err != nil {
-					fmt.Fprintf(os.Stderr, "scan: %v", err.Error())
+				switch mp.ScanBasic(fl) {
+				case nil:
+					dataChanged = true
+				default:
+					fmt.Fprintf(os.Stderr, "scan: %v\n", err.Error())
 				}
-				fmt.Println(cfg.StorageDir + filepath.Base(fl) + ".json")
+				switch mp.ScanInterlace(fl) {
+				case nil:
+					dataChanged = true
+				default:
+					fmt.Fprintf(os.Stderr, "scan: %v\n", err.Error())
+				}
+				if !dataChanged {
+					continue
+				}
+
 				if err := mp.SaveAs(cfg.StorageDir + filepath.Base(fl) + ".json"); err != nil {
 					fmt.Println(err.Error())
 				}
