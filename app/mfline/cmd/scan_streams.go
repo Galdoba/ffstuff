@@ -35,7 +35,11 @@ func ScanStreams() *cli.Command {
 		BashComplete: func(*cli.Context) {
 		},
 		Before: func(c *cli.Context) error {
-			cfg, _ = config.Load(c.App.Name)
+			err := fmt.Errorf("config not loaded")
+			cfg, err = config.Load(c.App.Name)
+			if err != nil {
+				fmt.Errorf("load config before scan: %v", err.Error())
+			}
 			return nil
 		},
 		After: func(*cli.Context) error {
@@ -57,6 +61,7 @@ func ScanStreams() *cli.Command {
 				ArgsUsage:   "ARGS",
 				Category:    "",
 				Action: func(c *cli.Context) error {
+
 					overwrite := c.Bool("overwrite")
 					//CHECK SOURCE
 					sourceFile := c.String("source")
@@ -80,31 +85,32 @@ func ScanStreams() *cli.Command {
 					}
 					//COMENCE BASIC SCAN
 					mp := ump.NewProfile()
-					err = mp.ConsumeFile(sourceFile)
+					err = mp.ScanBasic(sourceFile)
 					if err != nil {
-						return err
-					}
-					if mp.ConfirmScan(ump.ScanBasic, overwrite) != nil {
 						return err
 					}
 					//SAVE TO TARGET FILE
-					bt, err := mp.MarshalJSON()
+					err = mp.SaveAs(dest+filepath.Base(sourceFile)+".json", overwrite)
 					if err != nil {
 						return err
 					}
-					fname := filepath.Base(sourceFile)
-					trgInfo, _ := os.Stat(dest + fname + ".json")
+					// bt, err := mp.MarshalJSON()
+					// if err != nil {
+					// 	return err
+					// }
+					// fname := filepath.Base(sourceFile)
+					// trgInfo, _ := os.Stat(dest + fname + ".json")
 
-					if !overwrite && trgInfo != nil {
-						return fmt.Errorf("previous scan data exist: overwrite forbidden")
-					}
-					f, err := os.OpenFile(dest+fname+".json", os.O_CREATE|os.O_WRONLY, 0777)
-					if err != nil {
-						return fmt.Errorf("can't save target file: %v", err.Error())
-					}
-					defer f.Close()
-					f.Truncate(0)
-					_, err = f.Write(bt)
+					// if !overwrite && trgInfo != nil {
+					// 	return fmt.Errorf("previous scan data exist: overwrite forbidden")
+					// }
+					// f, err := os.OpenFile(dest+fname+".json", os.O_CREATE|os.O_WRONLY, 0777)
+					// if err != nil {
+					// 	return fmt.Errorf("can't save target file: %v", err.Error())
+					// }
+					// defer f.Close()
+					// f.Truncate(0)
+					// _, err = f.Write(bt)
 
 					return err
 				},
@@ -278,10 +284,12 @@ func ScanStreams() *cli.Command {
 					progressive := float64(idetReport["P"]) / sum
 					progressive = float64(int(progressive*10000)) / 100
 					validMP.Streams[0].Progressive_frames_pct = progressive
-					if err := validMP.ConfirmScan(ump.ScanInterlace, overwrite); err != nil {
-						fmt.Fprintf(os.Stderr, "subprocess error: %v", err.Error())
-						return err
-					}
+					return nil
+
+					// if err := validMP.ConfirmScan(ump.ScanInterlace, overwrite); err != nil {
+					// 	fmt.Fprintf(os.Stderr, "subprocess error: %v", err.Error())
+					// 	return err
+					// }
 					//SAVE TO TARGET FILE
 					bt, err := validMP.MarshalJSON()
 					if err != nil {

@@ -33,8 +33,12 @@ func main() {
 	//ДО НАЧАЛА ДЕЙСТВИЯ
 	app.Before = func(c *cli.Context) error {
 		fmt.Println("RUN BEFIRE")
-		cfg, err := config.Load(app.Name)
+		cfg := &config.Config{}
+		err := fmt.Errorf("config not loaded")
+		cfg, err = config.Load(app.Name)
 		if err != nil {
+			fmt.Println("config err:", err.Error())
+
 			switch {
 			case strings.Contains(err.Error(), "The system cannot find "), strings.Contains(err.Error(), "no such file or directory"):
 				cfg, err = config.NewConfig(c.App.Name)
@@ -44,7 +48,8 @@ func main() {
 				fmt.Printf("default config created at %v: restart %v\n", cfg.Location, cfg.AppName)
 				os.Exit(0)
 			default:
-				return err
+				panic("wut?")
+				return nil
 			}
 		}
 		if _, err := os.ReadDir(cfg.StorageDir); err != nil {
@@ -69,17 +74,16 @@ func main() {
 		return nil
 	}
 	app.Commands = []*cli.Command{
-		cmd.Sync(),
+		// cmd.Sync(),
 		cmd.Config(),
 		cmd.Show(),
 		cmd.ScanStreams(),
-		cmd.FullScan(),
+		// cmd.FullScan(),
 	}
 
 	//ПО ОКОНЧАНИЮ ДЕЙСТВИЯ
 	app.After = func(c *cli.Context) error {
-		fmt.Println("RUN AFTER")
-		return cmd.Sync().Run(c)
+		return nil
 	}
 	args := os.Args
 	if err := app.Run(args); err != nil {

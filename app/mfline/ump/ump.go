@@ -152,6 +152,31 @@ type MediaProfile interface {
 	Long() string
 	AudioLayout() string
 	ConfirmScan(string) error
+	ConsumeFile(string) error
+	ScanBasic(string) error
+}
+
+func (mp *mediaProfile) ScanBasic(sourceFile string) error {
+	if mp.scanCompleted(ScanBasic) {
+		return fmt.Errorf("can't perform basic scan: scan already completed")
+	}
+	err := mp.ConsumeFile(sourceFile)
+	if err != nil {
+		return err
+	}
+	if mp.confirmScan(ScanBasic) != nil {
+		return err
+	}
+	return nil
+}
+
+func (mp *mediaProfile) scanCompleted(scanType string) bool {
+	for _, scanned := range mp.ScansCompleted {
+		if scanType == scanned {
+			return true
+		}
+	}
+	return false
 }
 
 /*
@@ -531,12 +556,21 @@ func hzFormat(hz string) string {
 	return fmt.Sprintf("%v", float64(h)/1000)
 }
 
-func (mp *mediaProfile) ConfirmScan(scan string, overwrite bool) error {
-	for _, completed := range mp.ScansCompleted {
-		if scan == completed && !overwrite {
-			return fmt.Errorf("%v scan was already completed", scan)
+func (mp *mediaProfile) confirmScan(scan string) error {
+	if mp.scanCompleted(scan) {
+		return fmt.Errorf("confirmation failed: was already confirmed")
+	}
+	switch scan {
+	default:
+		return fmt.Errorf("can't confirm %v scan: unknown or unimplemented scan type")
+	case ScanBasic:
+		if len(mp.ScansCompleted) != 0 {
+			return fmt.Errorf("can't confirm %v scan: other scan data must not exist")
 		}
-
+	case ScanInterlace:
+		if !mp.scanCompleted(ScanBasic) {
+			return fmt.Errorf("can't confirm %v scan: basic scan not completed")
+		}
 	}
 	if err := mp.validate(); err != nil {
 		return fmt.Errorf("can't validate profile: %v", err.Error())
