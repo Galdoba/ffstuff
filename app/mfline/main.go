@@ -32,7 +32,6 @@ func main() {
 
 	//ДО НАЧАЛА ДЕЙСТВИЯ
 	app.Before = func(c *cli.Context) error {
-		fmt.Println("RUN BEFIRE")
 		cfg := &config.Config{}
 		err := fmt.Errorf("config not loaded")
 		cfg, err = config.Load(app.Name)
@@ -78,7 +77,7 @@ func main() {
 		cmd.Config(),
 		cmd.Show(),
 		cmd.ScanStreams(),
-		// cmd.FullScan(),
+		cmd.FullScan(),
 	}
 
 	//ПО ОКОНЧАНИЮ ДЕЙСТВИЯ

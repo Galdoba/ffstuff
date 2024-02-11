@@ -2,10 +2,12 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 
-	"github.com/Galdoba/devtools/cli/command"
 	"github.com/Galdoba/ffstuff/app/mfline/config"
 	"github.com/Galdoba/ffstuff/app/mfline/internal/files"
+	"github.com/Galdoba/ffstuff/app/mfline/ump"
 	"github.com/urfave/cli/v2"
 )
 
@@ -37,17 +39,18 @@ func FullScan() *cli.Command {
 			for _, fl := range fileList {
 				fmt.Println(fl)
 				fmt.Println("basic scan")
-				o, e, cm := command.Execute(fmt.Sprintf("mfline scan basic --source %v", fl))
-
-				if cm != nil {
-					fmt.Println("error", cm.Error())
+				mp := ump.NewProfile()
+				if err := mp.ScanBasic(fl); err != nil {
+					fmt.Fprintf(os.Stderr, "scan: %v", err.Error())
 				}
-
 				fmt.Println("interlace scan")
-				o, e, cm = command.Execute(fmt.Sprintf("mfline scan basic --source %v", fl))
-				fmt.Println("o:", o)
-				fmt.Println("e:", e)
-
+				if err := mp.ScanInterlace(fl); err != nil {
+					fmt.Fprintf(os.Stderr, "scan: %v", err.Error())
+				}
+				fmt.Println(cfg.StorageDir + filepath.Base(fl) + ".json")
+				if err := mp.SaveAs(cfg.StorageDir + filepath.Base(fl) + ".json"); err != nil {
+					fmt.Println(err.Error())
+				}
 			}
 			// //список файлов для работы
 			//по списку запускаем basic

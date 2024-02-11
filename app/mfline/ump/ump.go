@@ -5,8 +5,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/Galdoba/devtools/cli/command"
 )
@@ -110,14 +113,10 @@ func (mp *mediaProfile) MarshalJSON() ([]byte, error) {
 	}, "", "  ")
 }
 
-func (mp *mediaProfile) SaveAs(path string, overwrite bool) error {
+func (mp *mediaProfile) SaveAs(path string) error {
 	bt, err := mp.MarshalJSON()
 	if err != nil {
 		return err
-	}
-	_, err = os.Stat(path)
-	if err == nil && !overwrite {
-		return fmt.Errorf("can't save target file: overwrite not allowed")
 	}
 	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY, 0666)
 	if err != nil {
@@ -168,6 +167,140 @@ func (mp *mediaProfile) ScanBasic(sourceFile string) error {
 		return err
 	}
 	return nil
+}
+
+func (mp *mediaProfile) ScanInterlace(sourceFile string) error {
+	if mp.scanCompleted(ScanInterlace) {
+		return fmt.Errorf("can't scan: %v scan was already completed", ScanInterlace)
+	}
+	if !mp.scanCompleted(ScanBasic) {
+		return fmt.Errorf("can't scan: basic scan required for interlace scan")
+	}
+	frames := 9999
+	//COMENCE INTERLACE SCAN
+	devnull := ""
+	switch runtime.GOOS {
+	case "linux":
+		devnull = "/dev/null"
+	case "windows":
+		devnull = "NUL"
+	}
+
+	com := fmt.Sprintf("ffmpeg -hide_banner -filter:v idet -frames:v %v -an -f rawvideo -y %v -i %v", frames, devnull, sourceFile)
+	fmt.Fprintf(os.Stderr, "run: %v\n", com)
+
+	done := false
+	var wg sync.WaitGroup
+	process, err := command.New(command.CommandLineArguments(com),
+		command.AddBuffer("buf"),
+	)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "subprocess error1: %v", err.Error())
+		return err
+	}
+	buf := process.Buffer("buf")
+	wg.Add(1)
+	go func() {
+		err = process.Run()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "subprocess error2: %v", err.Error())
+		}
+		done = true
+		wg.Done()
+	}()
+	for !done {
+		time.Sleep(time.Millisecond * 500)
+		//bts, _ := os.ReadFile("aaa.txt")
+
+		ln := strings.Split(buf.String(), "\n")
+		last := len(ln) - 1
+		if last < 0 {
+			last = 0
+		}
+		if strings.Contains(ln[last], "s/s speed=") {
+			fmt.Fprintf(os.Stderr, "%v\r", ln[last])
+		}
+	}
+	fmt.Fprintf(os.Stderr, "\n")
+	wg.Wait()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "subprocess error3: %v", err.Error())
+		return err
+	}
+
+	idetReport := filterIdet(buf.String())
+	sum := float64(idetReport["I"] + idetReport["P"])
+	progressive := float64(idetReport["P"]) / sum
+	progressive = float64(int(progressive*10000)) / 100
+	mp.Streams[0].Progressive_frames_pct = progressive
+
+	if mp.confirmScan(ScanInterlace) != nil {
+		return err
+	}
+	return nil
+}
+
+func filterIdet(report string) map[string]int {
+	rMap := make(map[string]int)
+	lines := strings.Split(report, "\n")
+	for _, ln := range lines {
+		if !strings.Contains(ln, "Parsed_idet") {
+			continue
+		}
+		if strings.Contains(ln, "Repeated ") {
+			words := strings.Split(ln, " ")
+			fn := 0
+			for _, w := range words {
+				n, err := strconv.Atoi(w)
+				if err != nil {
+					continue
+				}
+				fn++
+				rMap["T"] += n
+				switch fn {
+				case 2, 3:
+					rMap["I"] += n
+				}
+			}
+		}
+		if strings.Contains(ln, "Single ") {
+			words := strings.Split(ln, " ")
+			fn := 0
+			for _, w := range words {
+				n, err := strconv.Atoi(w)
+				if err != nil {
+					continue
+				}
+				fn++
+				rMap["T"] += n
+				switch fn {
+				case 1, 2:
+					rMap["I"] += n
+				case 3:
+					rMap["P"] += n
+				}
+			}
+		}
+		if strings.Contains(ln, "Multi ") {
+			words := strings.Split(ln, " ")
+			fn := 0
+			for _, w := range words {
+				n, err := strconv.Atoi(w)
+				if err != nil {
+					continue
+				}
+				fn++
+				rMap["T"] += n
+				switch fn {
+				case 1, 2:
+					rMap["I"] += n
+				case 3:
+					rMap["P"] += n
+				}
+			}
+		}
+	}
+	return rMap
 }
 
 func (mp *mediaProfile) scanCompleted(scanType string) bool {

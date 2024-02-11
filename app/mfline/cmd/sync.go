@@ -46,7 +46,7 @@ func Sync() *cli.Command {
 								fmt.Println(name, k)
 								v.Format.Filename = name
 								fmt.Println("SaveAs", cfg.StorageDir+name+".json")
-								v.SaveAs(cfg.StorageDir+name+".json", false)
+								v.SaveAs(cfg.StorageDir + name + ".json")
 								os.Remove(cfg.StorageDir + k + ".json")
 							}
 						}

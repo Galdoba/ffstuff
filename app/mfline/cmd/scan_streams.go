@@ -4,13 +4,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strconv"
 	"strings"
-	"sync"
-	"time"
 
-	"github.com/Galdoba/devtools/cli/command"
 	"github.com/Galdoba/ffstuff/app/mfline/config"
 	"github.com/Galdoba/ffstuff/app/mfline/ump"
 	"github.com/urfave/cli/v2"
@@ -61,8 +57,6 @@ func ScanStreams() *cli.Command {
 				ArgsUsage:   "ARGS",
 				Category:    "",
 				Action: func(c *cli.Context) error {
-
-					overwrite := c.Bool("overwrite")
 					//CHECK SOURCE
 					sourceFile := c.String("source")
 					if err := checkSource(c.String("source")); err != nil {
@@ -90,28 +84,10 @@ func ScanStreams() *cli.Command {
 						return err
 					}
 					//SAVE TO TARGET FILE
-					err = mp.SaveAs(dest+filepath.Base(sourceFile)+".json", overwrite)
+					err = mp.SaveAs(dest + filepath.Base(sourceFile) + ".json")
 					if err != nil {
 						return err
 					}
-					// bt, err := mp.MarshalJSON()
-					// if err != nil {
-					// 	return err
-					// }
-					// fname := filepath.Base(sourceFile)
-					// trgInfo, _ := os.Stat(dest + fname + ".json")
-
-					// if !overwrite && trgInfo != nil {
-					// 	return fmt.Errorf("previous scan data exist: overwrite forbidden")
-					// }
-					// f, err := os.OpenFile(dest+fname+".json", os.O_CREATE|os.O_WRONLY, 0777)
-					// if err != nil {
-					// 	return fmt.Errorf("can't save target file: %v", err.Error())
-					// }
-					// defer f.Close()
-					// f.Truncate(0)
-					// _, err = f.Write(bt)
-
 					return err
 				},
 				OnUsageError: func(cCtx *cli.Context, err error, isSubcommand bool) error {
@@ -167,7 +143,7 @@ func ScanStreams() *cli.Command {
 				ArgsUsage:   "ARGS",
 				Category:    "",
 				Action: func(c *cli.Context) error {
-					overwrite := c.Bool("overwrite")
+
 					//CHECK SOURCE
 					sourceFile := c.String("source")
 					if err := checkSource(sourceFile); err != nil {
@@ -189,6 +165,7 @@ func ScanStreams() *cli.Command {
 					if err != nil {
 						return fmt.Errorf("os.Stat: %v", err.Error())
 					}
+					// SEARCH VALID SCAN DATA
 					fs, err := os.ReadDir(dest)
 					if err != nil {
 						return err
@@ -221,92 +198,96 @@ func ScanStreams() *cli.Command {
 					if path == "" || !basicScanConfirmed {
 						return fmt.Errorf("path = '%v' for source '%v'\n", path, sourceFile)
 					}
-					for _, scans := range validMP.ScansCompleted {
-						if scans == ump.ScanInterlace && !overwrite {
-							return fmt.Errorf("previous scan data exist: overwrite forbidden \nuse -o flag to overwrite data")
-						}
-					}
+
 					//COMENCE INTERLACE SCAN
-					frames := 9999
-					devnull := ""
-					switch runtime.GOOS {
-					case "linux":
-						devnull = "/dev/null"
-					case "windows":
-						devnull = "NUL"
-					}
-
-					com := fmt.Sprintf("ffmpeg -hide_banner -filter:v idet -frames:v %v -an -f rawvideo -y %v -i %v", frames, devnull, path)
-					fmt.Fprintf(os.Stderr, "run: %v\n", com)
-
-					done := false
-					var wg sync.WaitGroup
-					process, err := command.New(command.CommandLineArguments(com),
-						command.AddBuffer("buf"),
-					)
-					if err != nil {
-						fmt.Fprintf(os.Stderr, "subprocess error1: %v", err.Error())
-						return err
-					}
-					buf := process.Buffer("buf")
-					wg.Add(1)
-					go func() {
-						err = process.Run()
-						if err != nil {
-							fmt.Fprintf(os.Stderr, "subprocess error2: %v", err.Error())
-						}
-						done = true
-						wg.Done()
-					}()
-					for !done {
-						time.Sleep(time.Millisecond * 500)
-						//bts, _ := os.ReadFile("aaa.txt")
-
-						ln := strings.Split(buf.String(), "\n")
-						last := len(ln) - 1
-						if last < 0 {
-							last = 0
-						}
-						if strings.Contains(ln[last], "s/s speed=") {
-							fmt.Fprintf(os.Stderr, "%v\r", ln[last])
-						}
-					}
-					fmt.Fprintf(os.Stderr, "\n")
-					wg.Wait()
-					if err != nil {
-						fmt.Fprintf(os.Stderr, "subprocess error3: %v", err.Error())
+					if err := validMP.ScanInterlace(sourceFile); err != nil {
 						return err
 					}
 
-					//ANALYZE REPORT
-					idetReport := filterIdet(buf.String())
-					sum := float64(idetReport["I"] + idetReport["P"])
-					progressive := float64(idetReport["P"]) / sum
-					progressive = float64(int(progressive*10000)) / 100
-					validMP.Streams[0].Progressive_frames_pct = progressive
-					return nil
+					//SAVE TO TARGET FILE
+					if err := validMP.SaveAs(dest + filepath.Base(sourceFile) + ".json"); err != nil {
+						return err
+					}
+					// frames := 9999
+					// devnull := ""
+					// switch runtime.GOOS {
+					// case "linux":
+					// 	devnull = "/dev/null"
+					// case "windows":
+					// 	devnull = "NUL"
+					// }
 
-					// if err := validMP.ConfirmScan(ump.ScanInterlace, overwrite); err != nil {
+					// com := fmt.Sprintf("ffmpeg -hide_banner -filter:v idet -frames:v %v -an -f rawvideo -y %v -i %v", frames, devnull, path)
+					// fmt.Fprintf(os.Stderr, "run: %v\n", com)
+
+					// done := false
+					// var wg sync.WaitGroup
+					// process, err := command.New(command.CommandLineArguments(com),
+					// 	command.AddBuffer("buf"),
+					// )
+					// if err != nil {
+					// 	fmt.Fprintf(os.Stderr, "subprocess error1: %v", err.Error())
+					// 	return err
+					// }
+					// buf := process.Buffer("buf")
+					// wg.Add(1)
+					// go func() {
+					// 	err = process.Run()
+					// 	if err != nil {
+					// 		fmt.Fprintf(os.Stderr, "subprocess error2: %v", err.Error())
+					// 	}
+					// 	done = true
+					// 	wg.Done()
+					// }()
+					// for !done {
+					// 	time.Sleep(time.Millisecond * 500)
+					// 	//bts, _ := os.ReadFile("aaa.txt")
+
+					// 	ln := strings.Split(buf.String(), "\n")
+					// 	last := len(ln) - 1
+					// 	if last < 0 {
+					// 		last = 0
+					// 	}
+					// 	if strings.Contains(ln[last], "s/s speed=") {
+					// 		fmt.Fprintf(os.Stderr, "%v\r", ln[last])
+					// 	}
+					// }
+					// fmt.Fprintf(os.Stderr, "\n")
+					// wg.Wait()
+					// if err != nil {
+					// 	fmt.Fprintf(os.Stderr, "subprocess error3: %v", err.Error())
+					// 	return err
+					// }
+
+					// //ANALYZE REPORT
+					// idetReport := filterIdet(buf.String())
+					// sum := float64(idetReport["I"] + idetReport["P"])
+					// progressive := float64(idetReport["P"]) / sum
+					// progressive = float64(int(progressive*10000)) / 100
+					// validMP.Streams[0].Progressive_frames_pct = progressive
+					// return nil
+
+					// // if err := validMP.ConfirmScan(ump.ScanInterlace, overwrite); err != nil {
+					// // 	fmt.Fprintf(os.Stderr, "subprocess error: %v", err.Error())
+					// // 	return err
+					// // }
+
+					// bt, err := validMP.MarshalJSON()
+					// if err != nil {
 					// 	fmt.Fprintf(os.Stderr, "subprocess error: %v", err.Error())
 					// 	return err
 					// }
-					//SAVE TO TARGET FILE
-					bt, err := validMP.MarshalJSON()
-					if err != nil {
-						fmt.Fprintf(os.Stderr, "subprocess error: %v", err.Error())
-						return err
-					}
-					fname := filepath.Base(sourceFile)
-					f, err := os.OpenFile(dest+fname+".json", os.O_CREATE|os.O_WRONLY, 0777)
-					if err != nil {
-						return fmt.Errorf("can't save target file: %v", err.Error())
-					}
-					defer f.Close()
-					f.Truncate(0)
-					_, err = f.Write(bt)
-					if err != nil {
-						return err
-					}
+					// fname := filepath.Base(sourceFile)
+					// f, err := os.OpenFile(dest+fname+".json", os.O_CREATE|os.O_WRONLY, 0777)
+					// if err != nil {
+					// 	return fmt.Errorf("can't save target file: %v", err.Error())
+					// }
+					// defer f.Close()
+					// f.Truncate(0)
+					// _, err = f.Write(bt)
+					// if err != nil {
+					// 	return err
+					// }
 					text := fmt.Sprintf("%v", validMP.Streams[0].Progressive_frames_pct) + "%" + " progressive"
 					fmt.Fprint(os.Stdout, text)
 					return err
