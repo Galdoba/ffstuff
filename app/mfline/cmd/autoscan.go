@@ -37,23 +37,26 @@ func FullScan() *cli.Command {
 				fileList = append(fileList, files.ListDir(trcDir)...)
 			}
 			for _, fl := range fileList {
+				fmt.Fprintf(os.Stderr, "file: %v\n", fl)
 				mp := ump.NewProfile()
 				dataChanged := false
 				name := filepath.Base(fl)
 				if instore, ok := stored[name]; ok {
 					mp = instore
 				}
-				switch mp.ScanBasic(fl) {
+				err := mp.ScanBasic(fl)
+				switch err {
 				case nil:
 					dataChanged = true
 				default:
-					fmt.Fprintf(os.Stderr, "scan: %v\n", err.Error())
+					fmt.Fprintf(os.Stderr, "scan basic: %v\n", err.Error())
 				}
-				switch mp.ScanInterlace(fl) {
+				err = mp.ScanInterlace(fl)
+				switch err {
 				case nil:
 					dataChanged = true
 				default:
-					fmt.Fprintf(os.Stderr, "scan: %v\n", err.Error())
+					fmt.Fprintf(os.Stderr, "scan interlace: %v\n", err.Error())
 				}
 				if !dataChanged {
 					continue

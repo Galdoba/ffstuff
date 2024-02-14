@@ -40,33 +40,16 @@ func Sync() *cli.Command {
 			case true:
 				for _, trackedDir := range cfg.TrackDirs {
 					for _, name := range files.ListDir(trackedDir) {
-						name := filepath.Base(name)
+						nameShort := filepath.Base(name)
 						for k, v := range stored {
-							if name != k && strings.Contains(name, k) {
-								fmt.Println(name, k)
+							if nameShort != k && strings.Contains(nameShort, k) {
 								v.Format.Filename = name
-								fmt.Println("SaveAs", cfg.StorageDir+name+".json")
-								v.SaveAs(cfg.StorageDir + name + ".json")
+								v.SaveAs(cfg.StorageDir + nameShort + ".json")
 								os.Remove(cfg.StorageDir + k + ".json")
+								break
 							}
 						}
 					}
-					// fls, err := os.ReadDir(trackedDir)
-					// if err != nil {
-					// 	return nil
-					// }
-					// for _, fl := range fls {
-					// 	if fl.IsDir() {
-					// 		continue
-					// 	}
-					// 	for k, v := range stored {
-					// 		if fl.Name() != k && strings.Contains(fl.Name(), k) {
-					// 			v.Format.Filename = fl.Name()
-					// 			v.SaveAs(cfg.StorageDir+fl.Name()+".json", false)
-					// 			os.Remove(cfg.StorageDir + k + ".json")
-					// 		}
-					// 	}
-					// }
 				}
 			case false:
 			}

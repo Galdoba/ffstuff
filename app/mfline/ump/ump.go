@@ -17,6 +17,7 @@ import (
 const (
 	ScanBasic     = "basic"
 	ScanInterlace = "interlace"
+	ScanSilence   = "silence"
 )
 
 func NewProfile() *mediaProfile {
@@ -156,8 +157,12 @@ type MediaProfile interface {
 }
 
 func (mp *mediaProfile) ScanBasic(sourceFile string) error {
+	if strings.Contains(sourceFile, " ") {
+		return fmt.Errorf("can't perform scan: filepath contains space")
+	}
+
 	if mp.scanCompleted(ScanBasic) {
-		return fmt.Errorf("can't perform basic scan: scan already completed")
+		return fmt.Errorf("can't perform scan: scan was already completed")
 	}
 	err := mp.ConsumeFile(sourceFile)
 	if err != nil {
@@ -171,10 +176,10 @@ func (mp *mediaProfile) ScanBasic(sourceFile string) error {
 
 func (mp *mediaProfile) ScanInterlace(sourceFile string) error {
 	if mp.scanCompleted(ScanInterlace) {
-		return fmt.Errorf("can't scan: %v scan was already completed", ScanInterlace)
+		return fmt.Errorf("can't perform scan: %v scan was already completed", ScanInterlace)
 	}
 	if !mp.scanCompleted(ScanBasic) {
-		return fmt.Errorf("can't scan: basic scan required for interlace scan")
+		return fmt.Errorf("can't perform scan: basic scan is required for interlace scan")
 	}
 	frames := 9999
 	//COMENCE INTERLACE SCAN
@@ -184,6 +189,9 @@ func (mp *mediaProfile) ScanInterlace(sourceFile string) error {
 		devnull = "/dev/null"
 	case "windows":
 		devnull = "NUL"
+	}
+	if _, ok := mp.streamInfo["0:v:0"]; !ok {
+		return fmt.Errorf("can't perform interlace scan: no video streams detected")
 	}
 
 	com := fmt.Sprintf("ffmpeg -hide_banner -filter:v idet -frames:v %v -an -f rawvideo -y %v -i %v", frames, devnull, sourceFile)
@@ -240,6 +248,79 @@ func (mp *mediaProfile) ScanInterlace(sourceFile string) error {
 	return nil
 }
 
+func (mp *mediaProfile) ScanSilence(sourceFile string) error {
+	if mp.scanCompleted(ScanInterlace) {
+		return fmt.Errorf("can't scan: %v scan was already completed", ScanInterlace)
+	}
+	if !mp.scanCompleted(ScanBasic) {
+		return fmt.Errorf("can't scan: basic scan required for interlace scan")
+	}
+	frames := 9999
+	//COMENCE INTERLACE SCAN
+	devnull := ""
+	switch runtime.GOOS {
+	case "linux":
+		devnull = "/dev/null"
+	case "windows":
+		devnull = "NUL"
+	}
+	if _, ok := mp.streamInfo["0:v:0"]; !ok {
+		return fmt.Errorf("can't perform interlace scan: no video streams detected")
+	}
+
+	com := fmt.Sprintf("ffmpeg -hide_banner -filter:v idet -frames:v %v -an -f rawvideo -y %v -i %v", frames, devnull, sourceFile)
+	fmt.Fprintf(os.Stderr, "run: %v\n", com)
+
+	done := false
+	var wg sync.WaitGroup
+	process, err := command.New(command.CommandLineArguments(com),
+		command.AddBuffer("buf"),
+	)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "subprocess error1: %v", err.Error())
+		return err
+	}
+	buf := process.Buffer("buf")
+	wg.Add(1)
+	go func() {
+		err = process.Run()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "subprocess error2: %v", err.Error())
+		}
+		done = true
+		wg.Done()
+	}()
+	for !done {
+		time.Sleep(time.Millisecond * 500)
+		//bts, _ := os.ReadFile("aaa.txt")
+
+		ln := strings.Split(buf.String(), "\n")
+		last := len(ln) - 1
+		if last < 0 {
+			last = 0
+		}
+		if strings.Contains(ln[last], "s/s speed=") {
+			fmt.Fprintf(os.Stderr, "%v\r", ln[last])
+		}
+	}
+	fmt.Fprintf(os.Stderr, "\n")
+	wg.Wait()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "subprocess error3: %v", err.Error())
+		return err
+	}
+
+	idetReport := filterIdet(buf.String())
+	sum := float64(idetReport["I"] + idetReport["P"])
+	progressive := float64(idetReport["P"]) / sum
+	progressive = float64(int(progressive*10000)) / 100
+	mp.Streams[0].Progressive_frames_pct = progressive
+
+	if mp.confirmScan(ScanInterlace) != nil {
+		return err
+	}
+	return nil
+}
 func filterIdet(report string) map[string]int {
 	rMap := make(map[string]int)
 	lines := strings.Split(report, "\n")
@@ -790,6 +871,7 @@ type Stream struct {
 	Sample_aspect_ratio    string                  `json:"sample_aspect_ratio,omitempty"`
 	Sample_fmt             string                  `json:"sample_fmt,omitempty"`
 	Sample_rate            string                  `json:"sample_rate,omitempty"`
+	SilenceData            []SilenceSegment        `json:"silence_segments,omitempty"`
 	Start_pts              int                     `json:"start_pts,omitempty"`
 	Start_time             string                  `json:"start_time,omitempty"`
 	Time_base              string                  `json:"time_base,omitempty"`
@@ -801,6 +883,13 @@ type Stream struct {
 
 type Side_data_list_struct struct {
 	Side_data map[string]string
+}
+
+type SilenceSegment struct {
+	SilenceStart    float64 `json:"start,omitempty"`
+	SilenceEnd      float64 `json:"end,omitempty"`
+	SilenceDuration float64 `json:"duration,omitempty"`
+	LoudnessBorder  float64 `json:"loudness_border,omitempty"`
 }
 
 /*

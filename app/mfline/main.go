@@ -17,7 +17,7 @@ const (
 func main() {
 	app := cli.NewApp()
 
-	app.Version = "v 0.1.2"
+	app.Version = "v 0.1.3"
 	app.Usage = "Parse media stream data from file\nRequires ffprobe to work"
 	app.Flags = []cli.Flag{
 		&cli.StringFlag{
@@ -73,7 +73,7 @@ func main() {
 		return nil
 	}
 	app.Commands = []*cli.Command{
-		// cmd.Sync(),
+		cmd.Sync(),
 		cmd.Config(),
 		cmd.Show(),
 		cmd.ScanStreams(),

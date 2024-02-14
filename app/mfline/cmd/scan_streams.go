@@ -166,130 +166,120 @@ func ScanStreams() *cli.Command {
 						return fmt.Errorf("os.Stat: %v", err.Error())
 					}
 					// SEARCH VALID SCAN DATA
-					fs, err := os.ReadDir(dest)
-					if err != nil {
-						return err
+					stored := ump.MapStorage(cfg.StorageDir)
+					mp := ump.NewProfile()
+					if v, ok := stored[filepath.Base(sourceFile)]; ok {
+						mp = v
 					}
-					validMP := ump.NewProfile()
-					path := ""
-					basicScanConfirmed := false
-					for _, f := range fs {
-						if f.IsDir() {
-							continue
-						}
-						mp := ump.NewProfile()
-						err = mp.ConsumeJSON(dest + f.Name())
-						if err != nil {
-							fmt.Fprintf(os.Stderr, "read JSON: %v", err.Error())
-							return err
-						}
-
-						if mp.Format.Filename == sourceFile {
-							validMP = mp
-							path = validMP.Format.Filename
-							for _, scanMark := range mp.ScansCompleted {
-								if scanMark == ump.ScanBasic {
-									basicScanConfirmed = true
-								}
-							}
-							continue
-						}
-					}
-					if path == "" || !basicScanConfirmed {
-						return fmt.Errorf("path = '%v' for source '%v'\n", path, sourceFile)
-					}
-
 					//COMENCE INTERLACE SCAN
-					if err := validMP.ScanInterlace(sourceFile); err != nil {
+					if err := mp.ScanInterlace(sourceFile); err != nil {
 						return err
 					}
 
 					//SAVE TO TARGET FILE
-					if err := validMP.SaveAs(dest + filepath.Base(sourceFile) + ".json"); err != nil {
+					if err := mp.SaveAs(dest + filepath.Base(sourceFile) + ".json"); err != nil {
 						return err
 					}
-					// frames := 9999
-					// devnull := ""
-					// switch runtime.GOOS {
-					// case "linux":
-					// 	devnull = "/dev/null"
-					// case "windows":
-					// 	devnull = "NUL"
-					// }
 
-					// com := fmt.Sprintf("ffmpeg -hide_banner -filter:v idet -frames:v %v -an -f rawvideo -y %v -i %v", frames, devnull, path)
-					// fmt.Fprintf(os.Stderr, "run: %v\n", com)
+					// text := fmt.Sprintf("%v", validMP.Streams[0].Progressive_frames_pct) + "%" + " progressive"
 
-					// done := false
-					// var wg sync.WaitGroup
-					// process, err := command.New(command.CommandLineArguments(com),
-					// 	command.AddBuffer("buf"),
-					// )
-					// if err != nil {
-					// 	fmt.Fprintf(os.Stderr, "subprocess error1: %v", err.Error())
-					// 	return err
-					// }
-					// buf := process.Buffer("buf")
-					// wg.Add(1)
-					// go func() {
-					// 	err = process.Run()
-					// 	if err != nil {
-					// 		fmt.Fprintf(os.Stderr, "subprocess error2: %v", err.Error())
-					// 	}
-					// 	done = true
-					// 	wg.Done()
-					// }()
-					// for !done {
-					// 	time.Sleep(time.Millisecond * 500)
-					// 	//bts, _ := os.ReadFile("aaa.txt")
+					// fmt.Fprint(os.Stdout, text)
+					return err
+				},
+				OnUsageError: func(cCtx *cli.Context, err error, isSubcommand bool) error {
+					fmt.Println("usage error")
+					fmt.Println(err.Error())
+					fmt.Println("sub =", isSubcommand)
+					return nil
+				},
+				Subcommands: []*cli.Command{},
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name: "source",
+						//Category:  "path",
+						Usage:     "path to file which will be scanned   (required)",
+						Required:  true,
+						Aliases:   []string{},
+						TakesFile: true,
+					},
 
-					// 	ln := strings.Split(buf.String(), "\n")
-					// 	last := len(ln) - 1
-					// 	if last < 0 {
-					// 		last = 0
-					// 	}
-					// 	if strings.Contains(ln[last], "s/s speed=") {
-					// 		fmt.Fprintf(os.Stderr, "%v\r", ln[last])
-					// 	}
-					// }
-					// fmt.Fprintf(os.Stderr, "\n")
-					// wg.Wait()
-					// if err != nil {
-					// 	fmt.Fprintf(os.Stderr, "subprocess error3: %v", err.Error())
-					// 	return err
-					// }
+					&cli.StringFlag{
+						Name: "destination",
+						//Category:  "path",
+						Usage:     "path to file data will be written to           \n\nother:",
+						Required:  false,
+						TakesFile: true,
+					},
+					&cli.BoolFlag{
+						Name:               "overwrite",
+						Usage:              "rewrite destination file",
+						DisableDefaultText: true,
+						Aliases:            []string{"o"},
+					},
+					&cli.BoolFlag{
+						Name:               "args",
+						Usage:              "show detailed args usage",
+						Aliases:            []string{"?"},
+						DisableDefaultText: true,
+					},
+				},
+				SkipFlagParsing:        false,
+				HideHelp:               false,
+				HideHelpCommand:        false,
+				Hidden:                 false,
+				UseShortOptionHandling: false,
+				HelpName:               "",
+			},
+			{
+				Name:        "silence",
+				Aliases:     []string{},
+				Usage:       "use silenceDetect to scan file for silence data",
+				UsageText:   "mfline scan interlace --source FILE [--destination DIR]\n\ndestination priority:\n -flag        (special case: 'local' = runtime dir)\n -config value\n -runtime dir\n\nno arguments expected\n\nmfline scan basic -? - for detailed args usage",
+				Description: "DESCR",
+				ArgsUsage:   "ARGS",
+				Category:    "",
+				Action: func(c *cli.Context) error {
 
-					// //ANALYZE REPORT
-					// idetReport := filterIdet(buf.String())
-					// sum := float64(idetReport["I"] + idetReport["P"])
-					// progressive := float64(idetReport["P"]) / sum
-					// progressive = float64(int(progressive*10000)) / 100
-					// validMP.Streams[0].Progressive_frames_pct = progressive
-					// return nil
+					//CHECK SOURCE
+					sourceFile := c.String("source")
+					if err := checkSource(sourceFile); err != nil {
+						return err
+					}
 
-					// // if err := validMP.ConfirmScan(ump.ScanInterlace, overwrite); err != nil {
-					// // 	fmt.Fprintf(os.Stderr, "subprocess error: %v", err.Error())
-					// // 	return err
-					// // }
+					//CHECK DESTINATION
+					dest := c.String("destination")
+					if dest == "" {
+						dest = cfg.StorageDir
+					}
+					destInfo, err := os.Stat(dest)
+					if os.IsNotExist(err) {
+						return fmt.Errorf("destination is not exist: %v", dest)
+					}
+					if !destInfo.IsDir() {
+						return fmt.Errorf("destination must be a directory: %v", dest)
+					}
+					if err != nil {
+						return fmt.Errorf("os.Stat: %v", err.Error())
+					}
+					// SEARCH VALID SCAN DATA
+					stored := ump.MapStorage(cfg.StorageDir)
+					mp := ump.NewProfile()
+					if v, ok := stored[filepath.Base(sourceFile)]; ok {
+						mp = v
+					}
+					//COMENCE INTERLACE SCAN
+					if err := mp.ScanSilence(sourceFile); err != nil {
+						return err
+					}
 
-					// bt, err := validMP.MarshalJSON()
-					// if err != nil {
-					// 	fmt.Fprintf(os.Stderr, "subprocess error: %v", err.Error())
-					// 	return err
-					// }
-					// fname := filepath.Base(sourceFile)
-					// f, err := os.OpenFile(dest+fname+".json", os.O_CREATE|os.O_WRONLY, 0777)
-					// if err != nil {
-					// 	return fmt.Errorf("can't save target file: %v", err.Error())
-					// }
-					// defer f.Close()
-					// f.Truncate(0)
-					// _, err = f.Write(bt)
-					// if err != nil {
-					// 	return err
-					// }
-					text := fmt.Sprintf("%v", validMP.Streams[0].Progressive_frames_pct) + "%" + " progressive"
-					fmt.Fprint(os.Stdout, text)
+					//SAVE TO TARGET FILE
+					if err := mp.SaveAs(dest + filepath.Base(sourceFile) + ".json"); err != nil {
+						return err
+					}
+
+					// text := fmt.Sprintf("%v", validMP.Streams[0].Progressive_frames_pct) + "%" + " progressive"
+
+					// fmt.Fprint(os.Stdout, text)
 					return err
 				},
 				OnUsageError: func(cCtx *cli.Context, err error, isSubcommand bool) error {
