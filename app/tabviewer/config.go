@@ -5,7 +5,6 @@ import (
 	"os"
 
 	"github.com/Galdoba/devtools/cli/command"
-	"github.com/Galdoba/ffstuff/pkg/gconfig"
 )
 
 type config struct {

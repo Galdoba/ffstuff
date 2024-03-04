@@ -5,8 +5,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/Galdoba/ffstuff/app/mfline/cmd"
-	"github.com/Galdoba/ffstuff/app/mfline/config"
+	"github.com/Galdoba/ffstuff/app/plashka/cmd"
+	"github.com/Galdoba/ffstuff/app/plashka/config"
 	"github.com/urfave/cli/v2"
 )
 
@@ -17,18 +17,9 @@ const (
 func main() {
 	app := cli.NewApp()
 
-	app.Version = "v 0.1.3"
-	app.Usage = "Parse media stream data from file\nRequires ffprobe to work"
-	app.Flags = []cli.Flag{
-		&cli.StringFlag{
-			Name:      "use_config",
-			Usage:     "use alternative config",
-			TakesFile: false,
-			Action: func(*cli.Context, string) error {
-				return nil
-			},
-		},
-	}
+	app.Version = "v 0.0.1"
+	app.Usage = "Генерит плашки для использования в связке с agelogo"
+	app.Flags = []cli.Flag{}
 
 	//ДО НАЧАЛА ДЕЙСТВИЯ
 	app.Before = func(c *cli.Context) error {
@@ -51,38 +42,17 @@ func main() {
 				return nil
 			}
 		}
-		if _, err := os.ReadDir(cfg.StorageDir); err != nil {
-			return fmt.Errorf("can't read storage dir: %v", err.Error())
-		}
-
-		if cfg.WriteLogs {
-			f, err := os.OpenFile(cfg.LogFile, os.O_CREATE|os.O_WRONLY, 0777)
-			if err != nil {
-				return fmt.Errorf("can't write to log file: %v", err.Error())
-			}
-			defer f.Close()
-		}
-		for _, dir := range cfg.TrackDirs {
-			if dir == "[TEMPLATE]" {
-				continue
-			}
-			if _, err := os.ReadDir(dir); err != nil {
-				return fmt.Errorf("can't read tracked dir: %v", err.Error())
-			}
-		}
+		fmt.Println("Before ENDED")
 		return nil
 	}
 	app.Commands = []*cli.Command{
-		cmd.Sync(),
-		cmd.Config(),
-		cmd.Show(),
-		cmd.ScanStreams(),
-		cmd.FullScan(),
-		cmd.RipLang(),
+		cmd.Standard(),
+		cmd.Custom(),
 	}
 
 	//ПО ОКОНЧАНИЮ ДЕЙСТВИЯ
 	app.After = func(c *cli.Context) error {
+		fmt.Println("After ENDED")
 		return nil
 	}
 	args := os.Args
