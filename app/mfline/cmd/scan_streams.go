@@ -268,7 +268,7 @@ func ScanStreams() *cli.Command {
 						mp = v
 					}
 					//COMENCE INTERLACE SCAN
-					if err := mp.ScanSilence(sourceFile); err != nil {
+					if err := mp.ScanSilence(sourceFile, 50, 0.5); err != nil {
 						return err
 					}
 
