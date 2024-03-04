@@ -248,33 +248,23 @@ func (mp *mediaProfile) ScanInterlace(sourceFile string) error {
 	return nil
 }
 
-func (mp *mediaProfile) ScanSilence(sourceFile string) error {
-	if mp.scanCompleted(ScanInterlace) {
+func (mp *mediaProfile) ScanSilence(sourceFile string, dB int, duration float64) error {
+	if mp.scanCompleted(ScanSilence) {
 		return fmt.Errorf("can't scan: %v scan was already completed", ScanInterlace)
 	}
 	if !mp.scanCompleted(ScanBasic) {
 		return fmt.Errorf("can't scan: basic scan required for interlace scan")
 	}
-	frames := 9999
-	//COMENCE INTERLACE SCAN
-	devnull := ""
-	switch runtime.GOOS {
-	case "linux":
-		devnull = "/dev/null"
-	case "windows":
-		devnull = "NUL"
-	}
-	if _, ok := mp.streamInfo["0:v:0"]; !ok {
-		return fmt.Errorf("can't perform interlace scan: no video streams detected")
-	}
+	//COMENCE SILENCE SCAN
 
-	com := fmt.Sprintf("ffmpeg -hide_banner -filter:v idet -frames:v %v -an -f rawvideo -y %v -i %v", frames, devnull, sourceFile)
-	fmt.Fprintf(os.Stderr, "run: %v\n", com)
+	com := fmt.Sprintf("ffmpeg -loglevel info -hide_banner -i %v -af silencedetect=n=-%vdB:d=%v -f null -", sourceFile, dB, duration)
+	fmt.Fprintf(os.Stderr, "run: '%v'\n", com)
 
 	done := false
 	var wg sync.WaitGroup
 	process, err := command.New(command.CommandLineArguments(com),
 		command.AddBuffer("buf"),
+		// command.Set(command.BUFFER_ON),
 	)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "subprocess error1: %v", err.Error())
@@ -291,36 +281,68 @@ func (mp *mediaProfile) ScanSilence(sourceFile string) error {
 		wg.Done()
 	}()
 	for !done {
-		time.Sleep(time.Millisecond * 500)
-		//bts, _ := os.ReadFile("aaa.txt")
-
 		ln := strings.Split(buf.String(), "\n")
 		last := len(ln) - 1
 		if last < 0 {
 			last = 0
 		}
-		if strings.Contains(ln[last], "s/s speed=") {
-			fmt.Fprintf(os.Stderr, "%v\r", ln[last])
-		}
+
+		out, _ := filterSilence(buf.String())
+		fmt.Fprintf(os.Stderr, "%v  \r", out)
+
 	}
-	fmt.Fprintf(os.Stderr, "\n")
+	fmt.Fprintf(os.Stderr, "                                            \r")
 	wg.Wait()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "subprocess error3: %v", err.Error())
 		return err
 	}
-
-	idetReport := filterIdet(buf.String())
-	sum := float64(idetReport["I"] + idetReport["P"])
-	progressive := float64(idetReport["P"]) / sum
-	progressive = float64(int(progressive*10000)) / 100
-	mp.Streams[0].Progressive_frames_pct = progressive
-
-	if mp.confirmScan(ScanInterlace) != nil {
+	report, silenceData := filterSilence(buf.String())
+	mp.Streams[0].SilenceData = silenceData
+	fmt.Fprintf(os.Stdout, report+"\n")
+	if mp.confirmScan(ScanSilence) != nil {
 		return err
 	}
 	return nil
 }
+
+func filterSilence(report string) (string, []SilenceSegment) {
+	silenceData := []SilenceSegment{}
+	lines := strings.Split(report, "\n")
+	total := 0.0
+	for _, line := range lines {
+		if strings.Contains(line, "silence_end") {
+			sil := SilenceSegment{}
+			flds := strings.Fields(line)
+			if flds[3] == "silence_end:" {
+				end, err := strconv.ParseFloat(flds[4], 64)
+				if err != nil {
+					fmt.Println(line)
+					panic(err.Error() + line)
+				}
+				sil.SilenceEnd = end
+			}
+			if flds[6] == "silence_duration:" {
+				dur, err := strconv.ParseFloat(flds[7], 64)
+				if err != nil {
+					fmt.Println(line)
+					panic(err.Error() + line)
+				}
+				sil.SilenceDuration = dur
+			}
+
+			sil.SilenceStart = sil.SilenceEnd - sil.SilenceDuration
+			if sil.SilenceStart < 0 {
+				sil.SilenceStart = 0
+			}
+			total += sil.SilenceDuration
+			silenceData = append(silenceData, sil)
+		}
+	}
+	total = float64(int(total*1000)) / 1000
+	return fmt.Sprintf("%v seconds of silence in %v segments detected", total, len(silenceData)), silenceData
+}
+
 func filterIdet(report string) map[string]int {
 	rMap := make(map[string]int)
 	lines := strings.Split(report, "\n")
@@ -781,10 +803,11 @@ func (mp *mediaProfile) confirmScan(scan string) error {
 		if len(mp.ScansCompleted) != 0 {
 			return fmt.Errorf("can't confirm %v scan: other scan data must not exist")
 		}
-	case ScanInterlace:
+	case ScanInterlace, ScanSilence:
 		if !mp.scanCompleted(ScanBasic) {
 			return fmt.Errorf("can't confirm %v scan: basic scan not completed")
 		}
+
 	}
 	if err := mp.validate(); err != nil {
 		return fmt.Errorf("can't validate profile: %v", err.Error())
