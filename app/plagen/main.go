@@ -5,8 +5,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/Galdoba/ffstuff/app/plashka/cmd"
-	"github.com/Galdoba/ffstuff/app/plashka/config"
+	"github.com/Galdoba/ffstuff/app/plagen/cmd"
+	"github.com/Galdoba/ffstuff/app/plagen/config"
 	"github.com/urfave/cli/v2"
 )
 
@@ -46,7 +46,7 @@ func main() {
 		return nil
 	}
 	app.Commands = []*cli.Command{
-		cmd.Standard(),
+		// cmd.Standard(),
 		cmd.Custom(),
 	}
 

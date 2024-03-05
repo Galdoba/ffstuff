@@ -58,6 +58,11 @@ func Show() *cli.Command {
 				Usage:   "print separation line between different files",
 				Aliases: []string{"sp"},
 			},
+			&cli.BoolFlag{
+				Name:    "duration",
+				Usage:   "print duration in seconds",
+				Aliases: []string{"d"},
+			},
 			&cli.StringSliceFlag{
 				Name:     "include_stream",
 				Category: "Filtered Output:",
@@ -88,9 +93,10 @@ func Show() *cli.Command {
 			aud := c.Bool("audio_layout")
 			wrn := c.Bool("warning")
 			nme := c.Bool("name")
+			dur := c.Bool("duration")
 			split := c.Bool("split")
 			stream_keys := c.StringSlice("include_stream")
-			if !srt && !lng && !wrn && !aud && len(stream_keys) == 0 {
+			if !srt && !lng && !wrn && !aud && !dur && len(stream_keys) == 0 {
 				srt = true
 			}
 			for _, path := range args {
@@ -148,6 +154,9 @@ func Show() *cli.Command {
 				}
 				if aud {
 					fmt.Fprintf(os.Stdout, "%v\n", scan.AudioLayout())
+				}
+				if dur {
+					fmt.Fprintf(os.Stdout, "%v", scan.Format.Duration)
 				}
 				if wrn {
 					for _, w := range scan.Warnings() {
