@@ -78,7 +78,7 @@ func main() {
 		cmd.Show(),
 		cmd.ScanStreams(),
 		cmd.FullScan(),
-		cmd.RipLang(),
+		cmd.AudioStreamsData(),
 	}
 
 	//ПО ОКОНЧАНИЮ ДЕЙСТВИЯ

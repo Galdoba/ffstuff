@@ -88,4 +88,5 @@ require (
 	golang.org/x/text v0.14.0 // indirect
 	google.golang.org/api v0.154.0
 	gopkg.in/toast.v1 v1.0.0-20180812000517-0a84660828b2 // indirect
+	gopkg.in/yaml.v2 v2.4.0
 )

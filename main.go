@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 )
 
@@ -14,6 +15,11 @@ type button struct {
 }
 
 func main() {
+	errors.New()
+
+	err := fmt.Errorf("aaa")
+	errors.Wrap()
+
 	btnList := btnList{}
 	btnList.btns = append(btnList.btns, button{"Q", []rune{'q', 'Q', 'й', 'Й'}})
 	btnList.btns = append(btnList.btns, button{"W", []rune{'w', 'W', 'ц', 'Ц'}})

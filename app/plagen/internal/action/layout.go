@@ -28,10 +28,8 @@ func ParseLayout(layout string) ([]string, int, error) {
 		switch aud {
 		default:
 			return nil, -1, fmt.Errorf("bad layout '%v': can't parse audio channels: undefined value '%v'", layout, aud)
-		case "2":
-			audio = append(audio, "stereo")
-		case "6":
-			audio = append(audio, "5.1")
+		case "2", "6":
+			audio = append(audio, aud)
 		}
 	}
 	if len(parts) == 1 {
@@ -65,14 +63,52 @@ func StdDestinationDir(file string) string {
 
 type GenerationTask struct {
 	videoSource string
+	key         string
+	destination string
 	audioData   []string
 	frmt        []string
 	srtNum      int
-	destination string
 }
 
-func NewTask(videoSource string, audioData []string, srtNum int) *GenerationTask {
-	return &GenerationTask{videoSource: videoSource, audioData: audioData, srtNum: srtNum}
+func NewTask(videoSource string, destination string, audioData []string, srtNum int) *GenerationTask {
+	return &GenerationTask{videoSource: videoSource, destination: destination, audioData: audioData, srtNum: srtNum}
+}
+
+type Product struct {
+	base   string
+	frmt   string
+	audio  []string
+	srtNum int
+}
+
+func (p *Product) OutName() string {
+	root := os.Getenv("AGELOGOPATH")
+	sep := string(filepath.Separator)
+	root += p.base + sep + p.base + "_" + p.frmt
+	if len(p.audio) == 0 {
+		root += ".mp4"
+		return root
+	}
+	root += "_a"
+	for _, a := range p.audio {
+		switch a {
+		default:
+			root += "x"
+		case "stereo":
+			root += "2"
+		case "5.1":
+			root += "6"
+		}
+	}
+	if p.srtNum == 0 {
+		root += ".mp4"
+		return root
+	}
+	return fmt.Sprintf("%v_s%v.mp4", root, p.srtNum)
+}
+
+func (p *Product) VSource() string {
+	return p.base
 }
 
 func DetectSources() []string {

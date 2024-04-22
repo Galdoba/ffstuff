@@ -51,6 +51,9 @@ func FullScan() *cli.Command {
 				default:
 					fmt.Fprintf(os.Stderr, "scan basic: %v\n", err.Error())
 				}
+				if err := mp.SaveAs(cfg.StorageDir + filepath.Base(fl) + ".json"); err != nil {
+					fmt.Println(err.Error())
+				}
 				err = mp.ScanInterlace(fl)
 				switch err {
 				case nil:
@@ -58,7 +61,10 @@ func FullScan() *cli.Command {
 				default:
 					fmt.Fprintf(os.Stderr, "scan interlace: %v\n", err.Error())
 				}
-				err = mp.ScanSilence(fl, 50, 0.5)
+				if err := mp.SaveAs(cfg.StorageDir + filepath.Base(fl) + ".json"); err != nil {
+					fmt.Println(err.Error())
+				}
+				err = mp.ScanSilence(fl, 64, 2.0)
 				switch err {
 				case nil:
 					dataChanged = true

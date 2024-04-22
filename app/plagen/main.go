@@ -25,7 +25,7 @@ func main() {
 	app.Before = func(c *cli.Context) error {
 		cfg := &config.Config{}
 		err := fmt.Errorf("config not loaded")
-		cfg, err = config.Load(app.Name)
+		cfg, err = config.Load()
 		if err != nil {
 			fmt.Println("config err:", err.Error())
 
@@ -42,7 +42,6 @@ func main() {
 				return nil
 			}
 		}
-		fmt.Println("Before ENDED")
 		return nil
 	}
 	app.Commands = []*cli.Command{
@@ -52,7 +51,6 @@ func main() {
 
 	//ПО ОКОНЧАНИЮ ДЕЙСТВИЯ
 	app.After = func(c *cli.Context) error {
-		fmt.Println("After ENDED")
 		return nil
 	}
 	args := os.Args

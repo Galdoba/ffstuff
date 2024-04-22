@@ -257,7 +257,7 @@ func (mp *mediaProfile) ScanSilence(sourceFile string, dB int, duration float64)
 	}
 	//COMENCE SILENCE SCAN
 
-	com := fmt.Sprintf("ffmpeg -loglevel info -hide_banner -i %v -af silencedetect=n=-%vdB:d=%v -f null -", sourceFile, dB, duration)
+	com := fmt.Sprintf("ffmpeg -hide_banner -i %v -af silencedetect=n=-%vdB:d=%v -f null -", sourceFile, dB, duration)
 	fmt.Fprintf(os.Stderr, "run: '%v'\n", com)
 
 	done := false
@@ -310,6 +310,7 @@ func filterSilence(report string) (string, []SilenceSegment) {
 	silenceData := []SilenceSegment{}
 	lines := strings.Split(report, "\n")
 	total := 0.0
+	timestamp := ""
 	for _, line := range lines {
 		if strings.Contains(line, "silence_end") {
 			sil := SilenceSegment{}
@@ -338,9 +339,18 @@ func filterSilence(report string) (string, []SilenceSegment) {
 			total += sil.SilenceDuration
 			silenceData = append(silenceData, sil)
 		}
+		if strings.Contains(line, "time=") {
+			data := strings.Fields(line)
+			for _, time := range data {
+				if strings.HasPrefix(line, "time=") {
+					time = strings.TrimPrefix(time, "time=")
+					timestamp = time
+				}
+			}
+		}
 	}
 	total = float64(int(total*1000)) / 1000
-	return fmt.Sprintf("%v seconds of silence in %v segments detected", total, len(silenceData)), silenceData
+	return fmt.Sprintf("%v: %v seconds of silence in %v segments detected", timestamp, total, len(silenceData)), silenceData
 }
 
 func filterIdet(report string) map[string]int {
@@ -921,6 +931,29 @@ Input #0, mov,mp4,m4a,3gp,3g2,mj2, from 'Shifter_5.1_RUS.mov':
     Stream #0:0(eng): Video: prores (HQ) (apch / 0x68637061), yuv422p10le(tv, bt709, progressive), 1920x1080, 167876 kb/s, SAR 1:1 DAR 16:9, 25 fps, 25 tbr, 25 tbn, 25 tbc (default)
     Stream #0:1(eng): Audio: pcm_s24le (lpcm / 0x6D63706C), 48000 Hz, 5.1, s32 (24 bit), 6912 kb/s (default)
     Stream #0:2(eng): Data: none (tmcd / 0x64636D74) (default)
+
+
+ffprobe -t 120 -f lavfi -i amovie=Mese_speyd_s01e03_PRT240129003542_SER_03970_18.mp4,asetnsamples=48000,astats=metadata=1:reset=1 -show_entries frame=pkt_pts_time:frame_tags=lavfi.astats.1.RMS_level,lavfi.astats.2.RMS_level,lavfi.astats.3.RMS_level,lavfi.astats.4.RMS_level,lavfi.astats.5.RMS_level,lavfi.astats.6.RMS_level,lavfi.astats.7.RMS_level,lavfi.astats.8.RMS_level,,lavfi.astats.1.8.RMS_level -of csv=p=0 1>log.txt
+
+ffprobe -i INTERLACE_Zhivesh_tolko_raz--TRL--yolo_trl_hd_20_rus_18.mp4 -map 0:1 -show_entries frame=pkt_pts_time:frame_tags=lavfi.astats.1.RMS_level,lavfi.astats.2.RMS_level,lavfi.astats.3.RMS_level,lavfi.astats.4.RMS_level,lavfi.astats.5.RMS_level,lavfi.astats.6.RMS_level,lavfi.astats.7.RMS_level,lavfi.astats.7.RMS_level -of csv=p=0 1>log.txt
+
+ffmpeg -t 60 -i Mese_speyd_s01e03_PRT240129003542_SER_03970_18.mp4 -map 0:a:1 -af "asetnsamples=48000,astats=reset=1:metadata=1,ametadata=print:key='lavfi.astats.OVERALL.RMS_level':file=stats1.log"  -f null -
+
+
+
+ffprobe -f lavfi -i  amovie=Mese_speyd_s01e03_PRT240129003542_SER_03970_18.mp4,asetnsamples=48000*60,astats=metadata=1:reset=1 -show_entries frame=pkt_pts_time:frame_tags=lavfi.astats.1.RMS_level,lavfi.astats.2.RMS_level,lavfi.astats.3.RMS_level,lavfi.astats.4.RMS_level,lavfi.astats.5.RMS_level,lavfi.astats.6.RMS_level,lavfi.astats.7.RMS_level,lavfi.astats.8.RMS_level -of csv=p=0
+
+
+
+ffmpeg -t 180 -y -i Mese_speyd_s01e03_PRT240129003542_SER_03970_18.mp4 -filter_complex "[0:a:0]pan=mono|c0=c0[ch0]; [0:a:0]pan=mono|c0=c1[ch1]; [0:a:0]pan=mono|c0=c2[ch2]; [0:a:0]pan=mono|c0=c3[ch3]; [0:a:0]pan=mono|c0=c4[ch4]; [0:a:0]pan=mono|c0=c5[ch5]; [0:a:1]pan=mono|c0=c0[ch6]; [0:a:1]pan=mono|c0=c1[ch7]; [ch0][ch1][ch2][ch3][ch4][ch5][ch6][ch7]amerge=inputs=9[out]" -map [out] -acodec alac audio_joined.m4a && ffprobe -f lavfi -i amovie=audio_joined.m4a,asetnsamples=48000*60,astats=metadata=1:reset=1 -show_entries frame=pkt_pts_time:frame_tags=lavfi.astats.1.RMS_level,lavfi.astats.2.RMS_level,lavfi.astats.3.RMS_level,lavfi.astats.4.RMS_level,lavfi.astats.5.RMS_level,lavfi.astats.6.RMS_level,lavfi.astats.7.RMS_level,lavfi.astats.8.RMS_level,lavfi.astats.9.RMS_level -of csv=p=0
+
+
+
+
+fflite -t 180 -y -i Mese_speyd_s01e03_PRT240129003542_SER_03970_18.mp4  -map [left]      @alac0 left.m4a -map [right]     @alac0 right.m4a -map [center]    @alac0 center.m4a -map [lfe]       @alac0 lfe.m4a -map [left_sub]  @alac0 left_sub.m4a -map [right_sub] @alac0 right_sub.m4a
+
+
+ffprobe -f lavfi -i  amovie=left.m4a,asetnsamples=48000*60,astats=metadata=1:reset=1 -show_entries frame=pkt_pts_time:frame_tags=lavfi.astats.1.RMS_level,lavfi.astats.2.RMS_level -of csv=p=0
 
 
 
