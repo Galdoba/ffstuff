@@ -27,7 +27,8 @@ var flag map[int]bool
 func RipStreams() *cli.Command {
 	flag = make(map[int]bool)
 	cm := &cli.Command{
-		Name: "streams",
+		Name:  "streams",
+		Usage: "Rip streams from media file",
 		Action: func(c *cli.Context) error {
 			args := c.Args().Slice()
 			outputFiles := []string{}

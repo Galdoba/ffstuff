@@ -15,3 +15,17 @@ Input #0, wav, from 'ch03.wav':
 0;1a0{#*mono#48#768};0;0;w0
 
 ffprobe -f lavfi -i  amovie=ch02.wav,asetnsamples=48000*2,astats=metadata=1:reset=1 -show_entries frame=pkt_pts_time:frame_tags=lavfi.astats.1.RMS_level,lavfi.astats.2.RMS_level -of csv=p=0
+
+конфиг:
+рабочий файл -- стринг
+сводный файл -- стринг
+
+Input #0, mov,mp4,m4a,3gp,3g2,mj2, from 'Himera_s01e03--SER--Himera_s01e03_PRT240425010441_SER_04370_18.mp4':
+  Duration: 00:58:01.00, start: 0.000000, bitrate: 10282 kb/s
+    Stream #0:0(und): Video: h264 (High 4:2:2) (avc1 / 0x31637661), yuv422p(tv, unknown/bt709/bt709), 1920x1080 [SAR 1:1 DAR 16:9], 10010 kb/s, 25 fps, 25 tbr, 12800 tbn, 50 tbc (default)
+    Stream #0:1(rus): Audio: aac (LC) (mp4a / 0x6134706D), 48000 Hz, stereo, fltp, 129 kb/s (default)
+    Stream #0:2(kor): Audio: aac (LC) (mp4a / 0x6134706D), 48000 Hz, stereo, fltp, 129 kb/s
+    Stream #0:3(eng): Data: none (tmcd / 0x64636D74)
+
+1v0{#HD#25#[SAR=1:1_DAR=16:9]#10010#ns};2a0{#stereo#48#129}a1{#stereo#48#129};1;0;w0
+

@@ -78,6 +78,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/objx v0.5.1 // indirect
 	github.com/swallowstalker/postopush v0.0.0-20190802102728-6ec7e791aff1 // indirect
+	github.com/urfave/cli/v3 v3.0.0-alpha9
 	github.com/xrash/smetrics v0.0.0-20231213231151-1d8dd44e695e // indirect
 	golang.org/x/exp/shiny v0.0.0-20231226003508-02704c960a9b // indirect
 	golang.org/x/image v0.14.0 // indirect
