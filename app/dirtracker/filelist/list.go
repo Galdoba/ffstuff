@@ -2,7 +2,6 @@ package filelist
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -101,7 +100,6 @@ func sort(origin []fpath) []fpath {
 }
 
 /*
-
  */
 func fillError(lineData map[string]string, err error) map[string]string {
 	if err != nil {
@@ -420,7 +418,7 @@ func (fl *FileList) protoUpdate(maxTreads int) error {
 				defer func() {
 					<-numJobs
 				}()
-				list, err := ioutil.ReadDir(inputPath.dir)
+				list, err := os.ReadDir(inputPath.dir)
 				inputPath.err = err
 				ch <- inputPath
 				if err != nil {

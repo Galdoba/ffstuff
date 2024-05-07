@@ -7,7 +7,7 @@ import (
 	"os/user"
 	"strings"
 
-	"github.com/Galdoba/devtools/gpath"
+	"github.com/Galdoba/ffstuff/app/tgnotify/config"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/urfave/cli/v2"
 )
@@ -24,25 +24,24 @@ const (
 	programName = "tgnotify"
 )
 
+var cfg config.Config
+
 func init() {
 
-	configPath = gpath.StdPath(programName+".json", []string{".config", programName}...)
-	err := gpath.Touch(configPath)
-	assertNoError(err)
-	data, err := os.ReadFile(configPath)
-	assertNoError(err)
-	if len(data) == 0 {
-		data, err = json.MarshalIndent(defaultConfig(), "", "  ")
-		if err != nil {
-			println(err.Error())
-			//os.Exit(1)
-		}
-	}
-	err = json.Unmarshal(data, &programConfig)
+	err := fmt.Errorf("config not loaded")
+	cfg, err = config.Load()
 	if err != nil {
-		errText := fmt.Sprintf("can't unmarshal config data: %v", err.Error())
-		println(errText)
-		os.Exit(1)
+		cfg = config.New()
+		cfg.SetDefault()
+		if err := cfg.Save(); err != nil {
+			fmt.Printf("initialisation failed: %v", err.Error())
+			os.Exit(1)
+
+		}
+		fmt.Printf("config file generated at %v \n", cfg.Path())
+		fmt.Println("restart application")
+		os.Exit(0)
+
 	}
 
 }
@@ -105,7 +104,7 @@ func main() {
 					return fmt.Errorf("action 'send' must not use arguments. \ncheck if text of the message have spaces and not encaplated with quotes" + ` (")`)
 				}
 
-				token := programConfig.Token
+				token := cfg.ApiToken()
 				bot, err := tgbotapi.NewBotAPI(token)
 				if err != nil {
 					return fmt.Errorf("create bot api: %v", err.Error())
@@ -133,7 +132,8 @@ func main() {
 				}
 
 				chatKey := c.String("to_chat")
-				if _, ok := programConfig.ChatData[chatKey]; ok != true {
+				chats := cfg.ChatChannels()
+				if _, ok := chats[chatKey]; ok != true {
 					return fmt.Errorf("no key '%v' found in config file", chatKey)
 				}
 
@@ -160,7 +160,15 @@ func main() {
 			Name:  "config",
 			Usage: "print current config",
 			Action: func(c *cli.Context) error {
-				fmt.Println(programConfig.String())
+				cfgData, err := os.ReadFile(cfg.Path())
+				if err != nil {
+					return err
+				}
+				fmt.Printf("Current config is:\n")
+				fmt.Println("--------------------------------------------------------------------------------")
+				fmt.Println(string(cfgData))
+				fmt.Println("--------------------------------------------------------------------------------")
+				fmt.Println("File location: ", cfg.Path())
 				return nil
 			},
 		},
@@ -186,7 +194,8 @@ func main() {
 					return fmt.Errorf("action 'add_chat' must not use arguments. \ncheck if key or link spaces and not encaplated with quotes" + ` (")`)
 				}
 				newKey := c.String("k")
-				for availableKey := range programConfig.ChatData {
+				chats := cfg.ChatChannels()
+				for availableKey := range chats {
 					if newKey == availableKey {
 						return fmt.Errorf("can't add key: '%v' already present", newKey)
 					}
@@ -218,20 +227,22 @@ func main() {
 				if chatDataLine == "" {
 					return fmt.Errorf("parsing failed\nenshure value of a flag '--link' is url of telegram chat")
 				}
+				cfg.ChatChannels()[newKey] = chatDataLine
+				cfg.Save()
 
-				programConfig.ChatData[newKey] = chatDataLine
-				bts, errM := json.MarshalIndent(programConfig, "", "  ")
-				if errM != nil {
-					return errM
-				}
-				f, ee := os.OpenFile(configPath, os.O_WRONLY, 0777)
-				if ee != nil {
-					return ee
-				}
-				f.Truncate(0)
-				if _, err := f.Write(bts); err != nil {
-					return err
-				}
+				// programConfig.ChatData[newKey] = chatDataLine
+				// bts, errM := json.MarshalIndent(programConfig, "", "  ")
+				// if errM != nil {
+				// 	return errM
+				// }
+				// f, ee := os.OpenFile(configPath, os.O_WRONLY, 0777)
+				// if ee != nil {
+				// 	return ee
+				// }
+				// f.Truncate(0)
+				// if _, err := f.Write(bts); err != nil {
+				// 	return err
+				// }
 				return nil
 			},
 		},
@@ -239,19 +250,20 @@ func main() {
 			Name:  "delete",
 			Usage: "delete chat key from config",
 			Action: func(c *cli.Context) error {
+				chats := cfg.ChatChannels()
 				keys := c.Args().Slice()
 				if len(keys) < 1 {
 					return fmt.Errorf("action 'delete' uses arguments for keys")
 				}
-				chatData := programConfig.ChatData
+
 				userOutput := "keys deleted: 0"
 				deleted := 0
 				for _, k := range keys {
-					if _, ok := chatData[k]; !ok {
+					if _, ok := chats[k]; !ok {
 						println(fmt.Sprintf("key '%v' is not found", k))
 						continue
 					}
-					delete(programConfig.ChatData, k)
+					delete(chats, k)
 					deleted++
 					userOutput = fmt.Sprintf("keys deleted: %v", deleted)
 				}

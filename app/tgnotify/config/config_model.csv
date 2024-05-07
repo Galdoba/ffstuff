@@ -1,0 +1,3 @@
+Token,string,ApiToken,false,telegram bot secret token
+ChatData,map[string]string,Chat Channels,false,key => url_for_chat
+encoding,json, , , 

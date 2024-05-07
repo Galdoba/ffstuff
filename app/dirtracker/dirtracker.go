@@ -6,32 +6,21 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/Galdoba/ffstuff/app/dirtracker/config"
 	"github.com/Galdoba/ffstuff/app/dirtracker/filelist"
-	"github.com/Galdoba/ffstuff/pkg/config"
 	"github.com/Galdoba/utils"
 	"github.com/urfave/cli/v2"
-	"gopkg.in/yaml.v3"
 )
 
 const (
 	program = "dirtracker"
 )
 
-type ConfFile struct {
-	Root                string
-	WhiteListEnabled    bool
-	WhiteList           []string
-	BlackListEnabled    bool
-	BlackList           []string
-	UpdateCycle_seconds int
-	Max_threads         int
-}
-
-var Conf *ConfFile
+var cfg config.Config
 
 func main() {
 	app := cli.NewApp()
-	app.Version = "v 0.2.1"
+	app.Version = "v 0.2.2"
 	app.Name = "dirtracker"
 	app.Usage = "Отслеживает файлы в указанных директориях"
 	app.Description = "После сбора информации об имеющихся файлах и папках ниже корня готовит отчеты для вывода в файл/на терминал"
@@ -44,35 +33,21 @@ func main() {
 	//ДО НАЧАЛА ДЕЙСТВИЯ
 	app.Before = func(c *cli.Context) error {
 		//Убедиться что есть файлы статистики. если нет то создать
-		cfg := config.File{}
-		if !config.Exists(program) {
-			fmt.Println("Config not detected...")
-			cfg, err := config.ConstructManual(program)
-			if err != nil {
-				return err
+		err := fmt.Errorf("config not loaded")
+		cfg, err = config.Load()
+		if err != nil {
+			cfg = config.New()
+			cfg.SetDefault()
+			if err := cfg.Save(); err != nil {
+				fmt.Printf("initialisation failed: %v", err.Error())
+				os.Exit(1)
+
 			}
-			fmt.Println("Filling default Data...")
-			conf := ConfFile{
-				Root:                "\\\\nas\\buffer\\IN\\",
-				WhiteListEnabled:    false,
-				WhiteList:           []string{"DIR1\\", "DIR2\\"},
-				BlackListEnabled:    false,
-				BlackList:           []string{"DIR1\\", "DIR2\\"},
-				UpdateCycle_seconds: 5,
-				Max_threads:         5,
-			}
-			dt, err := yaml.Marshal(conf)
-			if err := cfg.Write(dt); err != nil {
-				return err
-			}
-			fmt.Println("Default data filled...")
-			return nil
+			fmt.Printf("config file generated at %v \n", cfg.Path())
+			fmt.Println("restart application")
+			os.Exit(0)
+
 		}
-		fmt.Println("Config detected...")
-		if err := yaml.Unmarshal(cfg.Data, ConfFile{}); err != nil {
-			return err
-		}
-		fmt.Println("Content is valid...")
 		return nil
 	}
 	//ПО ОКОНЧАНИЮ ДЕЙСТВИЯ
@@ -90,23 +65,17 @@ func main() {
 			Description: "TODO: подробное описание команды",
 			ArgsUsage:   "Аргументов не имеет\nВ планах локальный режим и указание файла в который должен писаться отчет",
 			Action: func(c *cli.Context) error {
-				cfgData, err := config.ReadFrom(program) //считываем содержание конфига
-				if err != nil {
-					return fmt.Errorf("config.ReadFrom: %v", err)
-				}
-				if err := yaml.Unmarshal(cfgData, &Conf); err != nil { //интерпритируем конфиг для дальнейшего пользования
-					return fmt.Errorf("yaml.Unmarshal: %v", err)
-				}
+
 				runtime.GOMAXPROCS(runtime.NumCPU() - 1) // занимаем все ядра кроме одного чтобы система не висла в случае избыточного кол-ва тредов
 
-				fl, _ := filelist.New(Conf.Root)
+				fl, _ := filelist.New(cfg.SearchRoot())
 				output := ""
 			mainLoop:
 				for {
 					//fmt.Printf("Updating...                                   \n")
 					atempt := 1
 					for atempt <= 100 {
-						if err := fl.Update(Conf.Max_threads); err != nil {
+						if err := fl.Update(cfg.MaximumSearchThreads()); err != nil {
 							fmt.Print("\rTry ", atempt, " ", err.Error()) //на случай если будет ошибка обновления списка
 							time.Sleep(time.Second)
 						} else {
@@ -118,9 +87,9 @@ func main() {
 						}
 					}
 
-					shortList := filelist.Compile(fl.FullList(), Conf.WhiteList, Conf.WhiteListEnabled, Conf.BlackList, Conf.BlackListEnabled)
+					shortList := filelist.Compile(fl.FullList(), cfg.WhiteList(), cfg.WhiteListEnabled(), cfg.BlackList(), cfg.BlackListEnabled())
 
-					res, err := filelist.Format(shortList, Conf.WhiteList, Conf.WhiteListEnabled)
+					res, err := filelist.Format(shortList, cfg.WhiteList(), cfg.WhiteListEnabled())
 					if err != nil {
 						if err.Error() == "no files found" {
 							utils.ClearScreen()
@@ -149,7 +118,7 @@ func main() {
 						//fmt.Println("NOT Sending To Bot")
 					}
 
-					updCyc := Conf.UpdateCycle_seconds
+					updCyc := cfg.UpdateCycle()
 					for i := updCyc; i > -1; i-- {
 						switch i {
 						default:
@@ -171,7 +140,7 @@ func main() {
 			ArgsUsage:   "",
 			Action: func(c *cli.Context) error {
 
-				cfgData, err := config.ReadFrom(program)
+				cfgData, err := os.ReadFile(cfg.Path())
 				if err != nil {
 					return err
 				}
@@ -179,7 +148,7 @@ func main() {
 				fmt.Println("--------------------------------------------------------------------------------")
 				fmt.Println(string(cfgData))
 				fmt.Println("--------------------------------------------------------------------------------")
-				fmt.Println("File location: ", config.Filepath(program))
+				fmt.Println("File location: ", cfg.Path())
 				return nil
 			},
 		},

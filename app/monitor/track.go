@@ -55,13 +55,14 @@ func keysByDirOrder(infoMap map[int]*entry, dirsSorted []string) []int {
 
 func dirsSort() []string {
 	rtKeys := []string{}
-	for k, _ := range Conf.Roots {
+	roots := cfg.TrackRoots()
+	for k, _ := range roots {
 		rtKeys = append(rtKeys, k)
 	}
 	sort.Strings(rtKeys)
 	rtVals := []string{}
 	for _, key := range rtKeys {
-		for _, val := range Conf.Roots[key] {
+		for _, val := range roots[key] {
 			rtVals = append(rtVals, val)
 		}
 	}

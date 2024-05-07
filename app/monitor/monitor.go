@@ -9,27 +9,18 @@ import (
 	"time"
 
 	"github.com/Galdoba/devtools/directory"
+	"github.com/Galdoba/ffstuff/app/monitor/config"
 	"github.com/Galdoba/ffstuff/internal/terminal"
-	"github.com/Galdoba/ffstuff/pkg/config"
 	"github.com/urfave/cli/v2"
 
 	tsize "github.com/kopoli/go-terminal-size"
-
-	"gopkg.in/yaml.v3"
 )
 
 const (
 	program = "monitor"
 )
 
-type ConfFile struct {
-	Roots               map[string][]string
-	Storage             string
-	UpdateCycle_seconds int
-	Max_threads         int
-}
-
-var Conf *ConfFile
+var cfg config.Config
 
 var opsys string
 var storagePath string
@@ -60,19 +51,25 @@ func main() {
 	}
 	//ДО НАЧАЛА ДЕЙСТВИЯ
 	app.Before = func(c *cli.Context) error {
-		opsys = runtime.GOOS
-		switch opsys {
-		default:
-			fmt.Printf("this is unsupported Operating System: %v", opsys)
-			os.Exit(1)
-		case "windows":
-			storagePath = config.DataDirectory(program)
-		case "linux":
-			storagePath = config.DataDirectory(program)
-		}
 
 		//зачищаем остатки данных с прошлой сессии
-		cfg := config.File{}
+		err := fmt.Errorf("config not loaded")
+		cfg, err = config.Load()
+		if err != nil {
+			cfg = config.New()
+			cfg.SetDefault()
+			if err := cfg.Save(); err != nil {
+				fmt.Printf("initialisation failed: %v", err.Error())
+				os.Exit(1)
+
+			}
+			fmt.Printf("config file generated at %v \n", cfg.Path())
+			fmt.Println("restart application")
+			os.Exit(0)
+
+		}
+		storagePath = cfg.DataStorage()
+
 		// if err := os.RemoveAll(storagePath); err != nil {
 		// 	return err
 		// }
@@ -84,31 +81,7 @@ func main() {
 			return err
 		}
 		defer dataStore.Close()
-		if !config.Exists(program) {
-			fmt.Println("Config not detected...")
-			cfg, err := config.ConstructManual(program)
-			if err != nil {
-				return err
-			}
-			fmt.Println("Filling default Data...")
-			roots := make(map[string][]string)
 
-			roots["buffer"] = []string{`\\192.168.31.4\buffer\IN\_DONE\`, `\\192.168.31.4\buffer\IN\_IN_PROGRESS\`, `\\192.168.31.4\buffer\IN\`}
-			conf := ConfFile{
-				Roots:               roots,
-				UpdateCycle_seconds: 5,
-				Max_threads:         5,
-			}
-			dt, err := yaml.Marshal(conf)
-			if err := cfg.Write(dt); err != nil {
-				return err
-			}
-			fmt.Println("Default data filled...")
-			return nil
-		}
-		if err := yaml.Unmarshal(cfg.Data, ConfFile{}); err != nil {
-			return err
-		}
 		runtime.GOMAXPROCS(runtime.NumCPU() - 1)
 		return nil
 	}
@@ -127,14 +100,14 @@ func main() {
 			ArgsUsage:   "Аргументов не имеет\nВ планах локальный режим и указание файла в который должен писаться отчет",
 			Category:    "Primary",
 			Action: func(c *cli.Context) error {
-				cfgData, err := config.ReadFrom(program)
-				if err != nil {
-					return fmt.Errorf("config.ReadFrom: %v", err)
-				}
-				if err := yaml.Unmarshal(cfgData, &Conf); err != nil {
-					return fmt.Errorf("yaml.Unmarshal: %v", err)
-				}
-				if len(Conf.Roots) < 1 {
+				// cfgData, err := config.ReadFrom(program)
+				// if err != nil {
+				// 	return fmt.Errorf("config.ReadFrom: %v", err)
+				// }
+				// if err := yaml.Unmarshal(cfgData, &Conf); err != nil {
+				// 	return fmt.Errorf("yaml.Unmarshal: %v", err)
+				// }
+				if len(cfg.TrackRoots()) < 1 {
 					return fmt.Errorf("no Roots set in config.file")
 				}
 				list, err := scanRoots(c)
@@ -183,14 +156,14 @@ func main() {
 			ArgsUsage:   "Аргументов не имеет\nВ планах локальный режим и указание файла в который должен писаться отчет",
 			Category:    "Primary",
 			Action: func(c *cli.Context) error {
-				cfgData, err := config.ReadFrom(program)
-				if err != nil {
-					return fmt.Errorf("config.ReadFrom: %v", err)
-				}
-				if err := yaml.Unmarshal(cfgData, &Conf); err != nil {
-					return fmt.Errorf("yaml.Unmarshal: %v", err)
-				}
-				if len(Conf.Roots) < 1 {
+				// cfgData, err := os.ReadFile(cfg.Path())
+				// if err != nil {
+				// 	return fmt.Errorf("config.ReadFrom: %v", err)
+				// }
+				// if err := yaml.Unmarshal(cfgData, &Conf); err != nil {
+				// 	return fmt.Errorf("yaml.Unmarshal: %v", err)
+				// }
+				if len(cfg.TrackRoots()) < 1 {
 					return fmt.Errorf("no Roots set in config.file")
 				}
 
@@ -222,7 +195,7 @@ func main() {
 						terminal.Clear()
 						fmt.Println(scr)
 					}
-					time.Sleep(time.Second * time.Duration(Conf.UpdateCycle_seconds))
+					time.Sleep(time.Second * time.Duration(cfg.UpdateCycle()))
 
 				}
 				sendToBot := false
@@ -263,7 +236,7 @@ func main() {
 			ArgsUsage:   "",
 			Action: func(c *cli.Context) error {
 
-				cfgData, err := config.ReadFrom(program)
+				cfgData, err := os.ReadFile(cfg.Path())
 				if err != nil {
 					return err
 				}
@@ -271,7 +244,7 @@ func main() {
 				fmt.Println("--------------------------------------------------------------------------------")
 				fmt.Println(string(cfgData))
 				fmt.Println("--------------------------------------------------------------------------------")
-				fmt.Println("File location: ", config.Filepath(program))
+				fmt.Println("File location: ", cfg.Path())
 				return nil
 			},
 		},
@@ -291,7 +264,7 @@ func main() {
 }
 
 func scanRoots(c *cli.Context) ([]string, error) {
-	rootsUnsorted := Conf.Roots
+	rootsUnsorted := cfg.TrackRoots()
 	roots := make(map[string][]string)
 	list := []string{}
 	sep := string(filepath.Separator)

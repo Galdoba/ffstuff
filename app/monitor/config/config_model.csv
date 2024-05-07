@@ -1,0 +1,5 @@
+Roots,map[string][]string,Track Roots,false,
+Storage,string,Data Storage,false,
+UpdateCycle_seconds,int,Update Cycle,false,
+Max_threads,int,Max Threads,false,
+encoding,yaml, , , 
