@@ -23,6 +23,64 @@ func Transliterate(origin string) string {
 	return result
 }
 
+func TransliterateWithTitle(origin string) string {
+	letters := strings.Split(origin, "")
+	changed := ""
+	result := ""
+	for _, l := range letters {
+		changed += change(l)
+	}
+	words := strings.Split(changed, "_")
+	for _, w := range words {
+		if w == "" {
+			continue
+		}
+		result += w + "_"
+	}
+	result = strings.TrimSuffix(result, "_zamena_")
+	result = strings.TrimSuffix(result, "_")
+	result = strings.ToUpper(strings.Split(result, "")[0]) + strings.Join(strings.Split(result, "")[1:], "")
+
+	return result
+}
+
+func TransliterateAsIs(origin string) string {
+	letters := strings.Split(origin, "")
+	changed := ""
+	result := ""
+	for _, l := range letters {
+		changed += change(l)
+	}
+	words := strings.Split(changed, "_")
+	for _, w := range words {
+		if w == "" {
+			continue
+		}
+		result += w + "_"
+	}
+	result = strings.TrimSuffix(result, "_zamena_")
+	result = strings.TrimSuffix(result, "_")
+	return result
+}
+
+func TransliterateLower(origin string) string {
+	letters := strings.Split(origin, "")
+	changed := ""
+	result := ""
+	for _, l := range letters {
+		changed += change(l)
+	}
+	words := strings.Split(changed, "_")
+	for _, w := range words {
+		if w == "" {
+			continue
+		}
+		result += w + "_"
+	}
+
+	return result
+}
+
 func change(a string) string {
 	a = strings.ToLower(a)
 	switch a {

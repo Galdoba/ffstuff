@@ -3,7 +3,7 @@ module github.com/Galdoba/ffstuff
 go 1.18
 
 require (
-	github.com/Galdoba/devtools v0.0.0-20240202052159-a09edd33aa0c
+	github.com/Galdoba/devtools v0.0.0-20240501023114-d88a41c4bbd2
 	github.com/Galdoba/utils v0.0.0-20211006043430-41d7b3fa4b0a
 	github.com/fatih/color v1.16.0
 	github.com/k0kubun/go-ansi v0.0.0-20180517002512-3bf9e2903213

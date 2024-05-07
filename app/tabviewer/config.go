@@ -43,7 +43,8 @@ func (cfg *config) String() string {
 
 func defaultConfig() *config {
 	cfg := config{}
-	cfg.path = gconfig.DefineConfigPath(programName)
+	//cfg.path = gconfig.DefineConfigPath(programName)
+	cfg.path = `c:\Users\pemaltynov\.config\tabviewer\tabviewer.json`
 	cfg.UpdateTicker = 10
 	cfg.Curl = "-s --use-ascii --proxy http://proxy.local:3128 https://docs.google.com/spreadsheets/d/1Waa58usrgEal2Da6tyayaowiWujpm0rzd06P5ASYlsg/gviz/tq?tqx=out:csv -k --output "
 	cfg.CSV_DataFile = dataPath
