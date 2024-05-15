@@ -8,6 +8,7 @@ import (
 	"github.com/Galdoba/ffstuff/app/autogen/config"
 	"github.com/Galdoba/ffstuff/app/autogen/internal/tabledata"
 	"github.com/Galdoba/ffstuff/app/autogen/internal/ticket"
+	"github.com/Galdoba/ffstuff/pkg/translit"
 	"github.com/urfave/cli/v2"
 )
 
@@ -24,7 +25,15 @@ func Run(cfg config.Config) *cli.Command {
 		// BashComplete: func(*cli.Context) {
 		// },
 		Before: func(*cli.Context) error {
-			return tabledata.Update(cfg)
+			fmt.Print("Initial Table Update . . .")
+			err := tabledata.Update(cfg)
+			if err != nil {
+				fmt.Println("FAIL")
+				fmt.Println("use old data")
+				return nil
+			}
+			fmt.Println("DONE")
+			return nil
 		},
 		// After: func(*cli.Context) error {
 		// },
@@ -44,12 +53,62 @@ func Run(cfg config.Config) *cli.Command {
 				fmt.Println(err.Error())
 			}
 			allTickets = append(allTickets, ot...)
-			nft := NewFilmTickets(allEntries)
-			allTickets = append(allTickets, nft...)
 			nst := NewSerialTickets(allEntries)
 			allTickets = append(allTickets, nst...)
-			for i, t := range allTickets {
-				fmt.Println(i, t)
+			nft := NewFilmTickets(allEntries)
+			allTickets = append(allTickets, nft...)
+			//разбиваем общие сериальные тикеты на эпизоды
+			allTickets = SplitByEpisodes(allTickets)
+			//добавляем сорсы
+			fmt.Println("Source Files Check")
+			fi, err := os.ReadDir(cfg.InputDirectory())
+			if err != nil {
+				return fmt.Errorf("add sources: read dir: %v", err.Error())
+			}
+			for _, t := range allTickets {
+				//fmt.Println("ticket:", t.Name)
+				if t.SourceNamesCheck != ticket.Check_Status_WAIT {
+					//fmt.Println("skip")
+					continue
+				}
+				needSave := false
+				fullPrefix := t.SourcePrefix + "--" + ticket.CategoryPrefix(t.Category) + "--"
+				for _, f := range fi {
+					if f.IsDir() {
+						continue
+					}
+					if inSlice(t.SourceFiles, f.Name()) {
+						continue
+					}
+					if strings.HasPrefix(f.Name(), fullPrefix) {
+						fmt.Println("add as source/NO CHANGE", f.Name())
+						t.SourceFiles = append(t.SourceFiles, f.Name())
+						needSave = true
+						continue
+					}
+					nameWRDS := nameToWords(f.Name())
+					tcktWRDS := t.BaseWords
+					tcktEpisodeTAG := t.EpisodeTag()
+					if tcktEpisodeTAG != "" {
+						tcktWRDS = append(tcktWRDS, tcktEpisodeTAG)
+					}
+					if isSubSliceOf(tcktWRDS, nameWRDS) {
+						fmt.Println("add as source", f.Name())
+						t.SourceFiles = append(t.SourceFiles, fullPrefix+f.Name())
+						if !strings.HasPrefix(f.Name(), fullPrefix) {
+							os.Rename(cfg.InputDirectory()+f.Name(), cfg.InputDirectory()+fullPrefix+f.Name())
+						}
+						needSave = true
+						continue
+					}
+
+				}
+				if needSave {
+					fmt.Println("Update Ticket:", t.Name)
+					t.SourceNamesCheck = ticket.Check_Status_PASS
+					SaveTicket(t)
+				}
+
 			}
 
 			/*
@@ -75,6 +134,11 @@ func Run(cfg config.Config) *cli.Command {
 func NewFilmTickets(allEntries []tabledata.TableEntry) []*ticket.Ticket {
 	tickets := []*ticket.Ticket{}
 	for _, e := range allEntries {
+		path := TicketFilePath(translit.TransliterateLower(e.TableTaskName))
+		if _, err := os.OpenFile(path, os.O_RDONLY, 0777); err == nil {
+			//fmt.Println("already have", e.TableTaskName)
+			continue
+		}
 		tckt, err := ticket.FilmFromEntry(e)
 		if err != nil {
 			//fmt.Println("reject", e.TableTaskName, err.Error())
@@ -85,7 +149,7 @@ func NewFilmTickets(allEntries []tabledata.TableEntry) []*ticket.Ticket {
 			continue
 		}
 		if err = SaveTicket(tckt); err != nil {
-			fmt.Println("not save", e.TableTaskName, err.Error())
+			//fmt.Println("not save", e.TableTaskName, err.Error())
 			continue
 		}
 		tickets = append(tickets, tckt)
@@ -98,6 +162,11 @@ func NewFilmTickets(allEntries []tabledata.TableEntry) []*ticket.Ticket {
 func NewSerialTickets(allEntries []tabledata.TableEntry) []*ticket.Ticket {
 	tickets := []*ticket.Ticket{}
 	for _, e := range allEntries {
+		path := TicketFilePath(translit.TransliterateLower(e.TableTaskName))
+		if _, err := os.OpenFile(path, os.O_RDONLY, 0777); err == nil {
+			//fmt.Println("already have", e.TableTaskName)
+			continue
+		}
 		tckt, err := ticket.SerialFromEntry(e)
 		if err != nil {
 			//fmt.Println("reject", e.TableTaskName, err.Error())
@@ -105,10 +174,11 @@ func NewSerialTickets(allEntries []tabledata.TableEntry) []*ticket.Ticket {
 		}
 		_, err = LoadTicket(tckt.Name)
 		if err == nil {
+			//fmt.Println("already have", e.TableTaskName)
 			continue
 		}
 		if err = SaveTicket(tckt); err != nil {
-			fmt.Println("not save", e.TableTaskName, err.Error())
+			//fmt.Println("not save", e.TableTaskName, err.Error())
 			continue
 		}
 		tickets = append(tickets, tckt)
