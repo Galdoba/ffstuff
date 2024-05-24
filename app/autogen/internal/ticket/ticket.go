@@ -53,6 +53,7 @@ type Ticket struct {
 	ReadWriteCheck   int       `json:"ReadWrite Scan Status"`        //статус проверки
 	TimeOpen         time.Time `json:"Opened"`                       //время открытия тикета
 	TimeClose        time.Time `json:"Closed"`                       //время закрытия тикета
+	IsClosed         bool      `json:"IsClosed"`                     //статус закрытия тикета
 	TableData        []string  `json:"Table Data"`                   //данные из таблицы
 	BaseWords        []string  `json:"Base Words"`                   //слова в имени файлов для авто определения
 }

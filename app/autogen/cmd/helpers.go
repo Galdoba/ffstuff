@@ -6,13 +6,22 @@ import (
 	"os"
 	"strings"
 
+	"github.com/Galdoba/devtools/printer"
+	"github.com/Galdoba/devtools/printer/lvl"
 	"github.com/Galdoba/ffstuff/app/autogen/config"
+	"github.com/Galdoba/ffstuff/app/autogen/internal/tabledata"
 	"github.com/Galdoba/ffstuff/app/autogen/internal/ticket"
 )
 
 func setupVariables(cfg config.Config) {
 	TiketFileStorage = cfg.TicketStorageDirectory()
 	TableFile = cfg.TableDataFile()
+	pm = printer.New().
+		WithAppName(cfg.AppName()).
+		WithConsoleColors(true).
+		WithConsoleLevel(lvl.INFO).
+		WithFileLevel(lvl.TRACE).
+		WithFile(cfg.LogFilePath())
 }
 
 func SaveTicket(tkt *ticket.Ticket) error {
@@ -43,6 +52,10 @@ func LoadTicket(name string) (*ticket.Ticket, error) {
 	tkt := &ticket.Ticket{}
 	err = json.Unmarshal(bt, tkt)
 	return tkt, err
+}
+
+func CloseTicket(tkt *ticket.Ticket) {
+	tkt.IsClosed = true
 }
 
 func TicketFilePath(name string) string {
@@ -102,4 +115,28 @@ func SplitByEpisodes(allTickets []*ticket.Ticket) []*ticket.Ticket {
 
 	}
 	return allTickets
+}
+
+func CloseCompleted(allTickets []*ticket.Ticket, allEntries []tabledata.TableEntry) []*ticket.Ticket {
+	pm.Println(lvl.TRACE, "begin ticket pool cleaning")
+	validTickets := []*ticket.Ticket{}
+	for _, t := range allTickets {
+		for _, e := range allEntries {
+			tab := ""
+			if len(t.TableData) > 0 {
+				tab = t.TableData[0]
+			}
+			if tab != e.TableTaskName {
+				continue
+			}
+			if e.TableEditStatus == "g" || e.TableEditStatus == "п" {
+				CloseTicket(t)
+				if err := SaveTicket(t); err != nil {
+					pm.Println(lvl.ERROR, err.Error())
+				}
+			}
+		}
+	}
+	pm.Println(lvl.TRACE, "end ticket pool cleaning")
+	return validTickets
 }

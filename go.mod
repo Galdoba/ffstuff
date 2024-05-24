@@ -3,9 +3,9 @@ module github.com/Galdoba/ffstuff
 go 1.18
 
 require (
-	github.com/Galdoba/devtools v0.0.0-20240501023114-d88a41c4bbd2
+	github.com/Galdoba/devtools v0.0.0-20240517090456-136e19b293bb
 	github.com/Galdoba/utils v0.0.0-20211006043430-41d7b3fa4b0a
-	github.com/fatih/color v1.16.0
+	github.com/fatih/color v1.17.0
 	github.com/k0kubun/go-ansi v0.0.0-20180517002512-3bf9e2903213
 	github.com/kopoli/go-terminal-size v0.0.0-20170219200355-5c97524c8b54
 	github.com/malashin/ffinfo v0.0.0-20221209093859-4b0670e459ad
@@ -13,7 +13,7 @@ require (
 	github.com/mattn/go-runewidth v0.0.15
 	github.com/nsf/termbox-go v1.1.1
 	github.com/olekukonko/tablewriter v0.0.5
-	github.com/urfave/cli/v2 v2.27.1
+	github.com/urfave/cli/v2 v2.27.2
 	golang.design/x/clipboard v0.7.0
 	gopkg.in/AlecAivazis/survey.v1 v1.8.8
 	gopkg.in/yaml.v3 v3.0.1
@@ -55,7 +55,7 @@ require (
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/charmbracelet/bubbletea v0.25.0 // indirect
 	github.com/containerd/console v1.0.4-0.20230313162750-1ae8d489ac81 // indirect
-	github.com/cpuguy83/go-md2man/v2 v2.0.3 // indirect
+	github.com/cpuguy83/go-md2man/v2 v2.0.4 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/deckarep/gosx-notifier v0.0.0-20180201035817-e127226297fb // indirect
 	github.com/go-telegram-bot-api/telegram-bot-api v4.6.4+incompatible
@@ -79,12 +79,12 @@ require (
 	github.com/stretchr/objx v0.5.1 // indirect
 	github.com/swallowstalker/postopush v0.0.0-20190802102728-6ec7e791aff1 // indirect
 	github.com/urfave/cli/v3 v3.0.0-alpha9
-	github.com/xrash/smetrics v0.0.0-20231213231151-1d8dd44e695e // indirect
+	github.com/xrash/smetrics v0.0.0-20240312152122-5f08fbb34913 // indirect
 	golang.org/x/exp/shiny v0.0.0-20231226003508-02704c960a9b // indirect
 	golang.org/x/image v0.14.0 // indirect
 	golang.org/x/mobile v0.0.0-20231127183840-76ac6878050a // indirect
 	golang.org/x/sync v0.5.0 // indirect
-	golang.org/x/sys v0.15.0 // indirect
+	golang.org/x/sys v0.18.0 // indirect
 	golang.org/x/term v0.15.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	google.golang.org/api v0.154.0

@@ -5,6 +5,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/Galdoba/devtools/printer"
+	"github.com/Galdoba/devtools/printer/lvl"
 	"github.com/Galdoba/ffstuff/app/autogen/config"
 	"github.com/Galdoba/ffstuff/app/autogen/internal/tabledata"
 	"github.com/Galdoba/ffstuff/app/autogen/internal/ticket"
@@ -14,6 +16,7 @@ import (
 
 var TiketFileStorage string
 var TableFile string
+var pm printer.Printer
 
 func Run(cfg config.Config) *cli.Command {
 	cmnd := &cli.Command{
@@ -43,6 +46,7 @@ func Run(cfg config.Config) *cli.Command {
 				return fmt.Errorf("can't start main cycle")
 			}
 			setupVariables(cfg)
+			pm.Println(lvl.INFO, "begin run")
 			allEntries, err := tabledata.FullTableData(TableFile)
 			if err != nil {
 				return fmt.Errorf("can't get Full Data: %v", err.Error())
@@ -50,17 +54,19 @@ func Run(cfg config.Config) *cli.Command {
 			allTickets := []*ticket.Ticket{}
 			ot, err := OldTickets(allEntries)
 			if err != nil {
-				fmt.Println(err.Error())
+				pm.Println(lvl.ERROR, err.Error())
 			}
 			allTickets = append(allTickets, ot...)
 			nst := NewSerialTickets(allEntries)
 			allTickets = append(allTickets, nst...)
 			nft := NewFilmTickets(allEntries)
 			allTickets = append(allTickets, nft...)
+			//чистим устаревшие тикеты
+			CloseCompleted(allTickets, allEntries)
 			//разбиваем общие сериальные тикеты на эпизоды
 			allTickets = SplitByEpisodes(allTickets)
 			//добавляем сорсы
-			fmt.Println("Source Files Check")
+			pm.Println(lvl.TRACE, "begin source files check")
 			fi, err := os.ReadDir(cfg.InputDirectory())
 			if err != nil {
 				return fmt.Errorf("add sources: read dir: %v", err.Error())
@@ -81,7 +87,7 @@ func Run(cfg config.Config) *cli.Command {
 						continue
 					}
 					if strings.HasPrefix(f.Name(), fullPrefix) {
-						fmt.Println("add as source/NO CHANGE", f.Name())
+						pm.Println(lvl.TRACE, "NO CHANGE: %v", f.Name())
 						t.SourceFiles = append(t.SourceFiles, f.Name())
 						needSave = true
 						continue
@@ -93,7 +99,7 @@ func Run(cfg config.Config) *cli.Command {
 						tcktWRDS = append(tcktWRDS, tcktEpisodeTAG)
 					}
 					if isSubSliceOf(tcktWRDS, nameWRDS) {
-						fmt.Println("add as source", f.Name())
+						pm.Println(lvl.TRACE, "add as source: %v", f.Name())
 						t.SourceFiles = append(t.SourceFiles, fullPrefix+f.Name())
 						if !strings.HasPrefix(f.Name(), fullPrefix) {
 							os.Rename(cfg.InputDirectory()+f.Name(), cfg.InputDirectory()+fullPrefix+f.Name())
@@ -104,7 +110,8 @@ func Run(cfg config.Config) *cli.Command {
 
 				}
 				if needSave {
-					fmt.Println("Update Ticket:", t.Name)
+					pm.Printf(lvl.REPORT, "Update Ticket: %v\n", t.Name)
+
 					t.SourceNamesCheck = ticket.Check_Status_PASS
 					SaveTicket(t)
 				}
@@ -194,17 +201,30 @@ func OldTickets(allEntries []tabledata.TableEntry) ([]*ticket.Ticket, error) {
 	if err != nil {
 		return nil, fmt.Errorf("can't read ticket storage: %v", err.Error())
 	}
+	loaded := 0
+	errors := 0
 	for _, f := range fi {
 		name := strings.TrimSuffix(f.Name(), ".json")
 		t, err := LoadTicket(name)
 		if err != nil {
 			fmt.Errorf("read ticket %v: %v", err.Error())
+			errors++
 			continue
 		}
-
-		fmt.Println("ticket loaded:", t.Name)
+		if t.IsClosed {
+			pm.Printf(lvl.TRACE, "delete %v\n", TiketFileStorage+f.Name())
+			if err := os.Remove(TiketFileStorage + f.Name()); err != nil {
+				pm.Printf(lvl.ERROR, "can't delete closed ticket '%v': %v\n", TiketFileStorage+f.Name(), err.Error())
+			}
+			continue
+		}
+		pm.Println(lvl.TRACE, "ticket loaded:", t.Name)
 		tickets = append(tickets, t)
-
+		loaded++
+	}
+	pm.Printf(lvl.REPORT, "tickets loaded: %v\n", loaded)
+	if errors > 0 {
+		pm.Printf(lvl.ERROR, "errors: %v\n", errors)
 	}
 
 	return tickets, nil

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/Galdoba/devtools/printer"
 	"github.com/Galdoba/ffstuff/app/autogen/cmd"
 	"github.com/Galdoba/ffstuff/app/autogen/config"
 	"github.com/urfave/cli/v2"
@@ -20,8 +21,10 @@ const (
 )
 
 var cfg config.Config
+var pm printer.Printer
 
 func init() {
+
 	err := fmt.Errorf("config not loaded")
 	cfg, err = config.Load()
 	if err != nil {
