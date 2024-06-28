@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/Galdoba/devtools/cli/command"
-	"github.com/Galdoba/ffstuff/pkg/config"
 )
 
 /*
@@ -35,14 +34,14 @@ const (
 
 var configFields map[string]string
 
-func init() {
-	conf, err := config.ReadConfig()
-	if err != nil {
-		fmt.Println("init error :=", err.Error())
-		return
-	}
-	configFields = conf.Field
-}
+// func init() {
+// 	conf, err := config.ReadConfig()
+// 	if err != nil {
+// 		fmt.Println("init error :=", err.Error())
+// 		return
+// 	}
+// 	configFields = conf.Field
+// }
 
 type spsht struct {
 	url      string
