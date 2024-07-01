@@ -2,8 +2,6 @@ package ticket
 
 import (
 	"fmt"
-	"strconv"
-	"strings"
 	"time"
 )
 
@@ -153,77 +151,77 @@ func (pv *pseudoValidator) ValidateEpisodes(s string) bool {
 	return true
 }
 
-type requester struct {
-	conditions     map[string]string
-	key            string
-	val            string
-	validationFunc func(map[string]string) bool
-}
+// type requester struct {
+// 	conditions     map[string]string
+// 	key            string
+// 	val            string
+// 	validationFunc func(map[string]string) bool
+// }
 
-func (rq *requester) Condition() map[string]string {
-	return rq.conditions
-}
+// func (rq *requester) Condition() map[string]string {
+// 	return rq.conditions
+// }
 
-func (rq *requester) Validation() func(map[string]string) bool {
-	return rq.validationFunc
-}
+// func (rq *requester) Validation() func(map[string]string) bool {
+// 	return rq.validationFunc
+// }
 
-func (rq *requester) Request(map[string]string) (string, string) {
-	if rq.validationFunc(rq.Condition()) {
-		return rq.key, rq.val
-	}
-	return "", ""
-}
+// func (rq *requester) Request(map[string]string) (string, string) {
+// 	if rq.validationFunc(rq.Condition()) {
+// 		return rq.key, rq.val
+// 	}
+// 	return "", ""
+// }
 
-type Requester interface {
-	Condition() map[string]string
-	ValidationFunc() func(map[string]string) bool
-	Request() (string, string)
-}
+// type Requester interface {
+// 	Condition() map[string]string
+// 	ValidationFunc() func(map[string]string) bool
+// 	Request() (string, string)
+// }
 
-func (tk *Ticket) RequestFrom(r Requester) (string, string) {
-	for k, sourcemap := range tk.Info_Tags {
-		switch k {
-		case PROCESS_DATA, PROCESS_REQUEST:
-			continue
-		default:
-			condLen := len(r.Condition())
-			condMet := 0
-			conditions := r.Condition()
-			for haveKey, haveVal := range sourcemap {
-				for condKey, condVal := range conditions {
-					if condKey == haveKey && condVal != haveVal {
-						condMet++
-					}
-				}
-			}
-		}
-	}
-	if r.ValidationFunc()(r.Condition()) {
-		return r.Request()
-	}
-	return "", ""
-}
+// func (tk *Ticket) RequestFrom(r Requester) (string, string) {
+// 	for k, sourcemap := range tk.Info_Tags {
+// 		switch k {
+// 		case PROCESS_DATA, PROCESS_REQUEST:
+// 			continue
+// 		default:
+// 			condLen := len(r.Condition())
+// 			condMet := 0
+// 			conditions := r.Condition()
+// 			for haveKey, haveVal := range sourcemap {
+// 				for condKey, condVal := range conditions {
+// 					if condKey == haveKey && condVal != haveVal {
+// 						condMet++
+// 					}
+// 				}
+// 			}
+// 		}
+// 	}
+// 	if r.ValidationFunc()(r.Condition()) {
+// 		return r.Request()
+// 	}
+// 	return "", ""
+// }
 
-func testSizeValidation(actial map[string]string) bool {
-	key := "size"
-	if _, ok := actial[key]; !ok {
-		return false
-	}
-	requesters := make(map[string]string)
-	expectedW := 1920
-	expectedH := 1080
-	switch requesters[key] {
-	case "HD":
-		expectedW = 1920
-		expectedH = 1080
-	}
+// func testSizeValidation(actial map[string]string) bool {
+// 	key := "size"
+// 	if _, ok := actial[key]; !ok {
+// 		return false
+// 	}
+// 	requesters := make(map[string]string)
+// 	expectedW := 1920
+// 	expectedH := 1080
+// 	switch requesters[key] {
+// 	case "HD":
+// 		expectedW = 1920
+// 		expectedH = 1080
+// 	}
 
-	whStrSl := strings.Split(actial[key], "x")
-	w, _ := strconv.Atoi(whStrSl[0])
-	h, _ := strconv.Atoi(whStrSl[1])
-	if w > expectedW || (w == expectedW && h < expectedH) {
-		return true
-	}
-	return false
-}
+// 	whStrSl := strings.Split(actial[key], "x")
+// 	w, _ := strconv.Atoi(whStrSl[0])
+// 	h, _ := strconv.Atoi(whStrSl[1])
+// 	if w > expectedW || (w == expectedW && h < expectedH) {
+// 		return true
+// 	}
+// 	return false
+// }
