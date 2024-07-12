@@ -79,6 +79,7 @@ func main() {
 		cmd.ScanStreams(),
 		cmd.FullScan(),
 		cmd.AudioStreamsData(),
+		cmd.RWCheck(),
 	}
 
 	//ПО ОКОНЧАНИЮ ДЕЙСТВИЯ
