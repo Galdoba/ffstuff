@@ -9,10 +9,26 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/Galdoba/ffstuff/app/mfline/ump"
 	"github.com/Galdoba/ffstuff/pkg/command"
 )
 
 var ErrRWCheck = errors.New("read-write error detected")
+var ErrNoScanNeeded = errors.New("no scan needed")
+
+type ScanResult struct {
+	Profile *ump.MediaProfile
+	Err     error
+}
+
+func Basic(path string) ScanResult {
+	mp := ump.NewProfile()
+	err := mp.ConsumeFile(path)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	return ScanResult{mp, err}
+}
 
 func ReadWrite(path string) error {
 	process, err := command.New(
@@ -37,7 +53,6 @@ func ReadWrite(path string) error {
 		wg.Done()
 	}()
 	interupted := false
-	fmt.Printf("Read-Write Check: %v\n", path)
 	bufText := process.Buffer("buf").String()
 	for !done {
 		bufText = process.Buffer("buf").String()

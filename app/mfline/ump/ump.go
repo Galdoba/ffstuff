@@ -2,6 +2,7 @@ package ump
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -18,15 +19,17 @@ const (
 	ScanBasic     = "basic"
 	ScanInterlace = "interlace"
 	ScanSilence   = "silence"
+	Status_OK     = "OK"
+	Status_Error  = "Error"
 )
 
-func NewProfile() *mediaProfile {
-	sr := &mediaProfile{}
+func NewProfile() *MediaProfile {
+	sr := &MediaProfile{}
 	//	sr.Format = &Format{}
 	return sr
 }
 
-func (prof *mediaProfile) ConsumeFile(path string) error {
+func (prof *MediaProfile) ConsumeFile(path string) error {
 	stdout, stderr, err := command.Execute("ffprobe "+fmt.Sprintf("-v quiet -print_format json -show_format -show_streams -show_programs %v", path), command.Set(command.BUFFER_ON))
 	if err != nil {
 		if err.Error() != "exit status 1" {
@@ -72,7 +75,7 @@ func (prof *mediaProfile) ConsumeFile(path string) error {
 	return nil
 }
 
-func (prof *mediaProfile) ConsumeJSON(path string) error {
+func (prof *MediaProfile) ConsumeJSON(path string) error {
 	if !strings.HasSuffix(path, ".json") {
 		return fmt.Errorf("file is not json")
 	}
@@ -91,9 +94,9 @@ func (prof *mediaProfile) ConsumeJSON(path string) error {
 	return nil
 }
 
-func MapStorage(dir string) map[string]*mediaProfile {
+func MapStorage(dir string) map[string]*MediaProfile {
 	fls, _ := os.ReadDir(dir)
-	prfMap := make(map[string]*mediaProfile)
+	prfMap := make(map[string]*MediaProfile)
 	for _, fl := range fls {
 		if strings.HasSuffix(fl.Name(), ".json") {
 			mp := NewProfile()
@@ -105,8 +108,8 @@ func MapStorage(dir string) map[string]*mediaProfile {
 	return prfMap
 }
 
-func (mp *mediaProfile) MarshalJSON() ([]byte, error) {
-	type MediaProfileAlias mediaProfile
+func (mp *MediaProfile) MarshalJSON() ([]byte, error) {
+	type MediaProfileAlias MediaProfile
 	return json.MarshalIndent(&struct {
 		*MediaProfileAlias
 	}{
@@ -114,7 +117,7 @@ func (mp *mediaProfile) MarshalJSON() ([]byte, error) {
 	}, "", "  ")
 }
 
-func (mp *mediaProfile) SaveAs(path string) error {
+func (mp *MediaProfile) SaveAs(path string) error {
 	bt, err := mp.MarshalJSON()
 	if err != nil {
 		return err
@@ -135,9 +138,12 @@ func assertNoError(err error) {
 	}
 }
 
-type mediaProfile struct {
-	Format         *Format   `json:"format"`
-	Streams        []*Stream `json:"streams,omitempty"`
+type MediaProfile struct {
+	BasicStatus string    `json:"Basic Check,omitempty"`
+	RDWR_Status string    `json:"Read-Write Check,omitempty"`
+	Format      *Format   `json:"format"`
+	Streams     []*Stream `json:"streams,omitempty"`
+
 	warnings       []string
 	streamInfo     map[string]string
 	short          string
@@ -146,17 +152,23 @@ type mediaProfile struct {
 	ScansCompleted []string `json:"scans completed,omitempty"`
 }
 
-type MediaProfile interface {
-	Warnings() []string
-	Short() string
-	Long() string
-	AudioLayout() string
-	ConfirmScan(string) error
-	ConsumeFile(string) error
-	ScanBasic(string) error
-}
+// type MediaProfile interface {
+// 	Warnings() []string
+// 	Short() string
+// 	Long() string
+// 	AudioLayout() string
+// 	ConfirmScan(string) error
+// 	ConsumeFile(string) error
+// 	ScanBasic(string) error
+// }
 
-func (mp *mediaProfile) ScanBasic(sourceFile string) error {
+var ErrNoScanNeeded = errors.New("no scan needed")
+
+func (mp *MediaProfile) ScanBasic(sourceFile string) error {
+	switch mp.BasicStatus {
+	case Status_OK:
+		return ErrNoScanNeeded
+	}
 	if strings.Contains(sourceFile, " ") {
 		return fmt.Errorf("can't perform scan: filepath contains space")
 	}
@@ -171,10 +183,11 @@ func (mp *mediaProfile) ScanBasic(sourceFile string) error {
 	if mp.confirmScan(ScanBasic) != nil {
 		return err
 	}
+	mp.BasicStatus = Status_OK
 	return nil
 }
 
-func (mp *mediaProfile) ScanInterlace(sourceFile string) error {
+func (mp *MediaProfile) ScanInterlace(sourceFile string) error {
 	if mp.scanCompleted(ScanInterlace) {
 		return fmt.Errorf("can't perform scan: %v scan was already completed", ScanInterlace)
 	}
@@ -248,7 +261,7 @@ func (mp *mediaProfile) ScanInterlace(sourceFile string) error {
 	return nil
 }
 
-func (mp *mediaProfile) ScanSilence(sourceFile string, dB int, duration float64) error {
+func (mp *MediaProfile) ScanSilence(sourceFile string, dB int, duration float64) error {
 	if mp.scanCompleted(ScanSilence) {
 		return fmt.Errorf("can't scan: %v scan was already completed", ScanInterlace)
 	}
@@ -416,7 +429,7 @@ func filterIdet(report string) map[string]int {
 	return rMap
 }
 
-func (mp *mediaProfile) scanCompleted(scanType string) bool {
+func (mp *MediaProfile) scanCompleted(scanType string) bool {
 	for _, scanned := range mp.ScansCompleted {
 		if scanType == scanned {
 			return true
@@ -486,7 +499,7 @@ f = количество замечаний от библиотеки парса
 */
 
 // validate - проверяет данные на целостность и формирует отчетные строки
-func (p *mediaProfile) validate() error {
+func (p *MediaProfile) validate() error {
 	vSNum := 0
 	aSNum := 0
 	dSNum := 0
@@ -537,7 +550,7 @@ func (p *mediaProfile) validate() error {
 	return nil
 }
 
-func (p *mediaProfile) validateVideo(stream *Stream, vSNum int) {
+func (p *MediaProfile) validateVideo(stream *Stream, vSNum int) {
 	currentBlock := fmt.Sprintf("0:v:%v", vSNum)
 	vSize := fmt.Sprintf("%vx%v", stream.Width, stream.Height)
 	switch vSize {
@@ -610,7 +623,7 @@ func (p *mediaProfile) validateVideo(stream *Stream, vSNum int) {
 	}
 }
 
-func (p *mediaProfile) validateAudio(stream *Stream, aSNum int) {
+func (p *MediaProfile) validateAudio(stream *Stream, aSNum int) {
 	currentBlock := fmt.Sprintf("0:a:%v", aSNum)
 	chan_lay := stream.Channel_layout
 	channel_num := stream.Channels
@@ -682,7 +695,7 @@ func (p *mediaProfile) validateAudio(stream *Stream, aSNum int) {
 	p.streamInfo[currentBlock] += "#" + fmt.Sprintf("%v", bits/1000)
 }
 
-func (p *mediaProfile) combineLong(vSNum, aSNum, dSNum, sSNum int) {
+func (p *MediaProfile) combineLong(vSNum, aSNum, dSNum, sSNum int) {
 	p.long = ""
 	for _, stTp := range []string{"v", "a", "d", "s"} {
 		switch stTp {
@@ -765,23 +778,23 @@ func ehex(i int) string {
 	}
 }
 
-func (p *mediaProfile) Warnings() []string {
+func (p *MediaProfile) Warnings() []string {
 	return p.warnings
 }
 
-func (p *mediaProfile) Short() string {
+func (p *MediaProfile) Short() string {
 	return p.short
 }
 
-func (p *mediaProfile) Long() string {
+func (p *MediaProfile) Long() string {
 	return p.long
 }
 
-func (p *mediaProfile) ByStream() map[string]string {
+func (p *MediaProfile) ByStream() map[string]string {
 	return p.streamInfo
 }
 
-func (p *mediaProfile) AudioLayout() string {
+func (p *MediaProfile) AudioLayout() string {
 	return p.chanLayout
 }
 
@@ -802,7 +815,7 @@ func hzFormat(hz string) string {
 	return fmt.Sprintf("%v", float64(h)/1000)
 }
 
-func (mp *mediaProfile) confirmScan(scan string) error {
+func (mp *MediaProfile) confirmScan(scan string) error {
 	if mp.scanCompleted(scan) {
 		return fmt.Errorf("confirmation failed: was already confirmed")
 	}
@@ -835,7 +848,7 @@ func appendUnique(slice []string, newElem string) []string {
 	return append(slice, newElem)
 }
 
-// func (sr *mediaProfile) String() string {
+// func (sr *MediaProfile) String() string {
 // 	s := "file: " + sr.Format.Filename + "\n"
 // 	s += fmt.Sprintf("streams total: %v", len(sr.Streams))
 // 	return s

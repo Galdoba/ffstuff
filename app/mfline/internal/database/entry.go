@@ -1,16 +1,25 @@
-package db
+package database
 
 import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
+
+	"github.com/Galdoba/ffstuff/app/mfline/ump"
 )
 
 type Entry struct {
-	File           string    `json:"file"`
-	Format         *Format   `json:"format"`
-	Streams        []*Stream `json:"streams,omitempty"`
-	ScansCompleted []string  `json:"scans completed,omitempty"`
+	File    string            `json:"file"`
+	Profile *ump.MediaProfile `json:"Data,omitempty"`
+	// Format         *Format   `json:"format"`
+	// Streams        []*Stream `json:"streams,omitempty"`
+	// ScansCompleted []string  `json:"scans completed,omitempty"`
+}
+
+func NewEntry() *Entry {
+	return &Entry{}
 }
 
 /*
@@ -21,7 +30,8 @@ D
 */
 
 func (db *DBjson) Create(file string) error {
-	_, err := os.Stat(db.Dir() + file)
+	file = sourceKey(file)
+	_, err := os.Stat(db.Dir() + file + ".json")
 	if err == nil {
 		return fmt.Errorf("can't create entry '%v': file exist", file)
 	}
@@ -35,11 +45,12 @@ func (db *DBjson) Create(file string) error {
 }
 
 func (db *DBjson) Read(file string) (*Entry, error) {
-	_, err := os.Stat(db.Dir() + file)
+	key := sourceKey(file)
+	_, err := os.Stat(db.Dir() + key + ".json")
 	if err != nil {
-		return nil, fmt.Errorf("can't read entry '%v': file not exist", file)
+		return nil, fmt.Errorf("can't read entry '%v': file not exist", db.Dir()+key+".json")
 	}
-	e, err := db.Load(file)
+	e, err := db.Load(key)
 	if err != nil {
 		return nil, fmt.Errorf("load error: %v", err)
 	}
@@ -52,7 +63,7 @@ func (db *DBjson) Update(e *Entry) error {
 
 func (db *DBjson) Delete(e *Entry) error {
 	file := e.File
-	path := db.Dir() + file
+	path := db.Dir() + file + ".json"
 	return os.Remove(path)
 }
 
@@ -142,7 +153,8 @@ type SilenceSegment struct {
 
 func (db *DBjson) Save(e *Entry) error {
 	dir := db.Dir()
-	path := dir + e.File
+	path := dir + e.File + ".json"
+	//fmt.Println("save to", path)
 	f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0777)
 	if err != nil {
 		return fmt.Errorf("save failed: %v", err)
@@ -156,18 +168,18 @@ func (db *DBjson) Save(e *Entry) error {
 	if err != nil {
 		return fmt.Errorf("save failed: truncate file: %v", err)
 	}
-	wr, err := f.Write(bt)
+	_, err = f.Write(bt)
 	if err != nil {
 		return fmt.Errorf("save failed: write to file: %v", err)
 	}
-	fmt.Printf("bytes writen: %v (%v)\n", wr, path)
+	//fmt.Printf("bytes writen: %v (%v)\n", wr, path)
 	return nil
 }
 
 func (db *DBjson) Load(file string) (*Entry, error) {
-
+	key := sourceKey(file)
 	dir := db.Dir()
-	path := dir + file
+	path := dir + key + ".json"
 	e := &Entry{}
 	bt, err := os.ReadFile(path)
 	if err != nil {
@@ -178,4 +190,10 @@ func (db *DBjson) Load(file string) (*Entry, error) {
 		return nil, fmt.Errorf("load failed: %v", err)
 	}
 	return e, nil
+}
+
+func sourceKey(file string) string {
+	base := filepath.Base(file)
+	parts := strings.Split(base, "--")
+	return parts[len(parts)-1]
 }
