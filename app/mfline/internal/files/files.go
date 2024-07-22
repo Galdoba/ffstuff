@@ -20,7 +20,10 @@ func ListDir(dir string) []string {
 }
 
 const (
-	BadNameMarker = "BAD_NAME--"
+	BadNameMarker         = "BAD_NAME--"
+	RW_Marker             = "SCANNING_RW--"
+	Interlace_Marker      = "SCANNING_INTERLACE--"
+	SCANS_COMPLETE_MARKER = "READY--"
 )
 
 func BadName(name string) bool {
@@ -36,4 +39,33 @@ func MarkAsBad(name string) error {
 	dir := filepath.Dir(name)
 	base := filepath.Base(name)
 	return os.Rename(name, dir+string(filepath.Separator)+BadNameMarker+base)
+}
+
+func MarkScan(name, marker string) (string, error) {
+	if strings.Contains(name, marker) {
+		return name, nil
+	}
+	dir := filepath.Dir(name)
+	base := filepath.Base(name)
+	return dir + string(filepath.Separator) + marker + base, os.Rename(name, dir+string(filepath.Separator)+marker+base)
+}
+
+func ClearMarkers(name string) error {
+	dir := filepath.Dir(name)
+	base := filepath.Base(name)
+	markers := strings.Split(base, "--")
+	base = markers[len(markers)-1]
+	return os.Rename(name, dir+string(filepath.Separator)+base)
+}
+
+func hasMarker(name string) string {
+	base := filepath.Base(name)
+	for _, marker := range []string{
+		RW_Marker,
+	} {
+		if strings.Contains(base, marker) {
+			return marker
+		}
+	}
+	return ""
 }

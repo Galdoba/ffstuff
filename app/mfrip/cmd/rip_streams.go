@@ -162,6 +162,7 @@ func fcMapsNamesAUDIO(chNums []int, baseOut string) (string, []string, []string)
 	fc := ""
 	cLoc := 0
 	outLoc := []string{}
+	outTag := []string{}
 	for i, n := range chNums {
 		for c := 0; c < n; c++ {
 			chNumCloc := chNum(cLoc, true)
@@ -169,6 +170,8 @@ func fcMapsNamesAUDIO(chNums []int, baseOut string) (string, []string, []string)
 			add := fmt.Sprintf("[0:a:%v]pan=mono|c0=c%v[a%v];", i, chNumC, chNumCloc)
 			fc += add
 			outLoc = append(outLoc, chNumCloc)
+			oTag := fmt.Sprintf("a%vch%v", i, c)
+			outTag = append(outTag, oTag)
 			cLoc++
 		}
 	}
@@ -179,9 +182,10 @@ func fcMapsNamesAUDIO(chNums []int, baseOut string) (string, []string, []string)
 	if baseOut != "" {
 		base += "_"
 	}
-	for _, n := range outLoc {
+	base = strings.TrimSuffix(base, "_")
+	for i, n := range outLoc {
 		maps = append(maps, fmt.Sprintf("-map [a%v]", n))
-		names = append(names, fmt.Sprintf("%vch%v.wav", base, n))
+		names = append(names, fmt.Sprintf("%v.%v.wav", base, outTag[i]))
 	}
 
 	return fc, maps, names

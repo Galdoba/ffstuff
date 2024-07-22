@@ -7,14 +7,13 @@ import (
 	"github.com/Galdoba/ffstuff/app/mfline/internal/database"
 	"github.com/Galdoba/ffstuff/app/mfline/internal/files"
 	"github.com/Galdoba/ffstuff/app/mfline/internal/scan"
-	"github.com/Galdoba/ffstuff/app/mfline/ump"
 	"github.com/urfave/cli/v2"
 )
 
-func RWCheck() *cli.Command {
+func InterlaceCheck() *cli.Command {
 	return &cli.Command{
-		Name:        "rwcheck",
-		Aliases:     []string{"rw"},
+		Name:        "interlacecheck",
+		Aliases:     []string{"intr"},
 		Usage:       "TODO USAGE",
 		UsageText:   "TODO Usage text",
 		Description: "",
@@ -45,7 +44,7 @@ func RWCheck() *cli.Command {
 					fmt.Printf("entry %v:\n  %v\n", arg, err.Error())
 					continue
 				}
-				err = scanRW(db, entry, arg)
+				err = scanInterlace(db, entry, arg)
 				if err != nil {
 					fmt.Println(err.Error())
 					continue
@@ -70,32 +69,45 @@ func RWCheck() *cli.Command {
 
 }
 
-func scanRW(db *database.DBjson, entry *database.Entry, arg string) error {
-	switch entry.Profile.RDWR_Status {
-	case ump.Status_OK:
+func scanInterlace(db *database.DBjson, entry *database.Entry, arg string) error {
+	videoStreams := 0
+	for _, stream := range entry.Profile.Streams {
+		switch stream.Codec_type {
+		case "video":
+			videoStreams++
+		}
+	}
+	switch videoStreams {
+	case 0:
 		return scan.ErrNoScanNeeded
-	case ump.Status_Error:
-		fmt.Printf("rwcheck %v: %v\n", entry.Profile.RDWR_Status, arg)
-		return scan.ErrNoScanNeeded
+	case 1:
 	default:
-		fmt.Printf("rwcheck: %v\n", arg)
-		markedArg, err := files.MarkScan(arg, files.RW_Marker)
+		return fmt.Errorf("multiple video streams not implemented")
+	}
+	switch entry.Profile.Interlace_Status {
+	case "":
+		fmt.Printf("interlace check: %v\n", arg)
+		markedArg, err := files.MarkScan(arg, files.Interlace_Marker)
 		if err != nil {
 			return fmt.Errorf("mark file: %v", err.Error())
 		}
-		err = scan.ReadWrite(markedArg)
-		switch err {
+		report, procErr := scan.Interlace(markedArg)
+		switch procErr {
 		case nil:
-			entry.Profile.RDWR_Status = ump.Status_OK
-		case scan.ErrRWCheck:
-			entry.Profile.RDWR_Status = ump.Status_Error
-		}
-		if err := files.ClearMarkers(markedArg); err != nil {
-			fmt.Println("unmark file:", err.Error())
+			entry.Profile.Interlace_Status = report
+		default:
+			fmt.Printf("error: '%v'\n", err.Error())
+			panic(1)
 		}
 		if err := db.Update(entry); err != nil {
 			return fmt.Errorf("db.Update: %v\n")
 		}
+		if err := files.ClearMarkers(markedArg); err != nil {
+			fmt.Println("unmark file:", err.Error())
+		}
+		return nil
+	default:
+		return scan.ErrNoScanNeeded
 	}
 	return nil
 }

@@ -81,6 +81,7 @@ func main() {
 		cmd.AudioStreamsData(),
 		cmd.BasicScan(),
 		cmd.RWCheck(),
+		cmd.InterlaceCheck(),
 		cmd.AutoScan(),
 	}
 

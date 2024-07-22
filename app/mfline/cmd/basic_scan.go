@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"strings"
 
 	"github.com/Galdoba/ffstuff/app/mfline/config"
 	"github.com/Galdoba/ffstuff/app/mfline/internal/database"
@@ -112,4 +113,26 @@ func scanBasic(db *database.DBjson, entry *database.Entry, arg string) error {
 		}
 	}
 	return nil
+}
+
+func nameScan(db *database.DBjson, entry *database.Entry, arg string) error {
+	if hasAnySuffix(arg, nonMediaSuffixes()...) {
+		return scan.ErrNoScanNeeded
+	}
+	return nil
+}
+
+func nonMediaSuffixes() []string {
+	return []string{
+		".sh", ".bat", ".txt", ".jpeg",
+	}
+}
+
+func hasAnySuffix(str string, suffixes ...string) bool {
+	for _, suff := range suffixes {
+		if strings.HasSuffix(str, suff) {
+			return true
+		}
+	}
+	return false
 }

@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/Galdoba/devtools/cli/command"
@@ -63,11 +64,7 @@ func RipChannels() *cli.Command {
 					fmt.Printf("%v: %v%v\n", stype, streamNumMap[stype], reaction)
 
 				}
-
-				base, _ := baseAndExt(filePath)
-				if flag[flag_io] {
-					base = ""
-				}
+				base := filepath.Base(filePath)
 				fc, maps, names := fcMapsNamesAUDIO(chanNum, base)
 				if fc != "" {
 					fc = strings.TrimSuffix(fc, ";")

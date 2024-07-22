@@ -139,10 +139,11 @@ func assertNoError(err error) {
 }
 
 type MediaProfile struct {
-	BasicStatus string    `json:"Basic Check,omitempty"`
-	RDWR_Status string    `json:"Read-Write Check,omitempty"`
-	Format      *Format   `json:"format"`
-	Streams     []*Stream `json:"streams,omitempty"`
+	BasicStatus      string    `json:"Basic Check,omitempty"`
+	RDWR_Status      string    `json:"Read-Write Check,omitempty"`
+	Interlace_Status string    `json:"Interlace Check,omitempty"`
+	Format           *Format   `json:"format"`
+	Streams          []*Stream `json:"streams,omitempty"`
 
 	warnings       []string
 	streamInfo     map[string]string

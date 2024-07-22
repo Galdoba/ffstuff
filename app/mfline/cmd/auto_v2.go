@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/Galdoba/devtools/helpers"
@@ -37,7 +36,7 @@ func AutoScan() *cli.Command {
 			if err != nil {
 				return err
 			}
-			var loop time.Duration = time.Second * 300
+			var loop time.Duration = time.Second * 15
 			dir := cfg.TrackDirs[0]
 			for {
 				fi := files.ListDir(dir)
@@ -52,12 +51,12 @@ func AutoScan() *cli.Command {
 						}
 						continue
 					}
-					f, err := os.Open(path)
-					if err != nil {
-						fmt.Printf("os.Open: %v\n  %v\n", path, err.Error())
-						continue
-					}
-					defer f.Close()
+					// f, err := os.Open(path)
+					// if err != nil {
+					// 	fmt.Printf("os.Open: %v\n  %v\n", path, err.Error())
+					// 	continue
+					// }
+					// f.Close()
 					entry, err := getEntry(db, path)
 					if err != nil {
 						switch err {
@@ -90,8 +89,21 @@ func AutoScan() *cli.Command {
 							continue
 						}
 					}
+					entry, err = db.Read(path)
+					if err != nil {
+						fmt.Println(err.Error())
+						continue
+					}
+					if err = scanInterlace(db, entry, path); err != nil {
+						switch err {
+						case scan.ErrNoScanNeeded:
+						default:
+							fmt.Println(err.Error())
+							continue
+						}
+					}
 
-					f.Close()
+					// f.Close()
 				}
 
 				time.Sleep(loop)
