@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	"github.com/Galdoba/ffstuff/pkg/namedata"
-	"github.com/Galdoba/ffstuff/pkg/spreadsheet"
 	"github.com/Galdoba/ffstuff/pkg/spreadsheet/tablemanager"
+	spreadsheet "github.com/Galdoba/ffstuff/pkg/spreadsheet/v2"
 	"github.com/Galdoba/ffstuff/pkg/translit"
 	"gopkg.in/AlecAivazis/survey.v1"
 )
@@ -87,7 +87,7 @@ func main() {
 		numbs := catchNumbersFromTableName(answer)
 		seas := askUser("Какой это сезон? ", numbs)
 		if strings.Contains(translName, seas+"_sezon") {
-			translName = strings.Split(translName, seas+"_sezon")[0] + "s" + seas + "e"
+			translName = strings.Split(translName, seas+"_sezon")[0] // + "s" + seas + "e"
 			//			askUser("Верно? ", []string{translName, "No"})
 		}
 		///////////////
@@ -105,16 +105,22 @@ func main() {
 
 		eps := strings.Fields(seas2)
 		for j, ep := range eps {
-			translNameSer := translName + ep
+			translNameSer := strings.TrimSuffix(translName, "_") //+ ep
+			// fmt.Println(translName, "|", ep)
+			// time.Sleep(3 * time.Second)
+			// panic(translNameSer)
 			editOne := []*namedata.EditNameForm{edits[j]}
-			errors = append(errors, addPrefixToFiles(translNameSer, optType, editOne)...)
+			data := []string{translNameSer, "s" + seas + "e" + ep, optType}
+
+			errors = append(errors, addPrefixToFiles(data, editOne)...)
 		}
 		if strings.Contains(translName, seas+"_sezon") {
 			translName = strings.Split(translName, seas+"_sezon")[0] + "s" + seas + "_xx"
 			//			askUser("Верно? ", []string{translName, "No"})
 		}
 	default:
-		errors = append(errors, addPrefixToFiles(translName, optType, edits)...)
+		data := []string{translName, optType}
+		errors = append(errors, addPrefixToFiles(data, edits)...)
 	}
 
 	for _, err := range errors {
@@ -143,11 +149,11 @@ func preapareEditForms(args []string) []*namedata.EditNameForm {
 }
 
 func drawOptionsFromTable(optType string) []string {
-	sheet, err := spreadsheet.New()
+	sheet, err := spreadsheet.New(`c:\Users\pemaltynov\.ffstuff\data\taskSpreadsheet.csv`)
 	if err != nil {
 		fmt.Println(err.Error())
 	}
-	if err := sheet.Update(); err != nil {
+	if err := sheet.CurlUpdate(`https://docs.google.com/spreadsheets/d/1Waa58usrgEal2Da6tyayaowiWujpm0rzd06P5ASYlsg/edit?gid=250314867#gid=250314867`); err != nil {
 		fmt.Println("Can't update spreadsheet info")
 		panic(err.Error())
 	}
@@ -201,13 +207,29 @@ func askUser(message string, options []string) string {
 	return answers.Name
 }
 
-func addPrefixToFiles(translName, contentType string, edits []*namedata.EditNameForm) []error {
+func addPrefixToFiles0(translName, contentType string, edits []*namedata.EditNameForm) []error {
 	errors := []error{}
 
 	for _, edit := range edits {
 		switch strings.HasPrefix(edit.ShortName(), translName+"--"+contentType+"--") {
 		case false:
 			if err := edit.AddPrefix(translName + "--" + contentType + "--"); err != nil {
+				errors = append(errors, err)
+			}
+		case true:
+		}
+	}
+	return errors
+}
+
+func addPrefixToFiles(data []string, edits []*namedata.EditNameForm) []error {
+	errors := []error{}
+
+	for _, edit := range edits {
+		switch strings.HasPrefix(edit.ShortName(), data[0]+"--") {
+		case false:
+			prefix := strings.Join(data, "--") + "--"
+			if err := edit.AddPrefix(prefix); err != nil {
 				errors = append(errors, err)
 			}
 		case true:

@@ -67,7 +67,7 @@ import (
 // 	return str
 // }
 
-func ProcessInfo(chatKey string) (int64, int, error) {
+func ChatIDAndChatTopic(chatKey string) (int64, int, error) {
 	chats := cfg.ChatChannels()
 	chatDataStr := chats[chatKey]
 	chatDataParts := strings.Split(chatDataStr, "_")

@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
 
 	"github.com/Galdoba/devtools/printer"
@@ -66,7 +67,7 @@ func Run(cfg config.Config) *cli.Command {
 			//разбиваем общие сериальные тикеты на эпизоды
 			allTickets = SplitByEpisodes(allTickets)
 			//добавляем сорсы
-			pm.Println(lvl.TRACE, "begin source files check")
+			pm.Println(lvl.INFO, "begin source files check")
 			fi, err := os.ReadDir(cfg.InputDirectory())
 			if err != nil {
 				return fmt.Errorf("add sources: read dir: %v", err.Error())
@@ -87,7 +88,7 @@ func Run(cfg config.Config) *cli.Command {
 						continue
 					}
 					if strings.HasPrefix(f.Name(), fullPrefix) {
-						pm.Println(lvl.TRACE, "NO CHANGE: %v", f.Name())
+						pm.Println(lvl.INFO, "NO CHANGE: %v", f.Name())
 						t.SourceFiles = append(t.SourceFiles, f.Name())
 						needSave = true
 						continue
@@ -99,10 +100,15 @@ func Run(cfg config.Config) *cli.Command {
 						tcktWRDS = append(tcktWRDS, tcktEpisodeTAG)
 					}
 					if isSubSliceOf(tcktWRDS, nameWRDS) {
-						pm.Println(lvl.TRACE, "add as source: %v", f.Name())
+						pm.Println(lvl.INFO, "add as source: %v", f.Name())
 						t.SourceFiles = append(t.SourceFiles, fullPrefix+f.Name())
 						if !strings.HasPrefix(f.Name(), fullPrefix) {
-							os.Rename(cfg.InputDirectory()+f.Name(), cfg.InputDirectory()+fullPrefix+f.Name())
+							//newName := cfg.InputDirectory() + fullPrefix + f.Name()
+
+							fullPrefix = fixName(fullPrefix)
+							panic(fullPrefix)
+							newName := cfg.InputDirectory() + fullPrefix + f.Name()
+							os.Rename(cfg.InputDirectory()+f.Name(), newName)
 						}
 						needSave = true
 						continue
@@ -212,13 +218,13 @@ func OldTickets(allEntries []tabledata.TableEntry) ([]*ticket.Ticket, error) {
 			continue
 		}
 		if t.IsClosed {
-			pm.Printf(lvl.TRACE, "delete %v\n", TiketFileStorage+f.Name())
+			pm.Printf(lvl.INFO, "delete %v\n", TiketFileStorage+f.Name())
 			if err := os.Remove(TiketFileStorage + f.Name()); err != nil {
 				pm.Printf(lvl.ERROR, "can't delete closed ticket '%v': %v\n", TiketFileStorage+f.Name(), err.Error())
 			}
 			continue
 		}
-		pm.Println(lvl.TRACE, "ticket loaded:", t.Name)
+		pm.Println(lvl.INFO, "ticket loaded:", t.Name)
 		tickets = append(tickets, t)
 		loaded++
 	}
@@ -228,4 +234,23 @@ func OldTickets(allEntries []tabledata.TableEntry) ([]*ticket.Ticket, error) {
 	}
 
 	return tickets, nil
+}
+
+func fixName(name string) string {
+	//_s02e06--SER--
+	fmt.Println("fix", name)
+	re := regexp.MustCompile(`(_s[0-9]{1,}e[0-9]{1,}--SER--)`)
+	episode := re.FindString(name)
+	if episode != "" {
+		fmt.Println("fix", episode)
+		cleanName := strings.TrimSuffix(name, episode)
+		episode = strings.ReplaceAll(episode, "_", "--")
+
+		// newEpisode := strings.TrimSuffix(episode, "--SER--")
+		// newEpisode = strings.TrimPrefix(episode, "_")
+		//newEpisode = 	"--SER--" + newEpisode
+		name = cleanName + episode
+	}
+	fmt.Println("fix", name)
+	return name
 }

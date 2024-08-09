@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"os/user"
@@ -31,6 +30,8 @@ func init() {
 	err := fmt.Errorf("config not loaded")
 	cfg, err = config.Load()
 	if err != nil {
+		fmt.Println(err.Error())
+		panic(0)
 		cfg = config.New()
 		cfg.SetDefault()
 		if err := cfg.Save(); err != nil {
@@ -137,7 +138,7 @@ func main() {
 					return fmt.Errorf("no key '%v' found in config file", chatKey)
 				}
 
-				chatID, topic, err := ProcessInfo(chatKey)
+				chatID, topic, err := ChatIDAndChatTopic(chatKey)
 				if err != nil {
 					return err
 				}
@@ -246,44 +247,99 @@ func main() {
 				return nil
 			},
 		},
-		{ //TODO
-			Name:  "delete",
-			Usage: "delete chat key from config",
+		{
+			Name:      "update_esplay_channel",
+			Usage:     "none",
+			ArgsUsage: "no arguments allowed",
+			Flags: []cli.Flag{
+				&cli.StringFlag{
+					Name:     "to_chat",
+					Usage:    "where signal to send to",
+					Required: true,
+					Aliases:  []string{"tc"},
+				},
+			},
 			Action: func(c *cli.Context) error {
+
+				//https://t.me/c/1338947033/144079
+				token := cfg.ApiToken()
+				fmt.Println(token)
+				bot, err := tgbotapi.NewBotAPI(token)
+				if err != nil {
+					fmt.Println(token)
+					return fmt.Errorf("create bot api: %v", err.Error())
+				}
+
+				chatKey := c.String("to_chat")
 				chats := cfg.ChatChannels()
-				keys := c.Args().Slice()
-				if len(keys) < 1 {
-					return fmt.Errorf("action 'delete' uses arguments for keys")
+				if _, ok := chats[chatKey]; ok != true {
+					return fmt.Errorf("no key '%v' found in config file", chatKey)
 				}
 
-				userOutput := "keys deleted: 0"
-				deleted := 0
-				for _, k := range keys {
-					if _, ok := chats[k]; !ok {
-						println(fmt.Sprintf("key '%v' is not found", k))
-						continue
-					}
-					delete(chats, k)
-					deleted++
-					userOutput = fmt.Sprintf("keys deleted: %v", deleted)
-				}
-
-				bts, errM := json.MarshalIndent(programConfig, "", "  ")
-				if errM != nil {
-					return errM
-				}
-				f, ee := os.OpenFile(configPath, os.O_WRONLY, 0777)
-				if ee != nil {
-					return ee
-				}
-				f.Truncate(0)
-				if _, err := f.Write(bts); err != nil {
+				chatID, _, err := ChatIDAndChatTopic(chatKey)
+				if err != nil {
 					return err
 				}
-				println(userOutput)
+
+				chatConfig := tgbotapi.NewForward()
+				chatConfig.ChatID = chatID
+				chatConfig.SuperGroupUsername = chatKey
+
+				chatData, err := bot.GetChat(chatConfig)
+				if err != nil {
+					fmt.Println("chatErr", err.Error())
+				}
+				fmt.Println(chatData.PinnedMessage.Text)
+
+				// editMsgSignal := tgbotapi.NewEditMessageText(chatID, topic, "edited message")
+				// editMsgSignal.ParseMode = tgbotapi.ModeHTML
+
+				// _, errS := bot.Send(deleteMsgSignal)
+				// if errS != nil {
+				// 	return fmt.Errorf("send message: %v", errS.Error())
+				// }
+
 				return nil
 			},
 		},
+		// { //TODO
+		// 	Name:  "delete",
+		// 	Usage: "delete chat key from config",
+		// 	Action: func(c *cli.Context) error {
+		// 		chats := cfg.ChatChannels()
+		// 		keys := c.Args().Slice()
+		// 		if len(keys) < 1 {
+		// 			return fmt.Errorf("action 'delete' uses arguments for keys")
+		// 		}
+
+		// 		userOutput := "keys deleted: 0"
+		// 		deleted := 0
+		// 		for _, k := range keys {
+		// 			if _, ok := chats[k]; !ok {
+		// 				println(fmt.Sprintf("key '%v' is not found", k))
+		// 				continue
+		// 			}
+		// 			delete(chats, k)
+		// 			deleted++
+		// 			userOutput = fmt.Sprintf("keys deleted: %v", deleted)
+		// 		}
+
+		// 		bts, errM := json.MarshalIndent(programConfig, "", "  ")
+		// 		if errM != nil {
+		// 			return errM
+		// 		}
+		// 		f, ee := os.OpenFile(configPath, os.O_WRONLY, 0777)
+		// 		if ee != nil {
+		// 			return ee
+		// 		}
+		// 		f.Truncate(0)
+		// 		if _, err := f.Write(bts); err != nil {
+		// 			return err
+		// 		}
+		// 		println(userOutput)
+		// 		return nil
+		// 	},
+		// },
 	}
 
 	//ПО ОКОНЧАНИЮ ДЕЙСТВИЯ

@@ -65,6 +65,7 @@ func New() (*spsht, error) {
 }
 
 func (sp *spsht) Update() error {
+	fmt.Println("=====", sp.csvPath)
 	comm, err := command.New(
 		command.CommandLineArguments("curl "+sp.curl+sp.csvPath),
 		command.Set(command.BUFFER_OFF),
