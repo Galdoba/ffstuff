@@ -50,7 +50,7 @@ func NewCompiler(files []string) (*ShellCompiler, error) {
 			sc.srtFile = file
 		}
 	}
-	sc.shellFileName = fmt.Sprintf("%v_s%ve%v.sh", sc.nameBase, sc.season, sc.episode)
+	sc.shellFileName = fmt.Sprintf("%v_s%ve%v.txt", sc.nameBase, sc.season, sc.episode)
 	return &sc, nil
 }
 
