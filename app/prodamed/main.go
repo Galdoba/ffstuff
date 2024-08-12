@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/Galdoba/ffstuff/app/amedia/commands"
+	"github.com/Galdoba/ffstuff/app/prodamed/commands"
 	"github.com/urfave/cli/v2"
 )
 

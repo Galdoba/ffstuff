@@ -6,19 +6,25 @@ import (
 	"strings"
 
 	"github.com/Galdoba/ffstuff/app/mfline/ump"
+	"github.com/Galdoba/ffstuff/app/prodamed/config"
 )
 
 type ShellCompiler struct {
-	mediaFile string
-	srtFile   string
-	season    string
-	episode   string
-	langs     map[string]string
-	layout    map[string]string
+	nameBase      string
+	mediaFile     string
+	srtFile       string
+	season        string
+	episode       string
+	langs         map[string]string
+	layout        map[string]string
+	root          map[string]string
+	shellFileName string
+	text          string
 }
 
 func NewCompiler(files []string) (*ShellCompiler, error) {
 	sc := ShellCompiler{}
+
 	sc.langs = make(map[string]string)
 	sc.layout = make(map[string]string)
 	for _, file := range files {
@@ -26,6 +32,7 @@ func NewCompiler(files []string) (*ShellCompiler, error) {
 		ext := parts[len(parts)-1]
 		switch ext {
 		case "mp4":
+			sc.nameBase = headOfString(file, "--")
 			re := regexp.MustCompile(`(s[0-9]{1,}e[0-9]{1,})`)
 			epiTag := re.FindString(file)
 			if epiTag == "" {
@@ -43,7 +50,12 @@ func NewCompiler(files []string) (*ShellCompiler, error) {
 			sc.srtFile = file
 		}
 	}
+	sc.shellFileName = fmt.Sprintf("%v_s%ve%v.sh", sc.nameBase, sc.season, sc.episode)
 	return &sc, nil
+}
+
+func (sc *ShellCompiler) injectLogistics(cfg *config.Config) {
+	sc.root = cfg.Option.PATH
 }
 
 func streamLayouts(mp *ump.MediaProfile) map[string]string {
@@ -68,7 +80,11 @@ func streamLangs(mp *ump.MediaProfile) map[string]string {
 			continue
 		}
 		streamCode := fmt.Sprintf("[0:a:%v]", i)
-		langs[streamCode] = stream.Tags["language"]
+		langValue := stream.Tags["language"]
+		if langValue == "" {
+			langValue = "zzz"
+		}
+		langs[streamCode] = langValue
 		i++
 	}
 	return langs
