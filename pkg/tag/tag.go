@@ -17,7 +17,8 @@ const (
 	UsageBase      UsageType = "Base"
 	UsageInput     UsageType = "Input"
 	UsageOutput    UsageType = "Output"
-	usagebase                = 1
+	usageNome                = 0
+	usageBase                = 1
 	usageIn                  = 2
 	usageOut                 = 4
 	usageError               = 8
@@ -35,6 +36,8 @@ type Tag struct {
 	Value string
 	usage int
 }
+
+var NoTag = Tag{"No tag", "NoTag", 8}
 
 //New - creates custom tag for prefix/postfix.
 //For standard tags use other functions.
@@ -74,7 +77,7 @@ func calculatedUsage(uTypes ...UsageType) int {
 	for _, utype := range uTypes {
 		switch utype {
 		case UsageBase:
-			sum += usagebase
+			sum += usageBase
 		case UsageInput:
 			sum += usageIn
 		case UsageOutput:
@@ -88,43 +91,37 @@ func calculatedUsage(uTypes ...UsageType) int {
 
 //Name - creates standard tag. Should be used instead of tag.New() if possibe.
 //This tag defines base name for demuxing process.
-func Name(v string) Tag {
-	return Tag{Key: KeyName, Value: v, usage: usagebase}
+func CreateNameTag(v string) Tag {
+	return Tag{Key: KeyName, Value: v, usage: usageBase}
 }
 
 //TypeFILM - creates standard tag. Should be used instead of tag.New() if possibe.
 //This tag defines content as Film.
-func TypeFILM() Tag {
-	return Tag{Key: KeyContentType, Value: fmt.Sprintf("%v", FILM), usage: usageIn}
-}
+var TypeFILMTag = Tag{Key: KeyContentType, Value: string(FILM), usage: usageIn}
 
 //TypeSER - creates standard tag. Should be used instead of tag.New() if possibe.
 //This tag defines content as Serial.
-func TypeSER() Tag {
-	return Tag{Key: KeyContentType, Value: fmt.Sprintf("%v", SER), usage: usageIn}
-}
+var TypeSERTag = Tag{Key: KeyContentType, Value: string(SER), usage: usageIn}
 
 //TypeTRL - creates standard tag. Should be used instead of tag.New() if possibe.
 //This tag defines content as Trailer.
-func TypeTRL() Tag {
-	return Tag{Key: KeyContentType, Value: fmt.Sprintf("%v", TRL), usage: usageIn}
-}
+var TypeTRLTag = Tag{Key: KeyContentType, Value: string(TRL), usage: usageIn}
 
 //Episode - creates standard tag. Should be used instead of tag.New() if possibe.
 //This tag defines season and episode numbers. MUST be used for Serials only.
-func Episode(v string) Tag {
+func CreateEpisodeTag(v string) Tag {
 	return Tag{Key: KeyEpisode, Value: v, usage: usageIn + usageOut}
 }
 
 //Season - creates standard tag. Should be used instead of tag.New() if possibe.
 //This tag defines season number. MUST be used for Trailers only.
-func Season(v string) Tag {
+func CreateSeasonTag(v string) Tag {
 	return Tag{Key: KeySeason, Value: v, usage: usageIn + usageOut}
 }
 
 //Revision - creates standard tag. Should be used instead of tag.New() if possibe.
 //This tag defines number of revision for input media if is was corrected by provider.
-func Revision(r int) Tag {
+func CreateRevisionTag(r int) Tag {
 	return Tag{Key: KeyRevision, Value: fmt.Sprintf("R%d", r), usage: usageIn + usageOut}
 }
 
@@ -132,14 +129,14 @@ func Revision(r int) Tag {
 //This tag defines size of video steam.
 //On input MUST be used for media containg size other than 1920x1080.
 //On output MUST be used for all media containg video stream.
-func Video(v string) Tag {
+func CreateVideoTag(v string) Tag {
 	return Tag{Key: KeyVideo, Value: v, usage: usageIn + usageOut}
 }
 
 //Audio - creates standard tag. Should be used instead of tag.New() if possibe.
 //This tag defines language and channel_layout for audio stream in media.
 //MUST be used for all media consisting from only one audio stream.
-func Audio(lang, layout string) Tag {
+func CreateAudioTag(lang, layout string) Tag {
 	return Tag{Key: KeyAudio, Value: formatAudioTagValue(lang, layout), usage: usageOut}
 }
 
@@ -149,7 +146,7 @@ func formatAudioTagValue(lang, layout string) string {
 
 //Comment - creates standard tag. Should be used instead of tag.New() if possibe.
 //This tag defines program/user comment for output
-func Comment(comments ...string) Tag {
+func CreateCommentTags(comments ...string) Tag {
 	return Tag{Key: KeyComment, Value: formatCommentTagValue(comments...), usage: usageIn + usageOut}
 }
 
