@@ -1,9 +1,9 @@
 package tag
 
-type testCase struct {
-	input       string
-	expectedTag Tag
-	expError    error
-}
+// type testCase struct {
+// 	input       string
+// 	expectedTag Tag
+// 	expError    error
+// }
 
-func newTestCase(input string)
+// func newTestCase(input string)

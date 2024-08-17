@@ -51,17 +51,13 @@ LANG
 
 	IN_FILE (имя файла готового для демукса):
 структура:
-IN_FILE = {BASE}{MARKER}{TYPE}[SEASON][EPISODE][PRT][VIDEO][SRT][REVISION]{ORIGIN}
+IN_FILE = {BASE}{TYPE}[SEASON][EPISODE][PRT][VIDEO][SRT][REVISION]{MARKER}{ORIGIN}
 //ВСЕ элементы после MARKER добавляют к своему имени префикс IN_SEP.
 
 элементы:
 	BASE 	- Элемент-основа, создается из транслитерированого TABLE_NAME
 		использование; позиция: 	всегда; в начале файла
 			пример:		"Cherez_god_v_eto_zhe_vremya--FILM--4K--ThisTimeNextYear_HDSDR25f_RUS20LR_RUS51LRCLfeLsRs.mov" ==> "Cherez_god_v_eto_zhe_vremya"
-
-	MARKER	- Элемент определяющий имя файла как тип IN_FILE.
-		использование; позиция: 	всегда; после BASE
-			пример:		"Cherez_god_v_eto_zhe_vremya--FILM--4K--ThisTimeNextYear_HDSDR25f_RUS20LR_RUS51LRCLfeLsRs.mov" ==> "--" (самая левая позиция между 'vremya' и 'FILM')
 
 	TYPE	- Элемент определяющий тип контента (фильм/сериал/трейлер).
 		использование: 		всегда; после MARKER
@@ -96,6 +92,10 @@ IN_FILE = {BASE}{MARKER}{TYPE}[SEASON][EPISODE][PRT][VIDEO][SRT][REVISION]{ORIGI
         использование IN_FILE: 		только для новых исходников полученных взамен бракованых; после [EPISODE||SEASON]
         регулярное выражение:	(--R[0-9]{1,}) //без обеих "--"
 			пример IN_FILE:		    "Ministerstvo_nedzhentlmenskih_del--FILM--R1--TheMinistryOfUngentlemanlyWarfare_51_cens_DUB_2024_05_08_rus.wav" ==> "SUB"
+
+	MARKER	- Элемент определяющий имя файла как тип IN_FILE.
+		использование; позиция: 	всегда; перед ORIGIN
+			пример:		"Cherez_god_v_eto_zhe_vremya--FILM--4K--ThisTimeNextYear_HDSDR25f_RUS20LR_RUS51LRCLfeLsRs.mov" ==> "--" (самая правая позиция между '4K' и 'This')
 
     ORIGIN- Элемент определяющий исходное имя файла.
         использование IN_FILE: 		всегда; поде всех остальных элементов
