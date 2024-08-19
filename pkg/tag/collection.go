@@ -1,10 +1,9 @@
 package tag
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
-	"regexp"
-	"strconv"
 	"strings"
 )
 
@@ -40,11 +39,14 @@ func nameIsLatinOnly(value string) bool {
 		default:
 			return false
 		case "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z":
-		case "_", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9":
+		case "0", "1", "2", "3", "4", "5", "6", "7", "8", "9":
+		case "_", ".", "-":
 		}
 	}
 	return true
 }
+
+var ErrConflictingMarkers = errors.New("parsing forbiden: conflicting markers detected")
 
 func NewCollection(path string) (*collection, error) {
 	name := filepath.Base(path)
@@ -53,67 +55,54 @@ func NewCollection(path string) (*collection, error) {
 	}
 	tcol := collection{}
 	tcol.FileName = name
+	tcol.TagWithKey = make(map[TagKey]Tag)
+
 	tagTypes := tagsTypeExpected(name)
 	switch tagTypes {
 	default:
 		return nil, fmt.Errorf("unidentified tag type marker present '%v'", tagTypes)
 	case CONFLICTING:
-		return nil, fmt.Errorf("both tag markers are present")
+		return nil, ErrConflictingMarkers
 	case IN_FILE, OUT_FILE, UNDEFINED:
 		tcol.CollectionType = tagTypes
 	}
-	tcol.TagWithKey = make(map[TagKey]Tag)
-	return &tcol, nil
+
+	parsedTags, err := parse(&tcol)
+	if err == nil {
+		_, err = tcol.Add(parsedTags...)
+	}
+	return &tcol, err
 }
 
-func (tc *collection) parse() ([]Tag, error) {
+var ErrPromptExpected = errors.New("parsing forbiden: expecting prompt to fill collection")
+
+func parse(tc *collection) ([]Tag, error) {
 	parsedTags := []Tag{}
 	switch tc.CollectionType {
 	case IN_FILE:
 		parsedTags = append(parsedTags, parse_INFILE(tc.FileName)...)
 	case OUT_FILE:
-		panic("parse OUT_FILE not implemented")
+		parsedTags = append(parsedTags, parse_OUTFILE(tc.FileName)...)
+	case UNDEFINED:
+		return parsedTags, ErrPromptExpected
 	default:
 		return parsedTags, fmt.Errorf("can't parse filename with '%v' collection type", tc.CollectionType)
 	}
 	return parsedTags, nil
 }
 
-func parse_OUTFILE(name string) []Tag {
-	parsedTags := []Tag{}
-
-	parsedTags = append(parsedTags,
-		outSeasonTag(name),
-		outEpisodeTag(name),
-		prtTag(name),
-		outVideoTag(name), outAudioTag(name), outSrtTag(name), outRevisionTag(name))
-
-	return parsedTags
-}
-
 func parse_INFILE(name string) []Tag {
 	parsedTags := []Tag{}
 	parts := strings.Split(name, IN_SEP)
 	for i, part := range parts {
-		if i == 0 {
+		switch i {
+		case 0:
 			parsedTags = append(parsedTags, New(BASE, part))
-			continue
-		}
-		if i == len(parts)-1 {
-			continue
-		}
-		for _, tag := range []Tag{
-			typeTag(part),
-			seasonTag(part),
-			episodeTags(part),
-			prtTag(part),
-			videoTag(part),
-			srtTag(part),
-			revisionTag(part),
-		} {
-			if tag.Key != NoTagKey {
+		case len(parts) - 1:
+			parsedTags = append(parsedTags, New(ORIGIN, part))
+		default:
+			for _, tag := range parseNextINFILETag(part) {
 				parsedTags = append(parsedTags, tag)
-				continue
 			}
 		}
 	}
@@ -121,17 +110,48 @@ func parse_INFILE(name string) []Tag {
 
 }
 
-func typeTag(val string) Tag {
-	if val == string(FILM) {
-		return New(TYPE, string(FILM))
+func parseNextINFILETag(part string) []Tag {
+	tags := []Tag{}
+	for _, tag := range []Tag{
+		parse_in_typeTag(part),
+		parse_in_seasonTag(part),
+		parse_in_episodeTags(part),
+		parse_in_prtTag(part),
+		parse_in_videoTag(part),
+		parse_in_srtTag(part),
+		parse_in_revisionTag(part),
+	} {
+		if tag.Key != NoTagKey {
+			tags = append(tags, tag)
+		}
 	}
-	if val == string(SER) {
-		return New(TYPE, string(SER))
-	}
-	if val == string(TRL) {
-		return New(TYPE, string(TRL))
-	}
-	return NoTag
+	return tags
+}
+
+func parse_OUTFILE(name string) []Tag {
+	parsedTags := []Tag{}
+	parsedTags = append(parsedTags,
+		parse_out_SeasonTag(name),
+		parse_out_EpisodeTag(name),
+		parse_out_prtTag(name),
+		parse_out_VideoTag(name),
+		parse_out_AudioTag(name),
+		parse_out_SrtTag(name),
+		parse_out_RevisionTag(name),
+		parse_out_Outname(name),
+		parse_out_Extention(name),
+	)
+	return parsedTags
+}
+
+func parse_UNKNOWN(name string) []Tag {
+	parsedTags := []Tag{}
+	parsedTags = append(parsedTags,
+		parse_out_SrtTag(name),
+		parse_out_RevisionTag(name),
+		parse_out_Extention(name),
+	)
+	return parsedTags
 }
 
 func tagsTypeExpected(base string) TagsType {
@@ -147,203 +167,174 @@ func tagsTypeExpected(base string) TagsType {
 	return UNDEFINED
 }
 
-// func infileSeasonEpisodeTags(s string) (Tag, Tag) {
-// 	re := regexp.MustCompile(`(s[0-9]{1,}e[0-9]{1,})`)
-// 	tagsStr := re.FindString(s)
-// 	if tagsStr == "" {
-// 		return NoTag, NoTag
-// 	}
-// 	parts := strings.Split(tagsStr, "e")
-// 	parts[0] = strings.TrimPrefix(parts[0], "s")
-// 	sTag := NoTag
-// 	if _, err := strconv.Atoi(parts[0]); err == nil {
-// 		sTag = New(SEASON, parts[0])
-// 	}
-// 	eTag := NoTag
-// 	if _, err := strconv.Atoi(parts[1]); err == nil {
-// 		eTag = New(EPISODE, parts[1])
-// 	}
-// 	return sTag, eTag
-// }
-
-func seasonTag(s string) Tag {
-	re := regexp.MustCompile(`(s[0-9]{1,}e[0-9]{1,})`)
-	tagsStr := re.FindString(s)
-	if tagsStr == "" {
-		return NoTag
-	}
-	parts := strings.Split(tagsStr, "e")
-	parts[0] = strings.TrimPrefix(parts[0], "s")
-	sTag := NoTag
-	if _, err := strconv.Atoi(parts[0]); err == nil {
-		sTag = New(SEASON, parts[0])
-	}
-
-	return sTag
+type TagCollection interface {
+	Add(...Tag) (int, error)
+	Review() (string, TagsType, []Tag)
+	//ProjectOutname() string
 }
 
-func episodeTags(s string) Tag {
-	re := regexp.MustCompile(`(s[0-9]{1,}e[0-9]{1,})`)
-	tagsStr := re.FindString(s)
-	if tagsStr == "" {
-		return NoTag
-	}
-	parts := strings.Split(tagsStr, "e")
-	eTag := NoTag
-	if _, err := strconv.Atoi(parts[1]); err == nil {
-		eTag = New(EPISODE, parts[1])
-	}
-
-	return eTag
-}
-
-func prtTag(s string) Tag {
-	re := regexp.MustCompile(`(PRT[0-9]{6,})`)
-	pTagValue := re.FindString(s)
-	if pTagValue == "" {
-		return NoTag
-	}
-	return New(PRT, pTagValue)
-}
-
-func videoTag(s string) Tag {
-	str := strings.ToUpper(s)
-	if str == string(UHD) {
-		return New(VIDEO, string(UHD))
-	}
-	if str == string(HD) {
-		return New(VIDEO, string(HD))
-	}
-	if str == string(SD) {
-		return New(VIDEO, string(SD))
-	}
-	return NoTag
-}
-
-func outSeasonTag(s string) Tag {
-	re := regexp.MustCompile(`(s[0-9]{1,}_[0-9]{1,})`)
-	tagsStr := re.FindString(s)
-	if tagsStr == "" {
-		return NoTag
-	}
-	parts := strings.Split(tagsStr, "_")
-	parts[0] = strings.TrimPrefix(parts[0], "s")
-	sTag := NoTag
-	if _, err := strconv.Atoi(parts[0]); err == nil {
-		sTag = New(SEASON, parts[0])
-	}
-	return sTag
-}
-
-func outEpisodeTag(s string) Tag {
-	sTag := outSeasonTag(s)
-	if sTag == NoTag {
-		return NoTag
-	}
-	re := regexp.MustCompile(`(s[0-9]{1,}_[0-9]{1,})`)
-	tagsStr := re.FindString(s)
-	if tagsStr == "" {
-		return NoTag
-	}
-	parts := strings.Split(tagsStr, "_")
-	parts[0] = strings.TrimPrefix(parts[0], "s")
-	eTag := NoTag
-	if _, err := strconv.Atoi(parts[1]); err == nil {
-		eTag = New(EPISODE, parts[1])
-	}
-	return eTag
-}
-
-func outVideoTag(s string) Tag {
-	str := strings.ToUpper(s)
-	if strings.Contains(str, OUT_MARKER+string(UHD)) {
-		return New(VIDEO, string(UHD))
-	}
-	if strings.Contains(str, OUT_MARKER+string(HD)) {
-		return New(VIDEO, string(HD))
-	}
-	if strings.Contains(str, OUT_MARKER+string(SD)) {
-		return New(VIDEO, string(SD))
-	}
-	return NoTag
-}
-
-func outAudioTag(s string) Tag {
-	re := regexp.MustCompile(`(AUDIO[A-Z]{3,}[0-9]{2,})`)
-	found := re.FindString(s)
-	if found == "" {
-		return NoTag
-	}
-	return New(AUDIO, found)
-}
-
-func srtTag(s string) Tag {
-	str := strings.ToUpper(s)
-	if str == string(SUB) {
-		return New(SRT, string(SUB))
-	}
-	if str == string(HARDSUB) {
-		return New(SRT, string(HARDSUB))
-	}
-	return NoTag
-}
-
-func outSrtTag(s string) Tag {
-	if strings.Contains(s, OUT_SEP+string(SUB)) {
-		return New(SRT, string(SUB))
-	}
-	if strings.Contains(s, OUT_SEP+string(HARDSUB)) {
-		return New(SRT, string(HARDSUB))
-	}
-	if strings.HasSuffix(s, ".srt") {
-		return New(SRT, string(SUB))
-	}
-	return NoTag
-}
-
-func revisionTag(s string) Tag {
-	str := strings.ToUpper(s)
-	if !strings.HasPrefix(str, "R") {
-		return NoTag
-	}
-	str = strings.TrimPrefix(str, "R")
-	if _, err := strconv.Atoi(str); err == nil {
-		return New(REVISION, fmt.Sprintf("R%v", str))
-	}
-	return NoTag
-}
-
-func outRevisionTag(s string) Tag {
-	s = strings.ToUpper(s)
-	re := regexp.MustCompile(fmt.Sprintf(`(%vR[0-9]{1,})`, OUT_SEP))
-	found := re.FindString(s)
-	if found == "" {
-		return NoTag
-	}
-	value := strings.TrimPrefix(found, OUT_SEP+"R")
-	return New(REVISION, value)
-}
-
-//AddUnique - adds tags that's key are not exists to a collection.
-//Special tag 'NoTag' - will be ignored.
-//Error is reserved for custom implementations.
-func (tc *collection) AddUnique(tags ...Tag) error {
+// Add - adds tags that's key are not exists to a collection.
+// Special tag 'NoTag' - will be ignored.
+// Return number of tags added and error, if any tags were rejected.
+func (tc *collection) Add(tags ...Tag) (int, error) {
+	errText := ""
+	added := 0
+	rejected := 0
 	for _, tag := range tags {
 		if tag.Key == NoTagKey {
 			continue
 		}
 		if _, ok := tc.TagWithKey[tag.Key]; ok {
+			rejected++
+			errText += fmt.Sprintf("%v, ", tag)
 			continue
 		}
 		tc.TagWithKey[tag.Key] = tag
+		added++
 	}
-	return nil
+	if rejected > 0 {
+		errText = strings.TrimSuffix(errText, ", ")
+		return added, fmt.Errorf("tags rejected: %v", errText)
+	}
+
+	return added, nil
 }
 
-type Collection interface {
-	AddTags(...Tag) error
-	VerifyTags() error
-	Base() string
-	InputTag(string) string
-	OutptTag(string) string
+// Review - returns collection's filename, collectionType and tags (including ones with missing type) in orderly list
+func (tc *collection) Review() (string, TagsType, []Tag) {
+	keys := []TagKey{BASE, TYPE, SEASON, EPISODE, PRT, VIDEO, AUDIO, SRT, REVISION, COMMENTS, EXT, ORIGIN, OUTNAME}
+	tags := []Tag{}
+	for _, key := range keys {
+		if val, ok := tc.TagWithKey[key]; ok {
+			tags = append(tags, val)
+			continue
+		}
+		//tags = append(tags, New(key, NoTag.Value))
+	}
+	return tc.FileName, tc.CollectionType, tags
 }
+
+// ProjectOutfileName - create name for inputfile for demuxing process
+// Return empty string if colection if not type 'UNDEFINED'
+func ProjectInfileName(c TagCollection, newTags ...Tag) string {
+	file, colType, oldTags := c.Review()
+	if colType != UNDEFINED {
+		return ""
+	}
+	newCol, _ := NewCollection(file)
+	newCol.Add(oldTags...)
+	newCol.Add(newTags...)
+	//	IN_FILE = {BASE}{TYPE}[SEASON][EPISODE][PRT][VIDEO][SRT][REVISION]{MARKER}{ORIGIN}
+	iName := ""
+	if val, ok := newCol.TagWithKey[BASE]; ok {
+		iName += val.String()
+	}
+	if val, ok := newCol.TagWithKey[TYPE]; ok {
+		iName += IN_SEP + val.String()
+	}
+	if val, ok := newCol.TagWithKey[SEASON]; ok {
+		iName += IN_SEP + "s" + val.String()
+	}
+	if val, ok := newCol.TagWithKey[EPISODE]; ok {
+		iName += "e" + val.String()
+	}
+	if val, ok := newCol.TagWithKey[PRT]; ok {
+		iName += IN_SEP + val.String()
+	}
+	if val, ok := newCol.TagWithKey[VIDEO]; ok {
+		iName += IN_SEP + val.String()
+	}
+	if val, ok := newCol.TagWithKey[AUDIO]; ok {
+		iName += IN_SEP + val.String()
+	}
+	if val, ok := newCol.TagWithKey[SRT]; ok {
+		iName += IN_SEP + val.String()
+	}
+	if val, ok := newCol.TagWithKey[REVISION]; ok {
+		iName += IN_SEP + val.String()
+	}
+	if val, ok := newCol.TagWithKey[COMMENTS]; ok {
+		iName += IN_SEP + val.String()
+	}
+	iName += IN_MARKER
+	if val, ok := newCol.TagWithKey[ORIGIN]; ok {
+		iName += val.String()
+	}
+	//iName = strings.ReplaceAll(iName, "___", "__")
+	return iName
+}
+
+// ProjectOutfileName - create name for outputfile for demuxing process
+// Return empty string if colection if not type 'IN_FILE'
+func ProjectOutfileName(c TagCollection, newTags ...Tag) string {
+	file, colType, oldTags := c.Review()
+	if colType != IN_FILE {
+		return ""
+	}
+	newCol, _ := NewCollection(file)
+	newCol.Add(oldTags...)
+	newCol.Add(newTags...)
+	oName := ""
+	if val, ok := newCol.TagWithKey[BASE]; ok {
+		oName += val.String()
+	}
+	if val, ok := newCol.TagWithKey[SEASON]; ok {
+		oName += OUT_SEP + "s" + val.String()
+	}
+	if val, ok := newCol.TagWithKey[EPISODE]; ok {
+		oName += OUT_SEP + val.String()
+	}
+	if val, ok := newCol.TagWithKey[PRT]; ok {
+		oName += OUT_SEP + val.String()
+	}
+	oName += OUT_MARKER
+	if val, ok := newCol.TagWithKey[VIDEO]; ok {
+		oName += OUT_SEP + val.String()
+	}
+	if val, ok := newCol.TagWithKey[AUDIO]; ok {
+		oName += OUT_SEP + val.String()
+	}
+	if val, ok := newCol.TagWithKey[SRT]; ok {
+		oName += OUT_SEP + val.String()
+	}
+	if val, ok := newCol.TagWithKey[REVISION]; ok {
+		oName += OUT_SEP + val.String()
+	}
+	if val, ok := newCol.TagWithKey[COMMENTS]; ok {
+		oName += OUT_SEP + val.String()
+	}
+	if val, ok := newCol.TagWithKey[EXT]; ok {
+		oName += "." + val.String()
+	}
+	oName = strings.ReplaceAll(oName, "___", "__")
+	return oName
+}
+
+//другая библиотека
+// func (tc *collection) FillWithPrompt() error {
+// 	if tc.CollectionType != UNDEFINED {
+// 		return fmt.Errorf("FillWithPrompt method must be used with unidentified collections only")
+// 	}
+// 	baseSuggestions := suggestBase(tc.FileName)
+// 	base, err := operator.Select("select base", baseSuggestions...)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	tc.Add(New(BASE, base))
+// 	return nil
+// }
+//
+// func suggestBase(name string) []string {
+// 	parts := strings.Split(name, "_")
+// 	suggestions := []string{}
+// 	if len(parts) == 1 {
+// 		return []string{name, "NONE"}
+// 	}
+// 	for i := range parts {
+// 		if i == 0 {
+// 			continue
+// 		}
+// 		suggestions = append(suggestions, strings.Join(parts[0:i], "_"))
+// 	}
+// 	return suggestions
+// }
