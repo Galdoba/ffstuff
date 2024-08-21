@@ -1,11 +1,11 @@
 module github.com/Galdoba/ffstuff
 
-go 1.21
+go 1.18
 
-toolchain go1.21.6
+//toolchain go1.21.6
 
 require (
-	github.com/Galdoba/devtools v0.0.0-20240623063010-514f0f4f299e
+	github.com/Galdoba/devtools v0.0.0-20240819031827-cc60df8daa89
 	github.com/Galdoba/utils v0.0.0-20211006043430-41d7b3fa4b0a
 	github.com/fatih/color v1.17.0
 	github.com/k0kubun/go-ansi v0.0.0-20180517002512-3bf9e2903213

@@ -10,11 +10,11 @@ import (
 func parse_in_typeTag(s string) Tag {
 	str := strings.ToUpper(s)
 	switch str {
-	case string(UHD):
+	case string(FILM):
 		return New(TYPE, string(FILM))
-	case string(HD):
+	case string(SER):
 		return New(TYPE, string(SER))
-	case string(SD):
+	case string(TRL):
 		return New(TYPE, string(TRL))
 	default:
 		return NoTag

@@ -1,88 +1,110 @@
 package tag
 
 import (
-	"fmt"
 	"testing"
 )
 
-var inputsIN = []string{
-	//`Zlo--s04e13--SER--HSUB--Zlo_s04e13_PRT240816080000_SER_05005_18.mp4`,
-	`Zlo--SER--s04e13--PRT240816080000--HD--Zlo_s04e13_PRT240816080000_SER_05005_18.mp4`,
-	`Semion--FILM--4K--durackoe_imya.mp4`,
+type newCollectionTestCase struct {
+	input             string
+	colFileName       string
+	colCollectionType TagsType
+	colTags           map[TagKey]Tag
+	expectedError     error
 }
 
-var inputsUnknown = []string{
-	`Sem_smertnyh_grehov_s02e02_aad asdfSD.mp4`,
-	`Sem_smertnyh_grehov_s02_02_SER515.mp4`,
-	`Vosem_smertnyh_grehov_s02_SER515_trl.mp4`,
+func testNewCollectionTestCases() []newCollectionTestCase {
+	return []newCollectionTestCase{
+		////////////////////////////////////////////////////////////////////////////////
+		{"Darbi_i_dzhoan--SER--s01e01--PRT240818173612--Darbi_i_dzhoan_s01e01_PRT240818173612_SER_04896_18.mp4",
+			"Darbi_i_dzhoan--SER--s01e01--PRT240818173612--Darbi_i_dzhoan_s01e01_PRT240818173612_SER_04896_18.mp4",
+			IN_FILE,
+			map[TagKey]Tag{
+				BASE:    {BASE, "Darbi_i_dzhoan"},
+				SEASON:  {SEASON, "01"},
+				EPISODE: {EPISODE, "01"},
+				TYPE:    {TYPE, string(SER)},
+				PRT:     {PRT, "PRT240818173612"},
+				ORIGIN:  {ORIGIN, "Darbi_i_dzhoan_s01e01_PRT240818173612_SER_04896_18.mp4"},
+			},
+			nil},
+		////////////////////////////////////////////////////////////////////////////////
+		{"Darbi_i_dzhoan_s01_01_PRT240806093047__HD_proxy.mp4",
+			"Darbi_i_dzhoan_s01_01_PRT240806093047__HD_proxy.mp4",
+			OUT_FILE,
+			map[TagKey]Tag{
+				BASE:     {BASE, "Darbi_i_dzhoan"},
+				SEASON:   {SEASON, "01"},
+				EPISODE:  {EPISODE, "01"},
+				PRT:      {PRT, "PRT240806093047"},
+				VIDEO:    {TYPE, string(HD)},
+				COMMENTS: {COMMENTS, "proxy"},
+				EXT:      {EXT, "mp4"},
+			},
+			nil},
+		////////////////////////////////////////////////////////////////////////////////
+		{"Darbi_i_dzhoan_s01e01_PRT240818173612_SER_04896_18.mp4",
+			"Darbi_i_dzhoan_s01e01_PRT240818173612_SER_04896_18.mp4",
+			UNDEFINED,
+			map[TagKey]Tag{},
+			ErrPromptExpected},
+	}
 }
 
-func TestParsing(t *testing.T) {
-	for _, input := range inputsIN {
-		col, err := NewCollection(input)
-		if err != nil {
-			fmt.Println("ERROR:   ", err)
+func TestNewCollection(t *testing.T) {
+	for _, testcase := range testNewCollectionTestCases() {
+		// fmt.Println("testcase", i)
+		// fmt.Println(testcase.input)
+		col, err := NewCollection(testcase.input)
+		if err != testcase.expectedError {
+			t.Errorf("error received: %v, expected %v", err, testcase.expectedError)
 		}
-		fmt.Println(col)
-		fmt.Println(col.FileName)
-		fmt.Println(ProjectOutfileName(col, New(EXT, "mp4")))
-		fmt.Println(ProjectOutfileName(col, New(AUDIO, "AUDIORUS51"), New(EXT, "m4a")))
-		fmt.Println(ProjectOutfileName(col, New(AUDIO, "AUDIOENG20"), New(EXT, "m4a")))
-		fmt.Println(ProjectOutfileName(col, New(EXT, "srt")))
+		if col.FileName != testcase.colFileName {
+			t.Errorf("filename received: %v, expected %v", col.FileName, testcase.colFileName)
+		}
+		if col.CollectionType != testcase.colCollectionType {
+			t.Errorf("CollectionType received: %v, expected %v", col.CollectionType, testcase.colCollectionType)
+		}
+		if !equalMapsOfTags(col.TagWithKey, testcase.colTags) {
+			t.Errorf("Collection tags received: %v, expected %v", col.TagWithKey, testcase.colTags)
+		}
 
 	}
-	fmt.Println("/////////////////")
-	for _, input := range inputsUnknown {
-		fmt.Println("----")
-		col, err := NewCollection(input)
-		if err != nil {
-			fmt.Println("ERROR:   ", err)
+}
+
+func TestAssembledCollection(t *testing.T) {
+	for _, testcase := range testNewCollectionTestCases() {
+		col, _ := NewCollection(testcase.input)
+		if col.CollectionType != UNDEFINED {
 			continue
 		}
-		fmt.Println(col)
-		fmt.Println(col.FileName)
-		fmt.Println(ProjectInfileName(col))
+		//tagConstr := constructor.Default()
+
+		col.Add()
 
 	}
 }
 
-// type collectionResult struct {
-// 	assighnment map[string][]int
-// }
+func constructTag(c Constructor)
 
-// func (cr *collectionResult) Analize(input string, c *collection) string {
-// 	last := 0
-// 	detections := make(map[int]int)
-// 	for _, slice := range cr.assighnment {
-// 		for _, i := range slice {
-// 			if last < i {
-// 				last = i
-// 			}
-// 			detections[i]++
-// 		}
-// 	}
-// 	s := ""
-// 	for i := 0; i < last; i++ {
-// 		s += fmt.Sprintf("%v", detections[i])
-// 	}
-// 	return s
-// }
+func equalTags(aTag, bTag Tag) bool {
+	if aTag.Key != bTag.Key {
+		return false
+	}
+	if aTag.Value != bTag.Value {
+		return false
+	}
+	return true
+}
 
-// func findPositions(str, substr string) []int {
-// 	parts := strings.Split(str, substr)
-// 	switch len(parts) {
-// 	default:
-// 		return nil
-// 	case 2:
-// 	}
-// 	offset := len(parts[0])
-// 	//leng := len(substr)
-// 	res := []int{}
-// 	for i, v := range strings.Split(substr, "") {
-// 		if v == strings.Split(str, "")[offset+i] {
-// 			fmt.Println(v, offset+i)
-// 			res = append(res, offset+i)
-// 		}
-// 	}
-// 	return res
-// }
+func equalMapsOfTags(aMap, bMap map[TagKey]Tag) bool {
+	if len(aMap) != len(bMap) {
+		return false
+	}
+	for aKey, tagInAmap := range aMap {
+		tagInBmap := bMap[aKey]
+		if !equalTags(tagInAmap, tagInBmap) {
+			return false
+		}
+	}
+	return true
+}
