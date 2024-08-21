@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/Galdoba/devtools/cli/command"
-	"github.com/Galdoba/ffstuff/app/mfline/ump"
+	"github.com/Galdoba/ffstuff/pkg/ump"
 	"github.com/urfave/cli/v2"
 )
 

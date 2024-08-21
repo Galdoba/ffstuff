@@ -9,8 +9,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/Galdoba/ffstuff/app/mfline/ump"
 	"github.com/Galdoba/ffstuff/pkg/command"
+	"github.com/Galdoba/ffstuff/pkg/ump"
 )
 
 var ErrRWCheck = errors.New("read-write error detected")

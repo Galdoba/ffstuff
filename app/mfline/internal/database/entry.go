@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/Galdoba/ffstuff/app/mfline/ump"
+	"github.com/Galdoba/ffstuff/pkg/ump"
 )
 
 type Entry struct {

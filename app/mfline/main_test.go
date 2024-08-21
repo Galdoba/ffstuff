@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Galdoba/ffstuff/app/mfline/ump"
+	"github.com/Galdoba/ffstuff/pkg/ump"
 )
 
 func Test_ConsumeJSON(t *testing.T) {

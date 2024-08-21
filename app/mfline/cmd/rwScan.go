@@ -7,7 +7,7 @@ import (
 	"github.com/Galdoba/ffstuff/app/mfline/internal/database"
 	"github.com/Galdoba/ffstuff/app/mfline/internal/files"
 	"github.com/Galdoba/ffstuff/app/mfline/internal/scan"
-	"github.com/Galdoba/ffstuff/app/mfline/ump"
+	"github.com/Galdoba/ffstuff/pkg/ump"
 	"github.com/urfave/cli/v2"
 )
 

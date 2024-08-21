@@ -5,8 +5,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/Galdoba/ffstuff/app/mfline/ump"
 	"github.com/Galdoba/ffstuff/app/prodamed/config"
+	"github.com/Galdoba/ffstuff/pkg/ump"
 )
 
 type ShellCompiler struct {

@@ -9,7 +9,7 @@ import (
 	"github.com/Galdoba/ffstuff/app/mfline/config"
 	"github.com/Galdoba/ffstuff/app/mfline/internal/database"
 	"github.com/Galdoba/ffstuff/app/mfline/internal/scan"
-	"github.com/Galdoba/ffstuff/app/mfline/ump"
+	"github.com/Galdoba/ffstuff/pkg/ump"
 	"github.com/urfave/cli/v2"
 )
 
@@ -94,6 +94,7 @@ func scanBasic(db *database.DBjson, entry *database.Entry, arg string) error {
 			return fmt.Errorf("db.Read: %v\n  %v\n", arg, err.Error())
 		}
 		scanResult := scan.Basic(arg)
+
 		entry.Profile = scanResult.Profile
 		entry.Profile.BasicStatus = ump.Status_OK
 		if err := db.Update(entry); err != nil {

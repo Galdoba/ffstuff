@@ -8,11 +8,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/Galdoba/ffstuff/app/mfline/ump"
+	"github.com/Galdoba/ffstuff/pkg/ump"
 )
 
-//ParseLayout - парсим код плашки на раскладку каналов и кол-во субтитров
-//a62_s1 - распасится на 5.1, stereo и 1 subtitle
+// ParseLayout - парсим код плашки на раскладку каналов и кол-во субтитров
+// a62_s1 - распасится на 5.1, stereo и 1 subtitle
 func ParseLayout(layout string) ([]string, int, error) {
 	audio := []string{}
 	parts := strings.Split(layout, "_")
