@@ -2,19 +2,22 @@ package task
 
 import (
 	"fmt"
+
+	. "github.com/Galdoba/ffstuff/app/aue/internal/define"
 )
 
-const ()
+// const ()
 
-type job struct {
-	name     string
-	sequanse []Task
-}
+// type job struct {
+// 	name     string
+// 	sequanse []Task
+// }
 
 type cliTask struct {
 	cliLine   string
 	name      string
 	parameter map[string]string
+	execFunc  func(map[string]string) error
 }
 
 func (ct *cliTask) SetParameters(params ...parameterData) error {
@@ -65,34 +68,39 @@ func expectedParameters(name string) []string {
 	switch name {
 	default:
 		return nil
-	case TASK_Move:
-		parameters = append(parameters, "old_path")
-		parameters = append(parameters, "new_path")
-	case TASK_Demux_v1a1:
-		parameters = append(parameters, "inputFile")
-		parameters = append(parameters, "outputVideo")
-		parameters = append(parameters, "outputAudio1")
+	case TASK_MoveFile, TASK_CopyFile:
+		parameters = append(parameters, TASK_PARAM_OldPath)
+		parameters = append(parameters, TASK_PARAM_NewPath)
+	case TASK_Make_Dir:
+		parameters = append(parameters, TASK_PARAM_NewPath)
+	case TASK_Encode_v1a1:
+		parameters = append(parameters, TASK_PARAM_Encode_input)
+		parameters = append(parameters, TASK_PARAM_Encode_output_1)
+	case TASK_Encode_v1a2:
+		parameters = append(parameters, TASK_PARAM_Encode_input)
+		parameters = append(parameters, TASK_PARAM_Encode_output_1)
+		parameters = append(parameters, TASK_PARAM_Encode_output_2)
 	}
 	return parameters
 }
 
-func command() {
-	//declaration
-	inputFile := ""
-	fps := ""
-	d := fmt.Sprintf("ffmpeg -n -r 25 -i %v ", inputFile)
-	//filter_complex 1aud
-	fc1 := fmt.Sprintf("-filter_complex \"[0:v:0]setsar=1/1[video]; [0:a:0]aresample=48000,atempo=25/(%v)[audio1]\"", fps)
-	fc2 := fmt.Sprintf("-filter_complex \"[0:v:0]setsar=1/1[video]; [0:a:0]aresample=48000,atempo=25/(%v)[audio1]; [0:a:1]aresample=48000,atempo=25/(%v) [audio2]\"", fps, fps)
-	//mappings
-	outVideo := ""
-	outAudio1 := ""
-	outAudio2 := ""
-	mpVid := fmt.Sprintf("-map \"[video]\" -c:v libx264 -preset medium -crf 21 -pix_fmt yuv422p -profile high -g 0 -map_metadata -1 -map_chapters -1 %v", outVideo)
-	mpAud1 := fmt.Sprintf("-map \"[aud1]\" -c:a alac -compression_level 0 -map_metadata -1 -map_chapters -1 %v", outAudio1)
-	mpAud2 := fmt.Sprintf("-map \"[aud2]\" -c:a alac -compression_level 0 -map_metadata -1 -map_chapters -1 %v", outAudio2)
-	return "ffmpeg -n -r 25 -i %v "
-}
+// func command() {
+// 	//declaration
+// 	inputFile := ""
+// 	fps := ""
+// 	d := fmt.Sprintf("ffmpeg -n -r 25 -i %v ", inputFile)
+// 	//filter_complex 1aud
+// 	fc1 := fmt.Sprintf("-filter_complex \"[0:v:0]setsar=1/1[video]; [0:a:0]aresample=48000,atempo=25/(%v)[audio1]\"", fps)
+// 	fc2 := fmt.Sprintf("-filter_complex \"[0:v:0]setsar=1/1[video]; [0:a:0]aresample=48000,atempo=25/(%v)[audio1]; [0:a:1]aresample=48000,atempo=25/(%v) [audio2]\"", fps, fps)
+// 	//mappings
+// 	outVideo := ""
+// 	outAudio1 := ""
+// 	outAudio2 := ""
+// 	mpVid := fmt.Sprintf("-map \"[video]\" -c:v libx264 -preset medium -crf 21 -pix_fmt yuv422p -profile high -g 0 -map_metadata -1 -map_chapters -1 %v", outVideo)
+// 	mpAud1 := fmt.Sprintf("-map \"[aud1]\" -c:a alac -compression_level 0 -map_metadata -1 -map_chapters -1 %v", outAudio1)
+// 	mpAud2 := fmt.Sprintf("-map \"[aud2]\" -c:a alac -compression_level 0 -map_metadata -1 -map_chapters -1 %v", outAudio2)
+// 	return "ffmpeg -n -r 25 -i %v "
+// }
 
 /*
 mkdir -p /mnt/pemaltynov/ROOT/IN/_AMEDIA/_DONE/Agenty_vo_vremeni_s01/

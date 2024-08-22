@@ -56,10 +56,10 @@ func assertAcceptable(metaKey string) error {
 		key.META_Season,
 		key.META_Episode,
 		key.META_PRT,
-		key.META_Audio_Layout_1,
-		key.META_Audio_Layout_2,
-		key.META_Audio_Lang_1,
-		key.META_Audio_Lang_2:
+		key.META_Audio_Layout_ + "0",
+		key.META_Audio_Layout_ + "1",
+		key.META_Audio_Lang_ + "0",
+		key.META_Audio_Lang_ + "1":
 	}
 	return nil
 }

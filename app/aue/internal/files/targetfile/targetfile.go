@@ -1,16 +1,26 @@
 package targetfile
 
+import . "github.com/Galdoba/ffstuff/app/aue/internal/define"
+
 type TargetFile struct {
-	claimedGoal         string
-	usedSourcesNames    []string
-	expectedName        string
-	expectedStreamTypes map[string]int
+	ClaimedGoal        string
+	UsedSourcesNames   []string
+	ExpectedName       string
+	ExpectedStreamType string
 }
 
-func New(goal string, sources []string) TargetFile {
+func New(goal string, sources []string) *TargetFile {
 	tf := TargetFile{}
-	tf.claimedGoal = goal
-	tf.usedSourcesNames = sources
+	tf.ClaimedGoal = goal
+	tf.UsedSourcesNames = sources
+	switch tf.ClaimedGoal {
+	case PURPOSE_Output_Video:
+		tf.ExpectedStreamType = STREAM_VIDEO
+	case PURPOSE_Output_Audio1, PURPOSE_Output_Audio2:
+		tf.ExpectedStreamType = STREAM_AUDIO
+	case PURPOSE_Output_Subs:
+		tf.ExpectedStreamType = STREAM_SUBTITLE
+	}
 
-	return tf
+	return &tf
 }

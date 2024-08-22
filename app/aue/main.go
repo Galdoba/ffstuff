@@ -24,6 +24,7 @@ func main() {
 	app.Commands = []*cli.Command{
 		commands.Menu(),
 		commands.Shout(),
+		commands.Run(),
 	}
 
 	//ПО ОКОНЧАНИЮ ДЕЙСТВИЯ

@@ -62,7 +62,7 @@ func separateComplex(feed string) ([]Meta, error) {
 		return nil, fmt.Errorf("can't separate complex: bad season/episode feed '%v', expect 101+", seasEpisFeed)
 	}
 	season, episode := seasonAndEpisode(seasEpisFeed)
-	found = append(found, season, episode)
+	found = append(found, episode, season)
 
 	baseFeed := strings.Join(data[0:len(data)-3], "_")
 	base := NewMeta(key.META_Base, baseFeed)

@@ -16,21 +16,23 @@ type SourceFile struct {
 	profile *ump.MediaProfile
 }
 
-func New(path string, purpose string) (SourceFile, error) {
+func New(path string, purpose string) *SourceFile {
 	sf := SourceFile{}
 	sf.path = path
 	sf.name = filepath.Base(path)
-	sf.profile = ump.NewProfile()
-	if err := sf.profile.ConsumeFile(path); err != nil {
-		return sf, fmt.Errorf("profiling failed: %v", err)
-	}
-	if err := validate(sf); err != nil {
-		return sf, fmt.Errorf("source invalid: %v", err)
-	}
-	return sf, nil
+	sf.purpose = purpose
+	return &sf
 }
 
-func validate(sf SourceFile) error {
+func (sf *SourceFile) FillProfile() error {
+	sf.profile = ump.NewProfile()
+	if err := sf.profile.ConsumeFile(sf.path); err != nil {
+		return fmt.Errorf("profiling failed: %v", err)
+	}
+	return nil
+}
+
+func (sf *SourceFile) Validate() error {
 	if sf.profile == nil {
 		return fmt.Errorf("no media profile")
 	}
@@ -54,6 +56,10 @@ func (sf *SourceFile) Name() string {
 	return sf.name
 }
 
+func (sf *SourceFile) Path() string {
+	return sf.path
+}
+
 func (sf *SourceFile) Profile() *ump.MediaProfile {
 	return sf.profile
 }
@@ -64,4 +70,42 @@ func (sf *SourceFile) FPS() string {
 		return ""
 	}
 	return videoStreams[0].R_frame_rate
+}
+
+func MapStreamTypesAll(sources []*SourceFile) map[string]int {
+	stMap := make(map[string]int)
+	for _, source := range sources {
+		profile := source.profile
+		for _, stream := range profile.Streams {
+			stMap[stream.Codec_type]++
+		}
+	}
+	return stMap
+}
+
+func MapByStreamTypes(sources []*SourceFile) map[string][]int {
+	stMap := make(map[string][]int)
+	for _, source := range sources {
+		stMap[source.name] = []int{0, 0, 0}
+		profile := source.profile
+		for _, stream := range profile.Streams {
+			switch stream.Codec_type {
+			case define.STREAM_VIDEO:
+				stMap[source.name][0]++
+			case define.STREAM_AUDIO:
+				stMap[source.name][1]++
+			case define.STREAM_SUBTITLE:
+				stMap[source.name][2]++
+			}
+		}
+	}
+	return stMap
+}
+
+func Names(sources []*SourceFile) []string {
+	names := []string{}
+	for _, source := range sources {
+		names = append(names, source.name)
+	}
+	return names
 }
