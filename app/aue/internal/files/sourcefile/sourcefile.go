@@ -24,12 +24,8 @@ func New(path string, purpose string) *SourceFile {
 	return &sf
 }
 
-func (sf *SourceFile) FillProfile() error {
-	sf.profile = ump.NewProfile()
-	if err := sf.profile.ConsumeFile(sf.path); err != nil {
-		return fmt.Errorf("profiling failed: %v", err)
-	}
-	return nil
+func (sf *SourceFile) FillProfile(prf *ump.MediaProfile) {
+	sf.profile = prf
 }
 
 func (sf *SourceFile) Validate() error {
@@ -58,6 +54,10 @@ func (sf *SourceFile) Name() string {
 
 func (sf *SourceFile) Path() string {
 	return sf.path
+}
+
+func (sf *SourceFile) Purpose() string {
+	return sf.purpose
 }
 
 func (sf *SourceFile) Profile() *ump.MediaProfile {
@@ -108,4 +108,13 @@ func Names(sources []*SourceFile) []string {
 		names = append(names, source.name)
 	}
 	return names
+}
+
+func (src *SourceFile) Details() string {
+	str := ""
+	str += fmt.Sprintf("  path    : %v\n", src.path)
+	str += fmt.Sprintf("  name    : %v\n", src.name)
+	str += fmt.Sprintf("  purpose : %v\n", src.purpose)
+	str += fmt.Sprintf("  profile : %v\n", src.profile)
+	return str
 }

@@ -16,19 +16,21 @@ func Parse(name string) []Meta {
 	if err == nil {
 		return found
 	}
+	fmt.Println("LOG ERROR: parseComplex Failed")
 	//TODO: log error
 	found, err = parseSimple(name)
 	if err == nil {
 		return found
 	}
+	fmt.Println("LOG ERROR: parseSimple Failed")
+	//return found
 	//TODO: log error
 	return parseDesperate(name)
 
 }
 
 func parseComplex(name string) ([]Meta, error) {
-
-	re := regexp.MustCompile(`(*_[0-9]{3,}_PRT[0-9]{12,})`)
+	re := regexp.MustCompile(`(.{1,}_s[0-9]{2,}e[0-9]{2,}_PRT[0-9]{12,})`)
 	complexFeed := re.FindString(name)
 	if complexFeed == "" {
 		return nil, ErrNotFound
@@ -37,8 +39,7 @@ func parseComplex(name string) ([]Meta, error) {
 	if err != nil {
 		return found, fmt.Errorf("parseComplex failed: %v", err)
 	}
-
-	return []Meta{}, nil
+	return found, nil
 }
 
 var ErrNotFound = errors.New("")
@@ -46,7 +47,7 @@ var ErrNotFound = errors.New("")
 func separateComplex(feed string) ([]Meta, error) {
 	found := []Meta{}
 	data := strings.Split(feed, "_")
-	if len(data) < 3 {
+	if len(data) <= 3 {
 		return nil, fmt.Errorf("can't separate complex: bad feed '%v'", feed)
 	}
 	prtFeed := data[len(data)-1]
@@ -54,29 +55,20 @@ func separateComplex(feed string) ([]Meta, error) {
 	found = append(found, prt)
 
 	seasEpisFeed := data[len(data)-2]
-	v, err := strconv.Atoi(seasEpisFeed)
-	if err != nil {
-		return nil, fmt.Errorf("can't separate complex: bad season/episode feed '%v'", feed)
-	}
-	if v < 101 {
-		return nil, fmt.Errorf("can't separate complex: bad season/episode feed '%v', expect 101+", seasEpisFeed)
-	}
 	season, episode := seasonAndEpisode(seasEpisFeed)
 	found = append(found, episode, season)
 
-	baseFeed := strings.Join(data[0:len(data)-3], "_")
+	baseFeed := strings.Join(data[0:len(data)-2], "_")
 	base := NewMeta(key.META_Base, baseFeed)
 	found = append(found, base)
 	return found, nil
 }
 
 func seasonAndEpisode(feed string) (Meta, Meta) {
-	parts := strings.Split(feed, "")
-	seasonNum := strings.Join(parts[0:len(parts)-3], "")
-	seasonNum = twoDigitNum(seasonNum)
-	episodeNum := strings.Join(parts[len(parts)-2:], "")
-	episodeNum = twoDigitNum(episodeNum)
-	return NewMeta(key.META_Season, seasonNum), NewMeta(key.META_Episode, episodeNum)
+	feed = strings.TrimPrefix(feed, "s")
+	numbers := strings.Split(feed, "e")
+
+	return NewMeta(key.META_Season, numbers[0]), NewMeta(key.META_Episode, numbers[1])
 }
 
 func twoDigitNum(n string) string {
@@ -89,7 +81,7 @@ func twoDigitNum(n string) string {
 
 func parseSimple(name string) ([]Meta, error) {
 
-	re := regexp.MustCompile(`(*_PRT[0-9]{12,})`)
+	re := regexp.MustCompile(`(.{1,}_PRT[0-9]{12,})`)
 	complexFeed := re.FindString(name)
 	if complexFeed == "" {
 		return nil, ErrNotFound

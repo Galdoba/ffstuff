@@ -2,6 +2,7 @@ package job
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 
@@ -37,6 +38,7 @@ func New(sources []*source.SourceFile, targets []*target.TargetFile, jobOptions 
 }
 
 func (ja *jobAdmin) DecideType() error {
+
 	if ja.options.jobType == "" || len(ja.target) == 0 {
 		err := ja.setJobCodeAndTargets()
 		if err != nil {
@@ -50,21 +52,44 @@ func (ja *jobAdmin) DecideType() error {
 	}
 	ja.source = br.Sources()
 	ja.target = br.Targets()
-
 	if err := approveSources(ja.source, ja.options.jobType); err != nil {
 		return fmt.Errorf("job decidion failed: %v", err)
 	}
-	ja.tasks = taskList(ja.options.jobType)
 
 	return nil
 }
 
 func (ja *jobAdmin) CompileTasks() error {
-	return fmt.Errorf("TODO: generate tasks based on job name")
+
+	return ja.setupTaskList()
 }
 
 func (ja *jobAdmin) Execute() error {
-	return fmt.Errorf("TODO: execute tasks based on job processingMode")
+	for _, t := range ja.tasks {
+		fmt.Println(t.String())
+	}
+	bash := ""
+
+	bash += fmt.Sprintf("#!/bin/bash\n")
+	bash += fmt.Sprintf("#\n")
+	bash += fmt.Sprintf("set -o nounset    # error when referensing undefined variable\n")
+	bash += fmt.Sprintf("set -o errexit    # exit when command fails\n")
+	bash += fmt.Sprintf("shopt -s extglob\n")
+	bash += fmt.Sprintf("shopt -s nullglob\n")
+	bash += fmt.Sprintf("#\n")
+	bash += fmt.Sprintf("PRIORITY=8\n")
+	for _, tsk := range ja.tasks {
+		bash += fmt.Sprintf("%v\n", tsk.String())
+	}
+	f, err := os.Create(ja.options.processingDir + "bash.sh")
+	if err != nil {
+		return fmt.Errorf("can't create bash file")
+	}
+	if _, err := f.WriteString(bash); err != nil {
+		return fmt.Errorf("can't write bash file")
+	}
+
+	return nil
 }
 
 func jobCode(targets []target.TargetFile) string {

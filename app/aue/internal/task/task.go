@@ -2,6 +2,7 @@ package task
 
 import (
 	"fmt"
+	"strings"
 
 	. "github.com/Galdoba/ffstuff/app/aue/internal/define"
 )
@@ -54,7 +55,11 @@ func (ct *cliTask) Execute() error {
 }
 
 func (ct *cliTask) String() string {
-	return "Task String"
+	str := ct.parameter["format"]
+	for key, value := range ct.parameter {
+		str = strings.ReplaceAll(str, fmt.Sprintf("{%v}", key), value)
+	}
+	return str
 }
 
 type Task interface {
@@ -75,11 +80,13 @@ func expectedParameters(name string) []string {
 		parameters = append(parameters, TASK_PARAM_NewPath)
 	case TASK_Encode_v1a1:
 		parameters = append(parameters, TASK_PARAM_Encode_input)
-		parameters = append(parameters, TASK_PARAM_Encode_output_1)
+		parameters = append(parameters, PURPOSE_Output_Video)
+		parameters = append(parameters, PURPOSE_Output_Audio1)
 	case TASK_Encode_v1a2:
 		parameters = append(parameters, TASK_PARAM_Encode_input)
-		parameters = append(parameters, TASK_PARAM_Encode_output_1)
-		parameters = append(parameters, TASK_PARAM_Encode_output_2)
+		parameters = append(parameters, PURPOSE_Output_Video)
+		parameters = append(parameters, PURPOSE_Output_Audio1)
+		parameters = append(parameters, PURPOSE_Output_Audio2)
 	}
 	return parameters
 }

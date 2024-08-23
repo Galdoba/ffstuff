@@ -1,6 +1,10 @@
 package targetfile
 
-import . "github.com/Galdoba/ffstuff/app/aue/internal/define"
+import (
+	"fmt"
+
+	. "github.com/Galdoba/ffstuff/app/aue/internal/define"
+)
 
 type TargetFile struct {
 	ClaimedGoal        string
@@ -23,4 +27,16 @@ func New(goal string, sources []string) *TargetFile {
 	}
 
 	return &tf
+}
+
+func (tgt *TargetFile) Details() string {
+	s := ""
+	s += fmt.Sprintf("  ClaimedGoal : %v\n", tgt.ClaimedGoal)
+	s += fmt.Sprintf("  UsedSourcesNames : \n")
+	for _, use := range tgt.UsedSourcesNames {
+		s += fmt.Sprintf("      -%v\n", use)
+	}
+	s += fmt.Sprintf("  ExpectedName : %v\n", tgt.ExpectedName)
+	s += fmt.Sprintf("  ExpectedStreamType : %v\n", tgt.ExpectedStreamType)
+	return s
 }

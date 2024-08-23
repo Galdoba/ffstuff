@@ -23,13 +23,24 @@ func NewTask(name string) *cliTask {
 	default:
 		panic(fmt.Sprintf("task %v not implemented", name))
 	case TASK_MoveFile:
-		ct.parameter["format"] = "mv %v %v"
+		ct.parameter["format"] = fmt.Sprintf("mv {%v} {%v}", TASK_PARAM_OldPath, TASK_PARAM_NewPath)
 	case TASK_CopyFile:
-		ct.parameter["format"] = "cp %v %v"
+		ct.parameter["format"] = fmt.Sprintf("cp {%v} {%v}", TASK_PARAM_OldPath, TASK_PARAM_NewPath)
 	case TASK_Make_Dir:
-		ct.parameter["format"] = "mkdir %v"
+		ct.parameter["format"] = fmt.Sprintf("mkdir {%v}", TASK_PARAM_NewPath)
 	case TASK_Encode_v1a1:
-		ct.parameter["format"] = "ffmpeg -n -r 25 -i %v -filter_complex \"[0:v:0]sersar=(1/1)[vidHD]; [0:a:0]aresample=48000,atempo=25/(25/1)[aud1]\" -map \"[vidHD]\" -c:v libx264 -preset medium -crf 21 -pix_fmt yuv420p -profile high -g 0 -map_metadata -1 -map_chapters -1 %v -map \"[aud1]\" -c:a alac -compression_level 0 -map_metadata -1 -map_chapters -1 %v"
+		ct.parameter["format"] = fmt.Sprintf("ffmpeg -n -r 25 -i {%v} "+
+			"-filter_complex \"[0:v:0]sersar=(1/1)[vidHD]; [0:a:0]aresample=48000,atempo=25/(25/1)[aud1]\" "+
+			"-map \"[vidHD]\" -c:v libx264 -preset medium -crf 21 -pix_fmt yuv420p -profile high -g 0 -map_metadata -1 -map_chapters -1 {%v} "+
+			"-map \"[aud1]\" -c:a alac -compression_level 0 -map_metadata -1 -map_chapters -1 {%v}",
+			TASK_PARAM_Encode_input, PURPOSE_Output_Video, PURPOSE_Output_Audio1)
+	case TASK_Encode_v1a2:
+		ct.parameter["format"] = fmt.Sprintf("ffmpeg -n -r 25 -i {%v} "+
+			"-filter_complex \"[0:v:0]sersar=(1/1)[vidHD]; [0:a:0]aresample=48000,atempo=25/(25/1)[aud1]; [0:a:1]aresample=48000,atempo=25/(25/1)[aud2]\" "+
+			"-map \"[vidHD]\" -c:v libx264 -preset medium -crf 21 -pix_fmt yuv420p -profile high -g 0 -map_metadata -1 -map_chapters -1 {%v} "+
+			"-map \"[aud1]\" -c:a alac -compression_level 0 -map_metadata -1 -map_chapters -1 {%v} "+
+			"-map \"[aud2]\" -c:a alac -compression_level 0 -map_metadata -1 -map_chapters -1 {%v}",
+			TASK_PARAM_Encode_input, PURPOSE_Output_Video, PURPOSE_Output_Audio1, PURPOSE_Output_Audio2)
 	}
 	return &ct
 }

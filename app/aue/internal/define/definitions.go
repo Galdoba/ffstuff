@@ -25,6 +25,7 @@ const (
 	TASK_Encode_v1a1 = "Encode one video and one audio"
 	TASK_Encode_v1a2 = "Encode one video and two audios"
 	TASK_CopyFile    = "Copy File"
+	TASK_CreateFile  = "Create File"
 	TASK_Notify      = "Notify"
 
 	IN  = "Input_"
@@ -55,10 +56,10 @@ const (
 	STREAM_SUBTITLE     = "subtitle"
 	STREAM_TAG_LANGUAGE = "language"
 
-	TASK_PARAM_NewPath         = "New path"
-	TASK_PARAM_OldPath         = "Old path"
-	TASK_PARAM_Encode_input    = "Encoding input"
-	TASK_PARAM_Encode_output_1 = "Encoding output 1"
-	TASK_PARAM_Encode_output_2 = "Encoding output 2"
-	TASK_PARAM_Encode_output_3 = "Encoding output 3"
+	TASK_PARAM_NewPath      = "new_path"
+	TASK_PARAM_OldPath      = "old_path"
+	TASK_PARAM_Encode_input = "encode_input"
+	// TASK_PARAM_Encode_output_1 = "encode_output_1"
+	// TASK_PARAM_Encode_output_2 = "encode_output_2"
+	// TASK_PARAM_Encode_output_3 = "encode_output_3"
 )

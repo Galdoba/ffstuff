@@ -11,6 +11,7 @@ type Configuration struct {
 	IN_DIR          string `json:"IN"`
 	BUFFER_DIR      string `json:"BUFFER"`
 	IN_PROGRESS_DIR string `json:"IN_PROGRESS"`
+	DONE_DIR        string `json:"DONE"`
 	OUT_DIR         string `json:"OUT"`
 }
 
@@ -29,6 +30,7 @@ func Default() *Configuration {
 	cfg.BUFFER_DIR = `\\192.168.31.4\buffer\IN\`
 	cfg.IN_DIR = cfg.BUFFER_DIR + `@AMEDIA_IN\`
 	cfg.IN_PROGRESS_DIR = cfg.BUFFER_DIR + `_IN_PROGRESS\`
+	cfg.DONE_DIR = cfg.BUFFER_DIR + `_DONE\`
 	cfg.OUT_DIR = `\\nas\ROOT\EDIT\_amedia\_autogen\`
 	return &cfg
 }

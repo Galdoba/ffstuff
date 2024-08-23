@@ -41,27 +41,48 @@ func Run() *cli.Command {
 				return err
 			}
 			projects := []string{}
-			for i, f := range fi {
-				fmt.Println(i, f.Name(), "is dir:", f.IsDir())
+			for _, f := range fi {
 				if f.IsDir() {
 					projects = append(projects, fmt.Sprintf("%v%v", cfg.IN_DIR, f.Name()))
+
 				}
 			}
-			fmt.Println(projects)
+
 			for _, project := range projects {
+				fmt.Println("\n--------\nStart Project:", project)
 				sources, err := actions.SetupSources(project, cfg.BUFFER_DIR)
-				if err != nil {
-					fmt.Println(err)
+				if len(sources) == 0 {
+					fmt.Println("LOG ERROR:", "no sources created")
+					continue
 				}
-				fmt.Println(sources)
-				ja, err := job.New(sources, nil)
-				fmt.Println(err)
-				fmt.Println(&ja)
-				fmt.Println(ja.DecideType())
-				fmt.Println(&ja)
+				if err != nil {
+					fmt.Println("||||||", err)
+				}
+
+				ja, err := job.New(sources, nil,
+					job.WithInputDir(cfg.BUFFER_DIR),
+					job.WithProcessingDir(cfg.IN_PROGRESS_DIR),
+					job.WithDoneDir(cfg.DONE_DIR),
+					job.WithOutDir(cfg.OUT_DIR),
+				)
+				if err != nil {
+					fmt.Println("LOG ERROR: job creation", err.Error())
+				}
+				if err := ja.DecideType(); err != nil {
+					fmt.Println("LOG ERROR: job decide type", err.Error())
+					return err
+				}
+				if err := ja.CompileTasks(); err != nil {
+					fmt.Println("LOG ERROR: job compile tasks", err.Error())
+					return err
+				}
+				if err := ja.Execute(); err != nil {
+					fmt.Println("LOG ERROR: job execute", err.Error())
+					//return err
+				}
 
 			}
-
+			fmt.Println("GOOD ENDING!!!")
 			return nil
 		},
 		OnUsageError: func(cCtx *cli.Context, err error, isSubcommand bool) error {

@@ -29,7 +29,7 @@ func SetupSources(sourceDir, targetDir string) ([]*source.SourceFile, error) {
 	for _, err := range []error{
 		sc.assertProjectDirectory(),
 		sc.collectFiles(),
-		sc.executeRenaming(),
+		//sc.executeRenaming(),
 	} {
 		if err != nil {
 			return nil, fmt.Errorf("source setup failed: %v", err)
@@ -51,36 +51,50 @@ func (sc *sourceCollector) assertProjectDirectory() error {
 }
 
 func (sc *sourceCollector) collectFiles() error {
-	fmt.Println("SOURCEDIR", sc.sourceDir)
 	fi, err := os.ReadDir(sc.sourceDir)
 	if err != nil {
 		return fmt.Errorf("can't read parent dir: %v", err)
 	}
 	base := filepath.Base(sc.sourceDir)
 	base = baseToSource(base)
-	fmt.Println(base)
-	for _, f := range fi {
 
+	for _, f := range fi {
 		file := path(sc.sourceDir, f.Name())
 		expectedSourcePath := path(sc.targetDir, sourceNameProjected(base, f.Name()))
 		prf := ump.NewProfile()
 		if err := prf.ConsumeFile(file); err != nil {
-			fmt.Println("LOG:", fmt.Errorf("profile: can't consume file '%v': %v", f.Name(), err))
+			//fmt.Println("LOG:", fmt.Errorf("profile: can't consume file '%v': %v", f.Name(), err))
 			continue
 		}
 		strComp := streamComposition(prf)
+		purpose := define.PURPOSE_Input_Media
 		switch strComp {
 		case 0:
 			fmt.Println("LOG: skip", f.Name())
 			continue
 		case 1:
-			sc.sources = append(sc.sources, source.New(expectedSourcePath, define.PURPOSE_Input_Subs))
+			purpose = define.PURPOSE_Input_Subs
 		default:
-			sc.sources = append(sc.sources, source.New(expectedSourcePath, define.PURPOSE_Input_Media))
+			purpose = define.PURPOSE_Input_Media
 		}
+
+		newSource, err := newSourceWithProfile(expectedSourcePath, purpose, prf)
+		if err != nil {
+			return fmt.Errorf("collectFiles: %v", err)
+		}
+		sc.sources = append(sc.sources, newSource)
+		fmt.Println("SOURCE ADDED:")
+		fmt.Println(newSource.Details())
+
 		sc.renamingMap[file] = expectedSourcePath
 	}
 	return nil
+}
+
+func newSourceWithProfile(expectedpath, purpose string, profile *ump.MediaProfile) (*source.SourceFile, error) {
+	src := source.New(expectedpath, purpose)
+	src.FillProfile(profile)
+	return src, nil
 }
 
 func (sc *sourceCollector) executeRenaming() error {
@@ -101,10 +115,7 @@ func path(dir, file string) string {
 
 func streamComposition(prf *ump.MediaProfile) int {
 	cmp := 0
-
 	for _, stream := range prf.Streams {
-		fmt.Println(prf.Format.Filename)
-		fmt.Println(stream.Codec_type)
 		switch stream.Codec_type {
 		case define.STREAM_VIDEO:
 			cmp += 100

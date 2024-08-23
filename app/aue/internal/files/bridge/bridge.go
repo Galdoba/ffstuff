@@ -18,6 +18,7 @@ type fileBridge struct {
 	metaInfo        metainfo.Collection
 	targetFiles     []*target.TargetFile
 	targetsModified []target.TargetFile
+	outputBase      string
 }
 
 func New() *fileBridge {
@@ -43,9 +44,9 @@ func (br *fileBridge) Connect(sources []*source.SourceFile, targets []*target.Ta
 func (br *fileBridge) connectSources(sfs ...*source.SourceFile) error {
 	sourceMap := make(map[string]int)
 	for _, source := range sfs {
-		if err := source.FillProfile(); err != nil {
-			return fmt.Errorf("source connecton: %v")
-		}
+		// if err := source.FillProfile(); err != nil {
+		// 	return fmt.Errorf("source connecton: %v")
+		// }
 		if err := source.Validate(); err != nil {
 			return fmt.Errorf("source validation: %v")
 		}
@@ -83,18 +84,19 @@ func (br *fileBridge) sealConnections() error {
 		if err := br.metaInfo.Add(metas...); err != nil {
 			return fmt.Errorf("sealing failed: %v", err)
 		}
+
 	}
 	err := br.updateTargets()
 	if err != nil {
 		return fmt.Errorf("sealing failed: %v", err)
 	}
+	br.outputBase = br.metaInfo.Show(META_Base) + "_" + br.metaInfo.Show(META_Season) + "_" + br.metaInfo.Show(META_Episode) + "_" + br.metaInfo.Show(META_PRT)
 	return nil
 }
 
 func (br *fileBridge) updateTargets() error {
-
 	streamTypesByName := source.MapByStreamTypes(br.sourceFiles)
-	for _, target := range br.targetFiles {
+	for i, target := range br.targetFiles {
 		target.UsedSourcesNames = filterSources(target, streamTypesByName)
 		if target.ExpectedName != "" {
 			return fmt.Errorf("target was modified before: %v", target)
@@ -119,13 +121,14 @@ func (br *fileBridge) updateTargets() error {
 		case PURPOSE_Output_Subs:
 			target.ExpectedName += ".srt"
 		}
-
+		br.targetFiles[i] = target
 	}
 	return nil
 }
 
 func filterSources(target *target.TargetFile, streamTypesByName map[string][]int) []string {
 	filteredSources := []string{}
+
 	switch target.ClaimedGoal {
 	case PURPOSE_Output_Video:
 		for name, nums := range streamTypesByName {
@@ -135,7 +138,7 @@ func filterSources(target *target.TargetFile, streamTypesByName map[string][]int
 		}
 	case PURPOSE_Output_Audio1:
 		for name, nums := range streamTypesByName {
-			if nums[1] == 1 {
+			if nums[1] >= 1 {
 				filteredSources = append(filteredSources, name)
 			}
 		}
@@ -188,4 +191,8 @@ func (br *fileBridge) Sources() []*source.SourceFile {
 
 func (br *fileBridge) Targets() []*target.TargetFile {
 	return br.targetFiles
+}
+
+func (br *fileBridge) ProjectBase() string {
+	return br.outputBase
 }
