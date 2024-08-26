@@ -2,10 +2,10 @@ package job
 
 import (
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 
+	"github.com/Galdoba/ffstuff/app/aue/internal/bashgen"
 	"github.com/Galdoba/ffstuff/app/aue/internal/define"
 	"github.com/Galdoba/ffstuff/app/aue/internal/files/bridge"
 	source "github.com/Galdoba/ffstuff/app/aue/internal/files/sourcefile"
@@ -18,6 +18,7 @@ type jobAdmin struct {
 	target  []*target.TargetFile
 	tasks   []task.Task
 	options *jobOptions
+	name    string
 }
 
 type inputFile struct {
@@ -52,6 +53,7 @@ func (ja *jobAdmin) DecideType() error {
 	}
 	ja.source = br.Sources()
 	ja.target = br.Targets()
+	ja.name = br.ProjectBase()
 	if err := approveSources(ja.source, ja.options.jobType); err != nil {
 		return fmt.Errorf("job decidion failed: %v", err)
 	}
@@ -65,33 +67,39 @@ func (ja *jobAdmin) CompileTasks() error {
 }
 
 func (ja *jobAdmin) Execute() error {
-	for _, t := range ja.tasks {
-		fmt.Println("tSTRING:", t.String())
-		if err := t.Execute(); err != nil {
-			return fmt.Errorf("task execution failed: %v", t.String())
+	if ja.options.directProcessing {
+		for _, t := range ja.tasks {
+			if err := t.Execute(); err != nil {
+				return fmt.Errorf("task execution failed: %v", t.String())
+			}
 		}
 	}
-	bash := ""
+	if ja.options.bashGeneration {
+		gen := bashgen.New(ja)
+		if err := gen.GenerateBash(ja.tasks); err != nil {
+			return fmt.Errorf("bash generation failed: %v", err)
+		}
 
-	bash += fmt.Sprintf("#!/bin/bash\n")
-	bash += fmt.Sprintf("#\n")
-	bash += fmt.Sprintf("set -o nounset    # error when referensing undefined variable\n")
-	bash += fmt.Sprintf("set -o errexit    # exit when command fails\n")
-	bash += fmt.Sprintf("shopt -s extglob\n")
-	bash += fmt.Sprintf("shopt -s nullglob\n")
-	bash += fmt.Sprintf("#\n")
-	bash += fmt.Sprintf("PRIORITY=8\n")
-	for _, tsk := range ja.tasks {
-		bash += fmt.Sprintf("%v\n", tsk.String())
+		// bash := ""
+		// bash += fmt.Sprintf("#!/bin/bash\n")
+		// bash += fmt.Sprintf("#\n")
+		// bash += fmt.Sprintf("set -o nounset    # error when referensing undefined variable\n")
+		// bash += fmt.Sprintf("set -o errexit    # exit when command fails\n")
+		// bash += fmt.Sprintf("shopt -s extglob\n")
+		// bash += fmt.Sprintf("shopt -s nullglob\n")
+		// bash += fmt.Sprintf("#\n")
+		// bash += fmt.Sprintf("PRIORITY=8\n")
+		// for _, tsk := range ja.tasks {
+		// 	bash += fmt.Sprintf("%v\n", tsk.String())
+		// }
+		// f, err := os.Create(ja.options.processingDir + "bash.sh")
+		// if err != nil {
+		// 	return fmt.Errorf("can't create bash file")
+		// }
+		// if _, err := f.WriteString(bash); err != nil {
+		// 	return fmt.Errorf("can't write bash file")
+		// }
 	}
-	f, err := os.Create(ja.options.processingDir + "bash.sh")
-	if err != nil {
-		return fmt.Errorf("can't create bash file")
-	}
-	if _, err := f.WriteString(bash); err != nil {
-		return fmt.Errorf("can't write bash file")
-	}
-
 	return nil
 }
 

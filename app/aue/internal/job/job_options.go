@@ -3,19 +3,23 @@ package job
 type JobOptsFunc func(*jobOptions)
 
 type jobOptions struct {
-	processingMode string
-	jobType        string
-	inputDir       string
-	processingDir  string
-	doneDir        string
-	outDir         string
-	bashGeneration bool
+	processingMode     string
+	jobType            string
+	inputDir           string
+	processingDir      string
+	doneDir            string
+	outDir             string
+	directProcessing   bool
+	bashGeneration     bool
+	bashDestination    string
+	bashTranslationMap map[string]string
 }
 
 func defaultJobOptions() jobOptions {
 	return jobOptions{
-		processingMode: "",
-		jobType:        "",
+		processingMode:     "",
+		jobType:            "",
+		bashTranslationMap: make(map[string]string),
 	}
 }
 
@@ -55,8 +59,26 @@ func WithOutDir(dir string) JobOptsFunc {
 	}
 }
 
+func WithDirectProcessing(dp bool) JobOptsFunc {
+	return func(opts *jobOptions) {
+		opts.directProcessing = dp
+	}
+}
+
 func WithBashGeneration(bg bool) JobOptsFunc {
 	return func(opts *jobOptions) {
 		opts.bashGeneration = bg
+	}
+}
+
+func WithBashDestination(dest string) JobOptsFunc {
+	return func(opts *jobOptions) {
+		opts.bashDestination = dest
+	}
+}
+
+func WithBashTranslationMap(trMap map[string]string) JobOptsFunc {
+	return func(opts *jobOptions) {
+		opts.bashTranslationMap = trMap
 	}
 }

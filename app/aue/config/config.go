@@ -13,14 +13,15 @@ const (
 )
 
 type Configuration struct {
-	IN_DIR              string            `json:"IN"`
-	BUFFER_DIR          string            `json:"BUFFER"`
-	IN_PROGRESS_DIR     string            `json:"IN_PROGRESS"`
-	DONE_DIR            string            `json:"DONE"`
-	OUT_DIR             string            `json:"OUT"`
+	IN_DIR              string            `json:"Directory: IN         "`
+	BUFFER_DIR          string            `json:"Directory: BUFFER     "`
+	IN_PROGRESS_DIR     string            `json:"Directory: IN_PROGRESS"`
+	DONE_DIR            string            `json:"Directory: DONE       "`
+	OUT_DIR             string            `json:"Directory: OUT        "`
 	DirectProcessing    bool              `json:"Direct Processing"`
 	BashGeneration      bool              `json:"Generate Bash File"`
 	BashPathTranslation map[string]string `json:"Bash Paths Translation"`
+	SleepSeconds        int               `json:"Repeat Cycle (seconds)"`
 }
 
 var sep string = string(filepath.Separator)
@@ -35,17 +36,19 @@ func ConfigPath() string {
 
 func Default() *Configuration {
 	cfg := Configuration{}
-	cfg.BUFFER_DIR = `\\192.168.31.4\buffer\IN\`
-	cfg.IN_DIR = cfg.BUFFER_DIR + `@AMEDIA_IN\`
-	cfg.IN_PROGRESS_DIR = cfg.BUFFER_DIR + `_IN_PROGRESS\`
-	cfg.DONE_DIR = cfg.BUFFER_DIR + `_DONE\`
-	cfg.OUT_DIR = `\\nas\ROOT\EDIT\_amedia\_autogen\`
+	cfg.BUFFER_DIR = `//192.168.31.4/buffer/IN/`
+	cfg.IN_DIR = cfg.BUFFER_DIR + `@AMEDIA_IN/`
+	cfg.IN_PROGRESS_DIR = cfg.BUFFER_DIR + `_IN_PROGRESS/`
+	cfg.DONE_DIR = cfg.BUFFER_DIR + `_DONE/`
+	cfg.OUT_DIR = `//nas/ROOT/EDIT/_amedia/_autogen/`
 	cfg.BashGeneration = true
 	cfg.BashPathTranslation = make(map[string]string)
-	cfg.BashPathTranslation[`\\192.168.31.4\buffer\IN\`] = "/home/pemaltynov/IN/"
-	cfg.BashPathTranslation[cfg.BUFFER_DIR+`@AMEDIA_IN\`] = "/home/pemaltynov/IN/@AMEDIA_IN/"
-	cfg.BashPathTranslation[cfg.BUFFER_DIR+`_IN_PROGRESS\`] = "/home/pemaltynov/IN/_IN_PROGRESS/"
-	cfg.BashPathTranslation[cfg.BUFFER_DIR+`_DONE\`] = "/home/pemaltynov/IN/_DONE/"
+	cfg.BashPathTranslation[`//192.168.31.4/buffer/IN/`] = "/home/pemaltynov/IN/"
+	cfg.BashPathTranslation[cfg.BUFFER_DIR+`@AMEDIA_IN/`] = "/home/pemaltynov/IN/@AMEDIA_IN/"
+	cfg.BashPathTranslation[cfg.BUFFER_DIR+`_IN_PROGRESS/`] = "/home/pemaltynov/IN/_IN_PROGRESS/"
+	cfg.BashPathTranslation[cfg.BUFFER_DIR+`_DONE/`] = "/home/pemaltynov/IN/_DONE/"
+	cfg.BashPathTranslation[cfg.OUT_DIR] = "/mnt/pemaltynov/ROOT/EDIT/_amedia/_autogen/"
+	cfg.SleepSeconds = 300
 	return &cfg
 }
 
