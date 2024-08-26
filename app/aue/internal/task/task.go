@@ -51,7 +51,7 @@ func NewParameterData(key string, val string) parameterData {
 }
 
 func (ct *cliTask) Execute() error {
-	return fmt.Errorf("TODO")
+	return ct.execFunc(ct.parameter)
 }
 
 func (ct *cliTask) String() string {

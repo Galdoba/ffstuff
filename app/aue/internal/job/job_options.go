@@ -9,6 +9,7 @@ type jobOptions struct {
 	processingDir  string
 	doneDir        string
 	outDir         string
+	bashGeneration bool
 }
 
 func defaultJobOptions() jobOptions {
@@ -51,5 +52,11 @@ func WithDoneDir(dir string) JobOptsFunc {
 func WithOutDir(dir string) JobOptsFunc {
 	return func(opts *jobOptions) {
 		opts.outDir = dir
+	}
+}
+
+func WithBashGeneration(bg bool) JobOptsFunc {
+	return func(opts *jobOptions) {
+		opts.bashGeneration = bg
 	}
 }

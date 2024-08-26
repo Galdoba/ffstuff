@@ -7,12 +7,20 @@ import (
 	"path/filepath"
 )
 
+const (
+	PROCESSING_MODE_DIRECT = "Direct"
+	PROCESSING_MODE_BASH   = "Bash"
+)
+
 type Configuration struct {
-	IN_DIR          string `json:"IN"`
-	BUFFER_DIR      string `json:"BUFFER"`
-	IN_PROGRESS_DIR string `json:"IN_PROGRESS"`
-	DONE_DIR        string `json:"DONE"`
-	OUT_DIR         string `json:"OUT"`
+	IN_DIR              string            `json:"IN"`
+	BUFFER_DIR          string            `json:"BUFFER"`
+	IN_PROGRESS_DIR     string            `json:"IN_PROGRESS"`
+	DONE_DIR            string            `json:"DONE"`
+	OUT_DIR             string            `json:"OUT"`
+	DirectProcessing    bool              `json:"Direct Processing"`
+	BashGeneration      bool              `json:"Generate Bash File"`
+	BashPathTranslation map[string]string `json:"Bash Paths Translation"`
 }
 
 var sep string = string(filepath.Separator)
@@ -32,6 +40,12 @@ func Default() *Configuration {
 	cfg.IN_PROGRESS_DIR = cfg.BUFFER_DIR + `_IN_PROGRESS\`
 	cfg.DONE_DIR = cfg.BUFFER_DIR + `_DONE\`
 	cfg.OUT_DIR = `\\nas\ROOT\EDIT\_amedia\_autogen\`
+	cfg.BashGeneration = true
+	cfg.BashPathTranslation = make(map[string]string)
+	cfg.BashPathTranslation[`\\192.168.31.4\buffer\IN\`] = "/home/pemaltynov/IN/"
+	cfg.BashPathTranslation[cfg.BUFFER_DIR+`@AMEDIA_IN\`] = "/home/pemaltynov/IN/@AMEDIA_IN/"
+	cfg.BashPathTranslation[cfg.BUFFER_DIR+`_IN_PROGRESS\`] = "/home/pemaltynov/IN/_IN_PROGRESS/"
+	cfg.BashPathTranslation[cfg.BUFFER_DIR+`_DONE\`] = "/home/pemaltynov/IN/_DONE/"
 	return &cfg
 }
 

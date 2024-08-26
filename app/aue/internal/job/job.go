@@ -66,7 +66,10 @@ func (ja *jobAdmin) CompileTasks() error {
 
 func (ja *jobAdmin) Execute() error {
 	for _, t := range ja.tasks {
-		fmt.Println(t.String())
+		fmt.Println("tSTRING:", t.String())
+		if err := t.Execute(); err != nil {
+			return fmt.Errorf("task execution failed: %v", t.String())
+		}
 	}
 	bash := ""
 

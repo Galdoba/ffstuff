@@ -67,13 +67,16 @@ func Run() *cli.Command {
 				)
 				if err != nil {
 					fmt.Println("LOG ERROR: job creation", err.Error())
+					continue
 				}
 				if err := ja.DecideType(); err != nil {
 					fmt.Println("LOG ERROR: job decide type", err.Error())
+					continue
 					return err
 				}
 				if err := ja.CompileTasks(); err != nil {
 					fmt.Println("LOG ERROR: job compile tasks", err.Error())
+					continue
 					return err
 				}
 				if err := ja.Execute(); err != nil {

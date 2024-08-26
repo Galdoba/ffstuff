@@ -29,7 +29,7 @@ func SetupSources(sourceDir, targetDir string) ([]*source.SourceFile, error) {
 	for _, err := range []error{
 		sc.assertProjectDirectory(),
 		sc.collectFiles(),
-		//sc.executeRenaming(),
+		sc.executeRenaming(),
 	} {
 		if err != nil {
 			return nil, fmt.Errorf("source setup failed: %v", err)
