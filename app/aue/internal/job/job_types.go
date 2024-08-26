@@ -3,7 +3,6 @@ package job
 import (
 	"fmt"
 
-	"github.com/Galdoba/ffstuff/app/aue/internal/define"
 	. "github.com/Galdoba/ffstuff/app/aue/internal/define"
 	source "github.com/Galdoba/ffstuff/app/aue/internal/files/sourcefile"
 	target "github.com/Galdoba/ffstuff/app/aue/internal/files/targetfile"
@@ -11,33 +10,34 @@ import (
 )
 
 func taskList(jType string) []task.Task {
-	tasklist := []task.Task{}
+	taskList := preProcessingTasks()
+
 	switch jType {
 	default:
-		return append(tasklist)
-	case define.JOB_V1A2S1:
-		tasklist = append(tasklist,
-			task.NewTask(TASK_MoveFile),
-			task.NewTask(TASK_Make_Dir),
-			task.NewTask(TASK_Encode_v1a2),
-			task.NewTask(TASK_MoveFile),
-		)
-	case JOB_V1A2S0:
-		tasklist = append(tasklist,
-			task.NewTask(TASK_MoveFile),
-			task.NewTask(TASK_Make_Dir),
-			task.NewTask(TASK_Encode_v1a2),
-			task.NewTask(TASK_MoveFile),
-		)
+		panic(fmt.Sprintf("undefined processing task for job '%v'", jType))
+		return append(taskList)
+	case JOB_V1A2S1, JOB_V1A2S0:
+		taskList = append(taskList, task.NewTask(TASK_Encode_v1a2))
 	case JOB_V1A1S0:
-		tasklist = append(tasklist,
-			task.NewTask(TASK_MoveFile),
-			task.NewTask(TASK_Make_Dir),
-			task.NewTask(TASK_Encode_v1a1),
-			task.NewTask(TASK_MoveFile),
-		)
+		taskList = append(taskList, task.NewTask(TASK_Encode_v1a1))
 	}
-	return tasklist
+
+	taskList = append(taskList, postProcessingTasks()...)
+	return taskList
+}
+
+func preProcessingTasks() []task.Task {
+	return append([]task.Task{},
+		task.NewTask(TASK_MoveFile),
+		task.NewTask(TASK_Make_Dir),
+	)
+}
+
+func postProcessingTasks() []task.Task {
+	return append([]task.Task{},
+		task.NewTask(TASK_MoveFile),
+		task.NewTask(TASK_Signal_Done),
+	)
 }
 
 func (ja *jobAdmin) setJobCodeAndTargets() error {
@@ -56,21 +56,21 @@ func (ja *jobAdmin) setJobCodeAndTargets() error {
 	switch ja.options.jobType {
 	case JOB_V1A2S1:
 		ja.target = append(ja.target,
-			target.New(define.PURPOSE_Output_Video, sourceNames),
-			target.New(define.PURPOSE_Output_Audio1, sourceNames),
-			target.New(define.PURPOSE_Output_Audio2, sourceNames),
-			target.New(define.PURPOSE_Output_Subs, sourceNames),
+			target.New(PURPOSE_Output_Video, sourceNames),
+			target.New(PURPOSE_Output_Audio1, sourceNames),
+			target.New(PURPOSE_Output_Audio2, sourceNames),
+			target.New(PURPOSE_Output_Subs, sourceNames),
 		)
 	case JOB_V1A2S0:
 		ja.target = append(ja.target,
-			target.New(define.PURPOSE_Output_Video, sourceNames),
-			target.New(define.PURPOSE_Output_Audio1, sourceNames),
-			target.New(define.PURPOSE_Output_Audio2, sourceNames),
+			target.New(PURPOSE_Output_Video, sourceNames),
+			target.New(PURPOSE_Output_Audio1, sourceNames),
+			target.New(PURPOSE_Output_Audio2, sourceNames),
 		)
 	case JOB_V1A1S0:
 		ja.target = append(ja.target,
-			target.New(define.PURPOSE_Output_Video, sourceNames),
-			target.New(define.PURPOSE_Output_Audio1, sourceNames),
+			target.New(PURPOSE_Output_Video, sourceNames),
+			target.New(PURPOSE_Output_Audio1, sourceNames),
 		)
 	default:
 		return fmt.Errorf("setTargets for job '%v' not implemented", ja.options.jobType)
@@ -108,6 +108,7 @@ func (ja *jobAdmin) setupTaskList() error {
 		inputPaths := setupPaths(IN_PROGRESS, input[PURPOSE_Input_Media].Name())
 		outputsPaths := setupOutputPaths(EDIT, output)
 		encodeTask := taskEncode(ja.options.jobType, inputPaths[0], outputsPaths...)
+		expectedReadyFile := EDIT + ja.name + ".ready"
 		ja.tasks = append(ja.tasks, encodeTask)
 		//copy srt
 		for _, target := range ja.target {
@@ -125,6 +126,7 @@ func (ja *jobAdmin) setupTaskList() error {
 			newPath := DONE + src.Name()
 			ja.tasks = append(ja.tasks, taskMove(oldPath, newPath))
 		}
+		ja.tasks = append(ja.tasks, taskSignalDone(expectedReadyFile))
 	}
 	return nil
 }
@@ -136,6 +138,14 @@ func taskMove(old, new string) task.Task {
 		task.NewParameterData(TASK_PARAM_NewPath, new),
 	)
 	return tskMove
+}
+
+func taskSignalDone(new string) task.Task {
+	tskSR := task.NewTask(TASK_Signal_Done)
+	tskSR.SetParameters(
+		task.NewParameterData(TASK_PARAM_NewPath, new),
+	)
+	return tskSR
 }
 
 func taskEncode(job, inputPath string, outputPaths ...string) task.Task {

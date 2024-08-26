@@ -98,7 +98,7 @@ func Run() *cli.Command {
 
 				}
 				fmt.Println("entering dormant mode:")
-				for left := 15; left > 0; left = left - 1 {
+				for left := 30; left > 0; left = left - 1 {
 					fmt.Printf("                                          \rwake up in %v seconds          \r", left)
 					time.Sleep(time.Second)
 				}

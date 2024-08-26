@@ -67,38 +67,35 @@ func (ja *jobAdmin) CompileTasks() error {
 }
 
 func (ja *jobAdmin) Execute() error {
+	for _, err := range []error{
+		generateBashFiles(ja),
+		processDirectly(ja),
+	} {
+		if err != nil {
+			return fmt.Errorf("job '%v' execution failed: %v", ja.ProjectName(), err)
+		}
+	}
+
+	return nil
+}
+
+func generateBashFiles(ja *jobAdmin) error {
+	if ja.options.bashGeneration {
+		gen := bashgen.New(ja)
+		if err := gen.GenerateBash(ja.tasks); err != nil {
+			return fmt.Errorf("bash generation failed: %v", err)
+		}
+	}
+	return nil
+}
+
+func processDirectly(ja *jobAdmin) error {
 	if ja.options.directProcessing {
 		for _, t := range ja.tasks {
 			if err := t.Execute(); err != nil {
 				return fmt.Errorf("task execution failed: %v", t.String())
 			}
 		}
-	}
-	if ja.options.bashGeneration {
-		gen := bashgen.New(ja)
-		if err := gen.GenerateBash(ja.tasks); err != nil {
-			return fmt.Errorf("bash generation failed: %v", err)
-		}
-
-		// bash := ""
-		// bash += fmt.Sprintf("#!/bin/bash\n")
-		// bash += fmt.Sprintf("#\n")
-		// bash += fmt.Sprintf("set -o nounset    # error when referensing undefined variable\n")
-		// bash += fmt.Sprintf("set -o errexit    # exit when command fails\n")
-		// bash += fmt.Sprintf("shopt -s extglob\n")
-		// bash += fmt.Sprintf("shopt -s nullglob\n")
-		// bash += fmt.Sprintf("#\n")
-		// bash += fmt.Sprintf("PRIORITY=8\n")
-		// for _, tsk := range ja.tasks {
-		// 	bash += fmt.Sprintf("%v\n", tsk.String())
-		// }
-		// f, err := os.Create(ja.options.processingDir + "bash.sh")
-		// if err != nil {
-		// 	return fmt.Errorf("can't create bash file")
-		// }
-		// if _, err := f.WriteString(bash); err != nil {
-		// 	return fmt.Errorf("can't write bash file")
-		// }
 	}
 	return nil
 }
