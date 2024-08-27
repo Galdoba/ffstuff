@@ -12,8 +12,6 @@ import (
 )
 
 type fileBridge struct {
-	// sourceNames    []string
-	// sourceProfiles map[string]*ump.MediaProfile
 	sourceFiles     []*source.SourceFile
 	metaInfo        metainfo.Collection
 	targetFiles     []*target.TargetFile

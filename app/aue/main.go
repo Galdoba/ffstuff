@@ -25,6 +25,7 @@ func main() {
 		commands.Menu(),
 		commands.Shout(),
 		commands.Run(),
+		commands.Health(),
 	}
 
 	//ПО ОКОНЧАНИЮ ДЕЙСТВИЯ
