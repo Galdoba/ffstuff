@@ -22,14 +22,15 @@ func Run() *cli.Command {
 		BashComplete: func(*cli.Context) {
 		},
 		Before: func(c *cli.Context) error {
+			// newCfg := config.NewConfig(c.App.Version)
+			// config.Save(newCfg)
 			fmt.Println("start before run")
-			cfgDef := config.Default()
-			cfgDef.Save()
 			cfgLoaded, err := config.Load()
 			if err != nil {
 				return fmt.Errorf("config loading failed: %v", err)
 			}
 			cfg = cfgLoaded
+			fmt.Println(cfg)
 			defer fmt.Println("end before run")
 			return nil
 		},
@@ -56,7 +57,7 @@ func Run() *cli.Command {
 				for _, project := range projects {
 
 					fmt.Println("\n--------\nStart Project:", project)
-					sources, err := actions.SetupSources(project, cfg.BUFFER_DIR)
+					sources, err := actions.SetupSources(project, cfg.BUFFER_DIR, cfg.AssetFiles[config.Asset_File_Serial_data])
 					if len(sources) == 0 {
 						fmt.Println("LOG ERROR:", "no sources created")
 						continue

@@ -5,6 +5,8 @@ Changes done:
     v 0.1.0:2024-08-23 -- Prototype. 
     v 0.1.1:2024-08-26 -- Add direct processing.
     v 0.1.2:2024-08-26 -- Add bash generation.
+    v 0.1.3:2024-08-28 -- Make config file not hardcoded.
+    v 0.1.4:2024-08-28 -- Add auto renaming of source files based on $tv_series.xml
 
 TODO:
     Major -- Import/Export Config to YAML

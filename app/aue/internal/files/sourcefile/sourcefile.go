@@ -52,6 +52,10 @@ func (sf *SourceFile) Name() string {
 	return sf.name
 }
 
+func (sf *SourceFile) SetName(newName string) {
+	sf.name = newName
+}
+
 func (sf *SourceFile) Path() string {
 	return sf.path
 }
