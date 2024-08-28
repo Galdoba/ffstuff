@@ -9,22 +9,22 @@ import (
 	"github.com/Galdoba/ffstuff/app/aue/internal/task"
 )
 
-func taskList(jType string) []task.Task {
-	taskList := preProcessingTasks()
+// func taskList(jType string) []task.Task {
+// 	taskList := preProcessingTasks()
 
-	switch jType {
-	default:
-		panic(fmt.Sprintf("undefined processing task for job '%v'", jType))
-		return append(taskList)
-	case JOB_V1A2S1, JOB_V1A2S0:
-		taskList = append(taskList, task.NewTask(TASK_Encode_v1a2))
-	case JOB_V1A1S0:
-		taskList = append(taskList, task.NewTask(TASK_Encode_v1a1))
-	}
+// 	switch jType {
+// 	default:
+// 		panic(fmt.Sprintf("undefined processing task for job '%v'", jType))
+// 		return append(taskList)
+// 	case JOB_V1A2S1, JOB_V1A2S0:
+// 		taskList = append(taskList, task.NewTask(TASK_Encode_v1a2))
+// 	case JOB_V1A1S0:
+// 		taskList = append(taskList, task.NewTask(TASK_Encode_v1a1))
+// 	}
 
-	taskList = append(taskList, postProcessingTasks()...)
-	return taskList
-}
+// 	taskList = append(taskList, postProcessingTasks()...)
+// 	return taskList
+// }
 
 func preProcessingTasks() []task.Task {
 	return append([]task.Task{},
@@ -108,7 +108,8 @@ func (ja *jobAdmin) setupTaskList() error {
 		inputPaths := setupPaths(IN_PROGRESS, input[PURPOSE_Input_Media].Name())
 		outputsPaths := setupOutputPaths(EDIT, output)
 		encodeTask := taskEncode(ja.options.jobType, inputPaths[0], outputsPaths...)
-		expectedReadyFile := EDIT + ja.name + ".ready"
+		readyFileName := ja.name + ".ready"
+		expectedReadyFile := EDIT + readyFileName
 		ja.tasks = append(ja.tasks, encodeTask)
 		//copy srt
 		for _, target := range ja.target {
@@ -126,10 +127,21 @@ func (ja *jobAdmin) setupTaskList() error {
 			newPath := DONE + src.Name()
 			ja.tasks = append(ja.tasks, taskMove(oldPath, newPath))
 		}
-		ja.tasks = append(ja.tasks, taskSignalDone(expectedReadyFile))
+		ja.tasks = append(ja.tasks, taskSignalDone(expectedReadyFile, expectedReadyFile))
+		notificationStorage := ja.options.notificationDir
+		ja.tasks = append(ja.tasks, taskCopy(expectedReadyFile, notificationStorage+readyFileName))
 	}
 	return nil
 }
+
+// func readyFileText(dest string, trgs []*target.TargetFile) string {
+// 	txt := ""
+// 	for _, tf := range trgs {
+// 		txt += dest + tf.ExpectedName + "\n"
+// 	}
+// 	txt = strings.TrimSuffix(txt, "\n")
+// 	return txt
+// }
 
 func taskMove(old, new string) task.Task {
 	tskMove := task.NewTask(TASK_MoveFile)
@@ -140,10 +152,11 @@ func taskMove(old, new string) task.Task {
 	return tskMove
 }
 
-func taskSignalDone(new string) task.Task {
+func taskSignalDone(path, text string) task.Task {
 	tskSR := task.NewTask(TASK_Signal_Done)
 	tskSR.SetParameters(
-		task.NewParameterData(TASK_PARAM_NewPath, new),
+		task.NewParameterData(TASK_PARAM_NewPath, path),
+		task.NewParameterData(TASK_PARAM_Text, text),
 	)
 	return tskSR
 }

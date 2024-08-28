@@ -61,6 +61,7 @@ const (
 	TASK_PARAM_NewPath      = "new_path"
 	TASK_PARAM_OldPath      = "old_path"
 	TASK_PARAM_Encode_input = "encode_input"
+	TASK_PARAM_Text         = "text"
 	// TASK_PARAM_Encode_output_1 = "encode_output_1"
 	// TASK_PARAM_Encode_output_2 = "encode_output_2"
 	// TASK_PARAM_Encode_output_3 = "encode_output_3"

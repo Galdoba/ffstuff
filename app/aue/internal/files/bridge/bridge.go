@@ -84,12 +84,26 @@ func (br *fileBridge) sealConnections() error {
 		}
 
 	}
+	br.defineProjectName()
 	err := br.updateTargets()
 	if err != nil {
 		return fmt.Errorf("sealing failed: %v", err)
 	}
-	br.outputBase = br.metaInfo.Show(META_Base) + "_" + br.metaInfo.Show(META_Season) + "_" + br.metaInfo.Show(META_Episode) + "_" + br.metaInfo.Show(META_PRT)
+
 	return nil
+}
+
+func (br *fileBridge) defineProjectName() {
+	br.outputBase = br.metaInfo.Show(META_Base)
+	if br.metaInfo.Show(META_Season) != "" {
+		br.outputBase += "_s" + br.metaInfo.Show(META_Season)
+	}
+	if br.metaInfo.Show(META_Episode) != "" {
+		br.outputBase += "e" + br.metaInfo.Show(META_Episode)
+	}
+	if br.metaInfo.Show(META_PRT) != "" {
+		br.outputBase += "_" + br.metaInfo.Show(META_PRT)
+	}
 }
 
 func (br *fileBridge) updateTargets() error {
@@ -99,16 +113,16 @@ func (br *fileBridge) updateTargets() error {
 		if target.ExpectedName != "" {
 			return fmt.Errorf("target was modified before: %v", target)
 		}
-		target.ExpectedName += br.metaInfo.Show(META_Base)
-		if season := br.metaInfo.Show(META_Season); season != "" {
-			target.ExpectedName += "_s" + season
-		}
-		if episode := br.metaInfo.Show(META_Episode); episode != "" {
-			target.ExpectedName += "_" + episode
-		}
-		if prt := br.metaInfo.Show(META_PRT); prt != "" {
-			target.ExpectedName += "_" + prt
-		}
+		target.ExpectedName += br.ProjectBase()
+		// if season := br.metaInfo.Show(META_Season); season != "" {
+		// 	target.ExpectedName += "_s" + season
+		// }
+		// if episode := br.metaInfo.Show(META_Episode); episode != "" {
+		// 	target.ExpectedName += "e" + episode
+		// }
+		// if prt := br.metaInfo.Show(META_PRT); prt != "" {
+		// 	target.ExpectedName += "_" + prt
+		// }
 		switch target.ClaimedGoal {
 		case PURPOSE_Output_Video:
 			target.ExpectedName += "__HD.mp4"

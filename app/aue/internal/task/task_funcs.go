@@ -145,5 +145,29 @@ func makeFile(params map[string]string) error {
 		return fmt.Errorf("file creation failed: %v")
 	}
 	defer f.Close()
-	return os.MkdirAll(newPath, 0666)
+	return nil
+}
+
+func makeFileWithText(params map[string]string) error {
+	for _, key := range expectedParameters(TASK_PARAM_NewPath) {
+		switch key {
+		case TASK_PARAM_NewPath:
+			if _, ok := params[key]; !ok {
+				return fmt.Errorf("parametr '%v' is absent", key)
+			}
+		default:
+			continue
+		}
+	}
+	newPath := params[TASK_PARAM_NewPath]
+	text := params[TASK_PARAM_Text]
+	f, err := os.Create(newPath)
+	if err != nil {
+		return fmt.Errorf("file creation failed: %v")
+	}
+	if _, err := f.WriteString(text); err != nil {
+		return fmt.Errorf("write text to file failed: %v", err)
+	}
+	defer f.Close()
+	return nil
 }

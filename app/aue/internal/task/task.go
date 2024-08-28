@@ -76,7 +76,7 @@ func expectedParameters(name string) []string {
 	case TASK_MoveFile, TASK_CopyFile:
 		parameters = append(parameters, TASK_PARAM_OldPath)
 		parameters = append(parameters, TASK_PARAM_NewPath)
-	case TASK_Make_Dir, TASK_Signal_Done:
+	case TASK_Make_Dir:
 		parameters = append(parameters, TASK_PARAM_NewPath)
 	case TASK_Encode_v1a1:
 		parameters = append(parameters, TASK_PARAM_Encode_input)
@@ -87,6 +87,9 @@ func expectedParameters(name string) []string {
 		parameters = append(parameters, PURPOSE_Output_Video)
 		parameters = append(parameters, PURPOSE_Output_Audio1)
 		parameters = append(parameters, PURPOSE_Output_Audio2)
+	case TASK_Signal_Done:
+		parameters = append(parameters, TASK_PARAM_NewPath)
+		parameters = append(parameters, TASK_PARAM_Text)
 	}
 	return parameters
 }

@@ -77,6 +77,7 @@ func Run() *cli.Command {
 						job.WithProcessingDir(cfg.IN_PROGRESS_DIR),
 						job.WithDoneDir(cfg.DONE_DIR),
 						job.WithOutDir(cfg.OUT_DIR),
+						job.WithNotificationDir(cfg.NotificationDir),
 					)
 					if err != nil {
 						fmt.Println("LOG ERROR: job creation", err.Error())
@@ -99,11 +100,11 @@ func Run() *cli.Command {
 
 				}
 				fmt.Println("entering dormant mode:")
-				for left := 30; left > 0; left = left - 1 {
+				for left := 600; left > 0; left = left - 1 {
 					fmt.Printf("                                          \rwake up in %v seconds          \r", left)
 					time.Sleep(time.Second)
 				}
-				fmt.Println("leave dormant mode:")
+				fmt.Println("leave dormant mode:            ")
 				fmt.Println("GOOD ENDING!!!")
 			}
 
@@ -123,13 +124,13 @@ func Run() *cli.Command {
 				DisableDefaultText: false,
 			},
 			&cli.BoolFlag{
-				Name:        "bash_generation",
+				Name:        "no_bash",
 				Category:    "Processing Mode",
 				DefaultText: "",
 				FilePath:    "",
-				Value:       true,
-				Usage:       "Generate bash script for processing.",
-				Aliases:     []string{"bg"},
+				Value:       false,
+				Usage:       "Skip bash script generation.",
+				Aliases:     []string{"nb"},
 			},
 		},
 		SkipFlagParsing:        false,
@@ -151,8 +152,8 @@ func processingValue(c *cli.Context, cfg *config.Configuration) bool {
 }
 
 func bashGenValue(c *cli.Context, cfg *config.Configuration) bool {
-	if c.Bool("bg") {
-		return true
+	if c.Bool("nb") {
+		return false
 	}
 	return cfg.BashGeneration
 }

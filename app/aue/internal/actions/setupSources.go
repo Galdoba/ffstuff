@@ -77,7 +77,7 @@ func (sc *sourceCollector) collectFiles() error {
 		expectedSourcePath := path(sc.targetDir, sourceNameProjected(base, f.Name()))
 		prf := ump.NewProfile()
 		if err := prf.ConsumeFile(file); err != nil {
-			//fmt.Println("LOG:", fmt.Errorf("profile: can't consume file '%v': %v", f.Name(), err))
+			fmt.Println("LOG:", fmt.Errorf("profile: can't consume file '%v': %v", f.Name(), err))
 			continue
 		}
 		strComp := streamComposition(prf)
@@ -184,10 +184,10 @@ func baseToSource(base, translation string) string {
 	seNumConv := "_"
 	prt := prtStr(base)
 	if seNum != "" {
-		seNumConv = seNumConverted(seNum)
+		seNumConv = "s" + seNumConverted(seNum)
 	}
 
-	base = strings.ReplaceAll(base, seNum, seNumConverted(seNum))
+	//base = strings.ReplaceAll(base, seNum, seNumConverted(seNum))
 	sourceBase := translation + strings.TrimSuffix(seNumConv, "_") + prt
 	return sourceBase
 }

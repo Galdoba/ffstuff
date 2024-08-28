@@ -45,7 +45,7 @@ func (gen *generator) GenerateBash(allTasks []task.Task) error {
 		panic("no base")
 	}
 	for _, tsk := range allTasks {
-		bash += fmt.Sprintf("%v\n", lineTranslated(tsk.String(), gen.translationMap))
+		bash += fmt.Sprintf("%v\n", translateTask(tsk, gen.translationMap))
 	}
 
 	f, err := os.Create(gen.destination + gen.base + ".sh")
@@ -95,6 +95,41 @@ func lineTranslated(origin string, translationMap map[string]string) string {
 	origin = strings.ReplaceAll(origin, "] ", `]" `)
 	origin = strings.ReplaceAll(origin, "ffmpeg", "fflite")
 	return origin
+}
+
+func translateTask(tsk task.Task, translationMap map[string]string) string {
+	switch {
+	case strings.Contains(tsk.String(), "printf"):
+		line := tsk.String()
+		keep := textBetween("printf ", " >> ", line)
+		words := strings.Fields(line)
+		result := ""
+		mark := false
+		for _, word := range words {
+			switch mark {
+			case false:
+				result += lineTranslated(word, translationMap) + " "
+				if word == "printf" {
+					mark = true
+				}
+			case true:
+				result += keep + " "
+				mark = false
+			}
+		}
+		return result
+	default:
+		return lineTranslated(tsk.String(), translationMap)
+	}
+}
+
+func textBetween(start, end, allText string) string {
+	afterStart := strings.Split(allText, start)
+	if len(afterStart) < 2 {
+		return ""
+	}
+	beforeEnd := strings.Split(afterStart[1], end)
+	return beforeEnd[0]
 }
 
 func max(a, b int) int {

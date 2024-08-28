@@ -48,9 +48,9 @@ func NewTask(name string) *cliTask {
 		ct.execFunc = encode_v1a2_Func
 	case TASK_Signal_Done:
 		//создать ready file
-		ct.parameter[bashFormat] = fmt.Sprintf("touch %v",
-			TASK_PARAM_NewPath)
-		ct.execFunc = makeFile
+		ct.parameter[bashFormat] = fmt.Sprintf("touch {%v} && printf {%v} >> {%v}",
+			TASK_PARAM_NewPath, TASK_PARAM_Text, TASK_PARAM_NewPath)
+		ct.execFunc = makeFileWithText
 
 	}
 

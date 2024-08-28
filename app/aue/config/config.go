@@ -26,6 +26,7 @@ type Configuration struct {
 	IN_PROGRESS_DIR     string            `yaml:"Directory: IN_PROGRESS"`
 	DONE_DIR            string            `yaml:"Directory: DONE       "`
 	OUT_DIR             string            `yaml:"Directory: OUT        "`
+	NotificationDir     string            `yaml:"Directory: NOTIFY_DIR "`
 	DirectProcessing    bool              `yaml:"Direct Processing"`
 	BashGeneration      bool              `yaml:"Generate Bash File"`
 	AssetFiles          map[string]string `yaml:"Asset Files"`
@@ -89,6 +90,7 @@ func NewConfig(version string) *Configuration {
 	cfg.IN_PROGRESS_DIR = Undefined
 	cfg.DONE_DIR = Undefined
 	cfg.OUT_DIR = Undefined
+	cfg.NotificationDir = Undefined
 	cfg.AssetFiles = make(map[string]string)
 	cfg.AssetFiles[Asset_File_Log] = configDir() + "aue.log"
 	cfg.AssetFiles[Asset_File_Serial_data] = cfg.IN_DIR + "amedia_tv_series.xml"

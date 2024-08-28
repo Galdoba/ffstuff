@@ -7,6 +7,7 @@ Changes done:
     v 0.1.2:2024-08-26 -- Add bash generation.
     v 0.2.0:2024-08-28 -- Make config file not hardcoded.
     v 0.2.1:2024-08-28 -- Add auto renaming of source files based on $tv_series.xml
+    v 0.2.2:2024-08-28 -- Add notifications
 
 TODO:
     Major -- Logger Setup
@@ -18,7 +19,6 @@ TODO:
     Major -- New Mode: Prompt
     Major -- New Command: Menu (select other commands in prompt mode, set as default)
     
-    Minor -- New Task: Notify
     Minor -- Unbind devtools/command library
     Minor -- Relocate to own Repo and create testing branch
     Minor -- Clean bash files
