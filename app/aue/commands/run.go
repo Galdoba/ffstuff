@@ -22,26 +22,24 @@ func Run() *cli.Command {
 		BashComplete: func(*cli.Context) {
 		},
 		Before: func(c *cli.Context) error {
-			// newCfg := config.NewConfig(c.App.Version)
-			// config.Save(newCfg)
-			fmt.Println("start before run")
+			fmt.Println("initiation:")
 			cfgLoaded, err := config.Load()
 			if err != nil {
 				return fmt.Errorf("config loading failed: %v", err)
 			}
 			cfg = cfgLoaded
-			fmt.Println(cfg)
-			defer fmt.Println("end before run")
+			fmt.Println("config loaded")
+			defer fmt.Println("initiation completed")
 			return nil
 		},
 		After: func(c *cli.Context) error {
 			return nil
 		},
 		Action: func(c *cli.Context) error {
-			fmt.Println("start run")
+			fmt.Println("start: aue run")
 			for {
 				//return fmt.Errorf("testining config exit")
-				fmt.Println(cfg.IN_DIR)
+				fmt.Println("read dir:", cfg.IN_DIR)
 				fi, err := os.ReadDir(cfg.IN_DIR)
 				if err != nil {
 					return err
@@ -52,6 +50,9 @@ func Run() *cli.Command {
 						projects = append(projects, fmt.Sprintf("%v%v", cfg.IN_DIR, f.Name()))
 
 					}
+				}
+				if len(projects) == 0 {
+					fmt.Println("no projects detected")
 				}
 
 				for _, project := range projects {
@@ -100,12 +101,12 @@ func Run() *cli.Command {
 
 				}
 				fmt.Println("entering dormant mode:")
-				for left := 600; left > 0; left = left - 1 {
+				for left := cfg.SleepSeconds; left > 0; left = left - 1 {
 					fmt.Printf("                                          \rwake up in %v seconds          \r", left)
 					time.Sleep(time.Second)
 				}
-				fmt.Println("leave dormant mode:            ")
-				fmt.Println("GOOD ENDING!!!")
+				fmt.Println("leave dormant mode             ")
+
 			}
 
 			return nil

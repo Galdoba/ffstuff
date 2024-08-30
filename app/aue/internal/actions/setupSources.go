@@ -18,11 +18,23 @@ import (
 )
 
 type sourceCollector struct {
-	sourceDir      string
-	targetDir      string
-	translationMap map[string]string
-	renamingMap    map[string]string
-	sources        []*source.SourceFile
+	sourceDir       string
+	targetDir       string
+	base            string
+	seNum           string
+	prt             string
+	exprctedPrefix  string
+	containedFiles  []string
+	renamingMap     map[string]string
+	renamingOptions []nameTranslationOption
+	sources         []*source.SourceFile
+}
+
+type nameTranslationOption struct {
+	rusName           string
+	engName           string
+	expectedDirPrefix string
+	renameTarget      string
 }
 
 func SetupSources(sourceDir, targetDir, translationFile string) ([]*source.SourceFile, error) {
@@ -30,10 +42,10 @@ func SetupSources(sourceDir, targetDir, translationFile string) ([]*source.Sourc
 	sc.sourceDir = sourceDir
 	sc.targetDir = targetDir
 	sc.renamingMap = make(map[string]string)
-	sc.translationMap = make(map[string]string)
 	for _, err := range []error{
 		sc.fillTranslationMap(translationFile),
 		sc.assertProjectDirectory(),
+		sc.projectPrefix(),
 		sc.collectFiles(),
 		sc.executeRenaming(),
 	} {
@@ -48,7 +60,7 @@ func SetupSources(sourceDir, targetDir, translationFile string) ([]*source.Sourc
 func (sc *sourceCollector) assertProjectDirectory() error {
 	f, err := os.Stat(sc.sourceDir)
 	if err != nil {
-		return fmt.Errorf("stat: %v")
+		return fmt.Errorf("stat: %v", err)
 	}
 	if !f.IsDir() {
 		return fmt.Errorf("'%v' is not a directory", sc.sourceDir)
@@ -61,23 +73,14 @@ func (sc *sourceCollector) collectFiles() error {
 	if err != nil {
 		return fmt.Errorf("can't read parent dir: %v", err)
 	}
-
-	base := filepath.Base(sc.sourceDir)
-	translations := sugestTranslation(base, sc.translationMap)
-	longer := ""
-	for _, translation := range translations {
-		if len(translation.translation) > len(longer) {
-			longer = translation.translation
-		}
-	}
-
-	base = baseToSource(base, longer)
 	for _, f := range fi {
 		file := path(sc.sourceDir, f.Name())
-		expectedSourcePath := path(sc.targetDir, sourceNameProjected(base, f.Name()))
+
+		expectedSourcePath := path(sc.targetDir, sc.projectSourceFilepath(f.Name()))
+
 		prf := ump.NewProfile()
 		if err := prf.ConsumeFile(file); err != nil {
-			fmt.Println("LOG:", fmt.Errorf("profile: can't consume file '%v': %v", f.Name(), err))
+			fmt.Println("LOG WARN:", fmt.Errorf("profile: can't consume file '%v': %v", f.Name(), err))
 			continue
 		}
 		strComp := streamComposition(prf)
@@ -99,7 +102,6 @@ func (sc *sourceCollector) collectFiles() error {
 		sc.sources = append(sc.sources, newSource)
 		fmt.Println("SOURCE ADDED:")
 		fmt.Println(newSource.Details())
-
 		sc.renamingMap[file] = expectedSourcePath
 	}
 	return nil
@@ -111,13 +113,29 @@ func newSourceWithProfile(expectedpath, purpose string, profile *ump.MediaProfil
 	return src, nil
 }
 
+func (sc *sourceCollector) projectPrefix() error {
+	base := filepath.Base(sc.sourceDir)
+	base = inputBaseCleaned(base)
+	sc.base = base
+	sc.prt = prtStr(sc.sourceDir)
+	if sc.prt == "" {
+		fmt.Println("LOG WARN: no prt")
+	}
+	sc.seNum = seNumConverted(seNum(sc.sourceDir))
+	if sc.seNum == "" {
+		fmt.Println("LOG WARN: no seNum")
+	}
+	sc.exprctedPrefix = sc.base + sc.seNum + sc.prt
+	return nil
+}
+
 func (sc *sourceCollector) executeRenaming() error {
 	for source, destination := range sc.renamingMap {
-		//fmt.Printf("rename %v to %v\n", source, destination)
 		if err := os.Rename(source, destination); err != nil {
-			return fmt.Errorf("renaming failed: %v")
+			return fmt.Errorf("renaming failed: %v", source)
 		}
 	}
+
 	return nil
 }
 
@@ -144,6 +162,15 @@ func streamComposition(prf *ump.MediaProfile) int {
 
 func sourceNameProjected(base, name string) string {
 	return fmt.Sprintf("%v_%v", base, name)
+}
+
+func (sc *sourceCollector) projectSourceFilepath(name string) string {
+	for _, renameOpt := range sc.renamingOptions {
+		if sc.base == renameOpt.expectedDirPrefix {
+			return fmt.Sprintf("%v_%v", renameOpt.renameTarget+sc.seNum+sc.prt, name)
+		}
+	}
+	return fmt.Sprintf("%v_%v", sc.base+sc.seNum+sc.prt, name)
 }
 
 type translations struct {
@@ -186,8 +213,6 @@ func baseToSource(base, translation string) string {
 	if seNum != "" {
 		seNumConv = "s" + seNumConverted(seNum)
 	}
-
-	//base = strings.ReplaceAll(base, seNum, seNumConverted(seNum))
 	sourceBase := translation + strings.TrimSuffix(seNumConv, "_") + prt
 	return sourceBase
 }
@@ -203,6 +228,9 @@ func prtStr(str string) string {
 }
 
 func seNumConverted(seNum string) string {
+	if seNum == "" {
+		return ""
+	}
 	seNum = strings.TrimPrefix(seNum, "_")
 	val, err := strconv.Atoi(seNum)
 	if err != nil {
@@ -231,19 +259,15 @@ func encodeToUTF8(filename string) []string {
 		log.Fatal(err)
 	}
 	r := transform.NewReader(f, charmap.Windows1251.NewDecoder())
-
 	// Read converted UTF-8 from `r` as needed.
-	// As an example we'll read line-by-line showing what was read:
 	lines := []string{}
 	sc := bufio.NewScanner(r)
 	for sc.Scan() {
-		//fmt.Println(sc.Text())
 		lines = append(lines, sc.Text())
 	}
 	if err = sc.Err(); err != nil {
 		log.Fatal(err)
 	}
-
 	if err = f.Close(); err != nil {
 		log.Fatal(err)
 	}
@@ -251,63 +275,12 @@ func encodeToUTF8(filename string) []string {
 }
 
 func (sc *sourceCollector) fillTranslationMap(translationFilePath string) error {
-	// exampleReadGBK(translationFilePath)
-
-	// panic(0)
-	lines := encodeToUTF8(translationFilePath)
-	//lines := strings.Split(fileStr, "\n")
-	scanStatus := SearchOrigin
-	title := ""
-	translated := ""
-	for _, line := range lines {
-		switch scanStatus {
-		case SearchOrigin:
-			if strings.Contains(line, "Series ") {
-				continue
-			}
-			if strings.Contains(line, `<title type="original">`) {
-				title = getTitle(line)
-				// title = strings.ReplaceAll(title, " ", "_")
-				// title = strings.ReplaceAll(title, "'", "_")
-				// title = strings.ReplaceAll(title, ",", "")
-				// title = strings.ReplaceAll(title, ":", "")
-				scanStatus = SearchTranslation
-			}
-		case SearchTranslation:
-			if strings.Contains(line, `<title type="translated">`) && !strings.Contains(line, "Серия ") && !strings.Contains(line, "Эпизод ") {
-				translated = getTranslation(line)
-				sc.translationMap[title] = translated
-				scanStatus = SearchOrigin
-
-				title = ""
-				translated = ""
-
-				//fmt.Printf("detected: %v ==> %v\n", title, translated)
-				// if strings.Contains(title, "Legend_") {
-				// 	panic(2)
-				// }
-			}
-		}
-
+	renamingOptions, err := collectTranslationVariants(translationFilePath)
+	if err != nil {
+		fmt.Println("LOG ERROR:", err.Error())
 	}
-
+	sc.renamingOptions = renamingOptions
 	return nil
-}
-
-func getTitle(line string) string {
-	//<title type="original">The Slide</title>
-	title := strings.TrimPrefix(line, `<title type="original">`)
-	title = strings.TrimSuffix(title, `</title>`)
-
-	return strings.Join(words(title), "_")
-}
-
-func getTranslation(line string) string {
-	//<title type="translated">Горка</title>
-	translation := strings.TrimPrefix(line, `<title type="translated">`)
-	translation = strings.TrimSuffix(translation, `</title>`)
-	translation = translit(translation)
-	return translation
 }
 
 func translit(origin string) string {
@@ -351,44 +324,95 @@ func change(a string) string {
 	switch a {
 	default:
 		return "_"
-	case "а", "б", "в", "г", "д", "е", "ё", "ж", "з", "и", "й", "к", "л", "м", "н", "о", "п", "р", "с", "т", "у", "ф", "х", "ц", "ч", "ш", "щ", "ъ", "ы", "ь", "э", "ю", "я":
+	case "а", "б", "в", "г", "д", "е", "ё", "ж", "з", "и",
+		"й", "к", "л", "м", "н", "о", "п", "р", "с", "т",
+		"у", "ф", "х", "ц", "ч", "ш", "щ", "ъ", "ы", "ь",
+		"э", "ю", "я":
 		lMap := make(map[string]string)
 		lMap = map[string]string{
-			"а": "a",
-			"б": "b",
-			"в": "v",
-			"г": "g",
-			"д": "d",
-			"е": "e",
-			"ё": "e",
-			"ж": "zh",
-			"з": "z",
-			"и": "i",
-			"й": "y",
-			"к": "k",
-			"л": "l",
-			"м": "m",
-			"н": "n",
-			"о": "o",
-			"п": "p",
-			"р": "r",
-			"с": "s",
-			"т": "t",
-			"у": "u",
-			"ф": "f",
-			"х": "h",
-			"ц": "c",
-			"ч": "ch",
-			"ш": "sh",
-			"щ": "sh",
-			"ъ": "",
-			"ы": "y",
-			"ь": "",
-			"э": "e",
-			"ю": "yu",
-			"я": "ya"}
+			"а": "a", "б": "b", "в": "v", "г": "g", "д": "d",
+			"е": "e", "ё": "e", "ж": "zh", "з": "z", "и": "i",
+			"й": "y", "к": "k", "л": "l", "м": "m", "н": "n",
+			"о": "o", "п": "p", "р": "r", "с": "s", "т": "t",
+			"у": "u", "ф": "f", "х": "h", "ц": "c", "ч": "ch",
+			"ш": "sh", "щ": "sh", "ъ": "", "ы": "y", "ь": "",
+			"э": "e", "ю": "yu", "я": "ya"}
 		return lMap[a]
-	case "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", `/`, `\`:
+	case "a", "b", "c", "d", "e", "f", "g", "h", "i", "j",
+		"k", "l", "m", "n", "o", "p", "q", "r", "s", "t",
+		"u", "v", "w", "x", "y", "z",
+		"1", "2", "3", "4", "5", "6", "7", "8", "9", "0",
+		`/`, `\`:
 		return a
 	}
+}
+
+func collectTranslationVariants(path string) ([]nameTranslationOption, error) {
+	counter := 0
+	lines := encodeToUTF8(path)
+	print := false
+	name := ""
+	translationRus := ""
+	depth := 0
+	translations := []nameTranslationOption{}
+	for _, line := range lines {
+		if strings.HasPrefix(line, `<group type="`) {
+			depth++
+		}
+		if strings.HasPrefix(line, `</group>`) {
+			depth--
+		}
+		if strings.HasPrefix(line, `<title type="original">`) {
+			if depth != 1 {
+				continue
+			}
+			counter++
+			name = between(`<title type="original">`, `</title>`, line)
+		}
+		if strings.HasPrefix(line, `<title type="translated">`) {
+			if depth != 1 {
+				continue
+			}
+			translationRus = between(`<title type="translated">`, `</title>`, line)
+			print = true
+		}
+		if print {
+			nameGuessed := guessFolder(name)
+			if name != nameGuessed {
+				translations = append(translations, nameTranslationOption{
+					rusName:           translationRus,
+					engName:           name,
+					expectedDirPrefix: nameGuessed,
+					renameTarget:      translit(translationRus),
+				})
+
+			}
+			print = false
+		}
+
+	}
+	return translations, nil
+}
+
+func between(head, tail, text string) string {
+	out := strings.TrimPrefix(text, head)
+	out = strings.TrimSuffix(out, tail)
+	return out
+}
+
+func guessFolder(name string) string {
+	for _, glyph := range []string{":", "-", "_", ",", ".", "&", ";", "#", "'", `"`, "?", "/", `\`, "|", "(", ")", "’", "*", "!", "[", "]", "{", "}"} {
+		name = strings.ReplaceAll(name, glyph, " ")
+	}
+	words := strings.Fields(name)
+	name = strings.Join(words, "_")
+	return name
+}
+
+func inputBaseCleaned(inputBase string) string {
+	prt := prtStr(inputBase)
+	inputBase = strings.TrimSuffix(inputBase, prt)
+	seNum := seNum(inputBase)
+	inputBase = strings.TrimSuffix(inputBase, seNum)
+	return inputBase
 }

@@ -8,6 +8,7 @@ Changes done:
     v 0.2.0:2024-08-28 -- Make config file not hardcoded.
     v 0.2.1:2024-08-28 -- Add auto renaming of source files based on $tv_series.xml
     v 0.2.2:2024-08-28 -- Add notifications
+    v 0.2.3:2024-08-30 -- Reimplement sourcecollector's renaming module.
 
 TODO:
     Major -- Logger Setup

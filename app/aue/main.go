@@ -11,7 +11,7 @@ import (
 func main() {
 	app := cli.NewApp()
 
-	app.Version = "0.1.2"
+	app.Version = "0.2.3"
 	app.Usage = "auto amedia encoder/decoder"
 	app.Description = "TODO: Description"
 	app.Flags = []cli.Flag{}
