@@ -2,6 +2,7 @@ package metainfo
 
 import (
 	"fmt"
+	"strings"
 
 	key "github.com/Galdoba/ffstuff/app/aue/internal/define"
 )
@@ -38,6 +39,9 @@ func (mc *metaCollection) Add(metas ...Meta) error {
 		stored, ok := mc.metas[incoming.Key]
 		switch ok {
 		case true:
+			if strings.HasPrefix(incoming.Value, stored.Value) || strings.HasPrefix(stored.Value, incoming.Value) {
+				continue
+			}
 			if stored.Value != incoming.Value {
 				return fmt.Errorf("conflicting data '%v': [%v] != [%v]", incoming.Key, incoming.Value, stored.Value)
 			}

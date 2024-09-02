@@ -79,6 +79,10 @@ func (ja *jobAdmin) Execute() error {
 	return nil
 }
 
+func (ja *jobAdmin) TypeDecided() string {
+	return ja.options.jobType
+}
+
 func generateBashFiles(ja *jobAdmin) error {
 	if ja.options.bashGeneration {
 		gen := bashgen.New(ja)

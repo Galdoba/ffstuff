@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/Galdoba/ffstuff/app/aue/config"
@@ -53,7 +54,7 @@ func Shout() *cli.Command {
 
 func internalF() {
 	log.Warn("warn")
-	log.Error("Errr")
+	log.Error(errors.New("error"))
 	log.Info("info text")
 	log.Fatal("Kill me")
 	log.Debug("shout!!!", 3, 3.14)

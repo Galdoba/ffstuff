@@ -14,11 +14,17 @@ import (
 )
 
 const (
-	debug = "[DEBUG]"
-	info  = "[INFO ]"
-	warn  = "[WARN ]"
-	errLv = "[ERROR]"
-	fatal = "[FATAL]"
+	debug    = "[DEBUG]"
+	info     = "[INFO ]"
+	warn     = "[WARN ]"
+	errLv    = "[ERROR]"
+	fatal    = "[FATAL]"
+	LvlFATAL = 0
+	LvlERROR = 10
+	LvlWARN  = 20
+	LvlINFO  = 30
+	LvlDEBUG = 40
+	LvlTRACE = 50
 )
 
 var flags int = os.O_CREATE | os.O_WRONLY | os.O_APPEND
@@ -27,6 +33,7 @@ var perm fs.FileMode = 0666
 type logManager struct {
 	logPath   string
 	debugMode bool
+	loglevel  int
 	logger    *log.Logger
 }
 
@@ -35,10 +42,13 @@ type OptFunc func(*options)
 type options struct {
 	logpath   string
 	debugMode bool
+	loglevel  int
 }
 
 func defaultOpts() options {
-	return options{}
+	return options{
+		loglevel: LvlINFO,
+	}
 }
 
 func LogFilepath(path string) OptFunc {
@@ -172,7 +182,7 @@ func Debug(msg string, args ...interface{}) error {
 	argStr := argsInfo(args...)
 	codeInfo := callerFunctionInfo(true, true, true) + argStr
 	prefix := prefix(debug) + codeInfo
-	msg = prefix + " " + msg
+	msg = prefix + " >> " + msg
 	al.logger.SetOutput(io.MultiWriter(f, fd))
 	al.logger.Printf("%v", msg)
 	f.Close()
@@ -199,6 +209,8 @@ func Info(format string, args ...interface{}) error {
 	}
 	prefix := prefix(info)
 	msg = prefix + " >> " + msg
+	msg = strings.ReplaceAll(msg, "\r", "")
+	msg = strings.ReplaceAll(msg, "\n", ": ")
 	al.logger.SetOutput(io.MultiWriter(f, os.Stderr))
 	al.logger.Printf("%v", msg)
 	f.Close()
@@ -224,6 +236,8 @@ func Warn(format string, args ...interface{}) error {
 	}
 	prefix := prefix(warn)
 	msg = prefix + " >> " + msg
+	msg = strings.ReplaceAll(msg, "\r", "")
+	msg = strings.ReplaceAll(msg, "\n", ": ")
 	al.logger.SetOutput(io.MultiWriter(f, os.Stdout))
 	al.logger.Printf("%v", msg)
 	f.Close()
@@ -233,7 +247,8 @@ func Warn(format string, args ...interface{}) error {
 //Error - Print debug message.
 //Vey bad messages. Non-Critical
 //Format: '{DATE} {TIME} {LEVEL} >> {MESSAGE}'
-func Error(msg string) error {
+func Error(err error) error {
+	msg := err.Error()
 	if logger == nil {
 		return fmt.Errorf("logger was not initiated")
 	}
@@ -248,7 +263,9 @@ func Error(msg string) error {
 	}
 	prefix := prefix(errLv)
 	msg = prefix + " >> " + msg
-	al.logger.SetOutput(io.MultiWriter(f))
+	msg = strings.ReplaceAll(msg, "\r", "")
+	msg = strings.ReplaceAll(msg, "\n", ": ")
+	al.logger.SetOutput(io.MultiWriter(f, os.Stdout))
 	al.logger.Printf("%v", msg)
 	f.Close()
 	return nil
@@ -278,7 +295,7 @@ func Fatal(msg string, args ...interface{}) error {
 	codeInfo := callerFunctionInfo(true, true, true) + argStr
 	prefix := prefix(fatal) + codeInfo
 	msg = prefix + " >> " + msg
-	al.logger.SetOutput(io.MultiWriter(f, fd))
+	al.logger.SetOutput(io.MultiWriter(f, fd, os.Stdout))
 	al.logger.Printf("%v", msg)
 	f.Close()
 	fd.Close()
@@ -301,7 +318,7 @@ func argsInfo(args ...interface{}) string {
 
 	}
 	s = strings.TrimSuffix(s, ", ")
-	return s + ") >>"
+	return s + ")"
 }
 
 func debugLogPath(logpath string) string {

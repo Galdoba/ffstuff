@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	key "github.com/Galdoba/ffstuff/app/aue/internal/define"
+	"github.com/Galdoba/ffstuff/app/aue/logger"
 )
 
 func Parse(name string) []Meta {
@@ -16,15 +17,14 @@ func Parse(name string) []Meta {
 	if err == nil {
 		return found
 	}
-	fmt.Println("LOG ERROR: parseComplex Failed")
-	//TODO: log error
+	logger.Error(fmt.Errorf("parseComplex Failed:", name))
+
 	found, err = parseSimple(name)
 	if err == nil {
 		return found
 	}
-	fmt.Println("LOG ERROR: parseSimple Failed")
-	//return found
-	//TODO: log error
+	logger.Error(fmt.Errorf("parseSimple Failed:", name))
+
 	return parseDesperate(name)
 
 }

@@ -49,7 +49,7 @@ func Run() *cli.Command {
 			in_dir := cfg.IN_DIR
 			for {
 				//return fmt.Errorf("testining config exit")
-				log.Debug(fmt.Sprintf("read directory:", in_dir))
+				log.Debug(fmt.Sprintf("read directory:", in_dir), time.Now())
 				fi, err := os.ReadDir(in_dir)
 				if err != nil {
 					log.Fatal(fmt.Sprintf("directory '%v' reading failed: %v", in_dir, err.Error()))
@@ -66,14 +66,15 @@ func Run() *cli.Command {
 				}
 
 				for _, project := range projects {
-					log.Info("start project:", project)
+					log.Info("start project: %v", project)
 					sources, err := actions.SetupSources(project, cfg.BUFFER_DIR, cfg.AssetFiles[config.Asset_File_Serial_data])
 					if len(sources) == 0 {
+
 						log.Warn("project %v: no sources created", project)
 						continue
 					}
 					if err != nil {
-						log.Error(fmt.Sprintf("project %v: source setup: %v", project, err))
+						log.Error(fmt.Errorf("project %v: source setup: %v", project, err))
 						continue
 					}
 					processingMode := processingValue(c, cfg)
@@ -91,25 +92,29 @@ func Run() *cli.Command {
 						job.WithNotificationDir(cfg.NotificationDir),
 					)
 					if err != nil {
-						fmt.Println("LOG ERROR: job creation", err.Error())
+						log.Error(err)
 						continue
 					}
 
 					log.Info("job creation complete: %v", project)
 					if err := ja.DecideType(); err != nil {
-						fmt.Println("LOG ERROR: job decide type", err.Error())
+						log.Error(err)
 						continue
-						return err
+						//return err
 					}
+					log.Info("job type decided: %v", ja.TypeDecided())
 					if err := ja.CompileTasks(); err != nil {
-						fmt.Println("LOG ERROR: job compile tasks", err.Error())
+						log.Error(err)
 						continue
 						return err
 					}
 					if err := ja.Execute(); err != nil {
-						fmt.Println("LOG ERROR: job execute", err.Error())
+
+						log.Error(err)
+						continue
 						//return err
 					}
+					log.Info("job execution completed")
 
 				}
 				fmt.Println("entering dormant mode:")

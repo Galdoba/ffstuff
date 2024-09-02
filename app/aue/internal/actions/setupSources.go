@@ -12,6 +12,7 @@ import (
 
 	"github.com/Galdoba/ffstuff/app/aue/internal/define"
 	source "github.com/Galdoba/ffstuff/app/aue/internal/files/sourcefile"
+	"github.com/Galdoba/ffstuff/app/aue/logger"
 	"github.com/Galdoba/ffstuff/pkg/ump"
 	"golang.org/x/text/encoding/charmap"
 	"golang.org/x/text/transform"
@@ -98,6 +99,8 @@ func SetupSources(sourceDir, targetDir, translationFile string) ([]*source.Sourc
 		sc.executeRenaming(),
 	} {
 		if err != nil {
+			err = fmt.Errorf("source setup failed: %v", err)
+			logger.Error(err)
 			return nil, fmt.Errorf("source setup failed: %v", err)
 		}
 	}
@@ -122,13 +125,19 @@ func (sc *sourceCollector) collectFiles() error {
 		return fmt.Errorf("can't read parent dir: %v", err)
 	}
 	for _, f := range fi {
+		if f.Name() == "metadata.json" {
+			logger.Info("skip %v", f.Name())
+			continue
+		}
 		file := path(sc.sourceDir, f.Name())
 
 		expectedSourcePath := path(sc.targetDir, sc.projectSourceFilepath(f.Name()))
 
 		prf := ump.NewProfile()
 		if err := prf.ConsumeFile(file); err != nil {
-			fmt.Println("LOG WARN:", fmt.Errorf("profile: can't consume file '%v': %v", f.Name(), err))
+			logger.Warn("profile: can't consume file '%v': %v", f.Name(), err)
+			//panic("can't consume")
+			//fmt.Println("LOG WARN:", fmt.Errorf("profile: can't consume file '%v': %v", f.Name(), err))
 			continue
 		}
 		strComp := streamComposition(prf)
@@ -148,8 +157,7 @@ func (sc *sourceCollector) collectFiles() error {
 			return fmt.Errorf("collectFiles: %v", err)
 		}
 		sc.sources = append(sc.sources, newSource)
-		fmt.Println("SOURCE ADDED:")
-		fmt.Println(newSource.Details())
+		logger.Info("source added: %v", newSource.Name())
 		sc.renamingMap[file] = expectedSourcePath
 	}
 	return nil
@@ -167,11 +175,11 @@ func (sc *sourceCollector) projectPrefix() error {
 	sc.base = base
 	sc.prt = prtStr(sc.sourceDir)
 	if sc.prt == "" {
-		fmt.Println("LOG WARN: no prt")
+		logger.Warn("no PRT detected")
 	}
 	sc.seNum = seNumConverted(seNum(sc.sourceDir))
 	if sc.seNum == "" {
-		fmt.Println("LOG WARN: no seNum")
+		logger.Warn("no serial season/episode number detected")
 	}
 	sc.exprctedPrefix = sc.base + sc.seNum + sc.prt
 	return nil
