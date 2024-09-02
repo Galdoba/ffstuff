@@ -27,8 +27,9 @@ type Configuration struct {
 	DONE_DIR            string            `yaml:"Directory: DONE       "`
 	OUT_DIR             string            `yaml:"Directory: OUT        "`
 	NotificationDir     string            `yaml:"Directory: NOTIFY_DIR "`
-	DirectProcessing    bool              `yaml:"Direct Processing"`
-	BashGeneration      bool              `yaml:"Generate Bash File"`
+	DirectProcessing    bool              `yaml:"Direct Processing     "`
+	DebugMode           bool              `yaml:"Debug Mode            "`
+	BashGeneration      bool              `yaml:"Generate Bash File    "`
 	AssetFiles          map[string]string `yaml:"Asset Files"`
 	BashPathTranslation map[string]string `yaml:"Bash Paths Translation"`
 	SleepSeconds        int               `yaml:"Repeat Cycle (seconds)"`

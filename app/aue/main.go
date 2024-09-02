@@ -9,6 +9,7 @@ import (
 )
 
 func main() {
+
 	app := cli.NewApp()
 
 	app.Version = "0.2.3"

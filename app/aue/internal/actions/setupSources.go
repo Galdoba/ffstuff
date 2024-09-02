@@ -37,6 +37,54 @@ type nameTranslationOption struct {
 	renameTarget      string
 }
 
+/*
+
+2024/08/30 20:16:17.428 [WARN ] >> project //192.168.31.4/buffer/IN/@AMEDIA_IN/Industry_303_PRT240830124300: no sources created
+entering dormant mode:
+leave dormant mode
+2024/08/30 20:21:20.255 [INFO ] >> start project:%!(EXTRA string=//192.168.31.4/buffer/IN/@AMEDIA_IN/Industry_303_PRT240830124300)
+SOURCE ADDED:
+  path    : //192.168.31.4/buffer/IN/Industry_s03e03_PRT240830124300_SER_05052_18.RUS.srt
+  name    : Industry_s03e03_PRT240830124300_SER_05052_18.RUS.srt
+  purpose : Input_Subs
+  profile : &{   0xc0013285a0 [0xc001368380] [file ==> 1 subtitle stream detected] map[] 0001-1 0;0;0;1;w1  []}
+
+SOURCE ADDED:
+  path    : //192.168.31.4/buffer/IN/Industry_s03e03_PRT240830124300_SER_05052_18.mp4
+  name    : Industry_s03e03_PRT240830124300_SER_05052_18.mp4
+  purpose : Input_Media
+  profile : &{   0xc0014261b0 [0xc00005c380 0xc00005c700 0xc00005ca80 0xc00005ce00] [] map[0:a:0:#5.1#48#341 0:a:1:#stereo#48#130 0:v:0:#HD#25#[SAR=1:1_DAR=16
+:9]#15983#ns] 1210-0 1v0{#HD#25#[SAR=1:1_DAR=16:9]#15983#ns};2a0{#5.1#48#341}a1{#stereo#48#130};1;0;w0 6 2 []}
+
+LOG WARN: profile: can't consume file 'metadata.json': can't read: [tedcaptions @ 000001e49549fe00] Syntax error near offset 14.
+//192.168.31.4/buffer/IN/@AMEDIA_IN/Industry_303_PRT240830124300/metadata.json: Invalid data found when processing input
+
+2024/08/30 20:21:21.702 [INFO ] >> job creation complete: //192.168.31.4/buffer/IN/@AMEDIA_IN/Industry_303_PRT240830124300
+creating targets for V1A2S1
+LOG ERROR: parseComplex Failed
+LOG ERROR: parseSimple Failed
+LOG ERROR: parseComplex Failed
+LOG ERROR: parseSimple Failed
+LOG ERROR: job decide type source/target connection failed: sealing failed: conflicting data 'BASE': [Industry_s03e03_PRT240830124300_SER_05052_18] != [Indust
+ry_s03e03_PRT240830124300_SER_05052_18RUS]
+entering dormant mode:
+leave dormant mode
+2024/08/30 20:26:24.554 [INFO ] >> start project:%!(EXTRA string=//192.168.31.4/buffer/IN/@AMEDIA_IN/Industry_303_PRT240830124300)
+LOG WARN: profile: can't consume file 'metadata.json': can't read: [tedcaptions @ 00000127aa51fe00] Syntax error near offset 14.
+//192.168.31.4/buffer/IN/@AMEDIA_IN/Industry_303_PRT240830124300/metadata.json: Invalid data found when processing input
+
+2024/08/30 20:26:25.516 [WARN ] >> project //192.168.31.4/buffer/IN/@AMEDIA_IN/Industry_303_PRT240830124300: no sources created
+entering dormant mode:
+leave dormant mode
+2024/08/30 20:31:28.295 [INFO ] >> start project:%!(EXTRA string=//192.168.31.4/buffer/IN/@AMEDIA_IN/Industry_303_PRT240830124300)
+LOG WARN: profile: can't consume file 'metadata.json': can't read: [tedcaptions @ 0000020874d8fe00] Syntax error near offset 14.
+//192.168.31.4/buffer/IN/@AMEDIA_IN/Industry_303_PRT240830124300/metadata.json: Invalid data found when processing input
+
+2024/08/30 20:31:29.328 [WARN ] >> project //192.168.31.4/buffer/IN/@AMEDIA_IN/Industry_303_PRT240830124300: no sources created
+entering dormant mode:
+^Cke up in 154 seconds
+*/
+
 func SetupSources(sourceDir, targetDir, translationFile string) ([]*source.SourceFile, error) {
 	sc := sourceCollector{}
 	sc.sourceDir = sourceDir

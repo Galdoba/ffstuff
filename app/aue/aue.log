@@ -1,0 +1,3 @@
+2024/08/30 17:32:01.278 [DEBUG] [aue/commands/shout.go] line 27: func: commands.Shout.func4('3' int, '3.14' float64) >> shout!!!
+2024/08/30 17:32:43.115 [DEBUG] [aue/commands/shout.go] line 28: func: commands.Shout.func4('3' int, '3.14' float64) >> shout!!!
+2024/08/30 17:34:34.511 [DEBUG] [aue/commands/shout.go] line 28: func: commands.Shout.func4('3' int, '3.14' float64) >> shout!!!

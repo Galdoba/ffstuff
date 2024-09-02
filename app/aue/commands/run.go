@@ -8,6 +8,7 @@ import (
 	"github.com/Galdoba/ffstuff/app/aue/config"
 	"github.com/Galdoba/ffstuff/app/aue/internal/actions"
 	"github.com/Galdoba/ffstuff/app/aue/internal/job"
+	log "github.com/Galdoba/ffstuff/app/aue/logger"
 	"github.com/urfave/cli/v2"
 )
 
@@ -29,6 +30,14 @@ func Run() *cli.Command {
 			}
 			cfg = cfgLoaded
 			fmt.Println("config loaded")
+			err = log.Setup(
+				log.LogFilepath(cfg.AssetFiles[config.Asset_File_Log]),
+				log.DebugMode(cfgLoaded.DebugMode),
+			)
+			if err != nil {
+				return fmt.Errorf("logger setup failed: %v", err)
+			}
+			fmt.Println("logger started")
 			defer fmt.Println("initiation completed")
 			return nil
 		},
@@ -36,35 +45,36 @@ func Run() *cli.Command {
 			return nil
 		},
 		Action: func(c *cli.Context) error {
-			fmt.Println("start: aue run")
+			log.Info("start: aue run")
+			in_dir := cfg.IN_DIR
 			for {
 				//return fmt.Errorf("testining config exit")
-				fmt.Println("read dir:", cfg.IN_DIR)
-				fi, err := os.ReadDir(cfg.IN_DIR)
+				log.Debug(fmt.Sprintf("read directory:", in_dir))
+				fi, err := os.ReadDir(in_dir)
 				if err != nil {
+					log.Fatal(fmt.Sprintf("directory '%v' reading failed: %v", in_dir, err.Error()))
 					return err
 				}
 				projects := []string{}
 				for _, f := range fi {
 					if f.IsDir() {
 						projects = append(projects, fmt.Sprintf("%v%v", cfg.IN_DIR, f.Name()))
-
 					}
 				}
 				if len(projects) == 0 {
-					fmt.Println("no projects detected")
+					log.Info("no projects detected")
 				}
 
 				for _, project := range projects {
-
-					fmt.Println("\n--------\nStart Project:", project)
+					log.Info("start project:", project)
 					sources, err := actions.SetupSources(project, cfg.BUFFER_DIR, cfg.AssetFiles[config.Asset_File_Serial_data])
 					if len(sources) == 0 {
-						fmt.Println("LOG ERROR:", "no sources created")
+						log.Warn("project %v: no sources created", project)
 						continue
 					}
 					if err != nil {
-						fmt.Println("||||||", err)
+						log.Error(fmt.Sprintf("project %v: source setup: %v", project, err))
+						continue
 					}
 					processingMode := processingValue(c, cfg)
 					bashGen := bashGenValue(c, cfg)
@@ -84,6 +94,8 @@ func Run() *cli.Command {
 						fmt.Println("LOG ERROR: job creation", err.Error())
 						continue
 					}
+
+					log.Info("job creation complete: %v", project)
 					if err := ja.DecideType(); err != nil {
 						fmt.Println("LOG ERROR: job decide type", err.Error())
 						continue

@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
@@ -9,17 +10,23 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
+)
 
-	"github.com/sirupsen/logrus"
+const (
+	debug = "[DEBUG]"
+	info  = "[INFO ]"
+	warn  = "[WARN ]"
+	errLv = "[ERROR]"
+	fatal = "[FATAL]"
 )
 
 var flags int = os.O_CREATE | os.O_WRONLY | os.O_APPEND
 var perm fs.FileMode = 0666
 
-type aueLogManager struct {
+type logManager struct {
 	logPath   string
 	debugMode bool
-	perm      fs.FileMode
 	logger    *log.Logger
 }
 
@@ -31,10 +38,7 @@ type options struct {
 }
 
 func defaultOpts() options {
-	return options{
-		logpath:   "aue.log",
-		debugMode: true,
-	}
+	return options{}
 }
 
 func LogFilepath(path string) OptFunc {
@@ -43,18 +47,16 @@ func LogFilepath(path string) OptFunc {
 	}
 }
 
-func DebugMode() OptFunc {
+func DebugMode(val bool) OptFunc {
 	return func(o *options) {
-		o.debugMode = true
+		o.debugMode = val
 	}
 }
 
-var LOG *logrus.Logger
+var logger *logManager
 
-var logg *aueLogManager
-
-func New(opts ...OptFunc) *aueLogManager {
-	al := aueLogManager{}
+func Setup(opts ...OptFunc) error {
+	al := logManager{}
 	opt := defaultOpts()
 	for _, set := range opts {
 		set(&opt)
@@ -62,78 +64,244 @@ func New(opts ...OptFunc) *aueLogManager {
 	al.logPath = opt.logpath
 	al.debugMode = opt.debugMode
 	al.logger = log.New(os.Stdout, "", 0)
-	return &al
+	logger = &al
+	return validateLogger()
 }
 
-func debugPrefix() string {
-	return "DEBUG"
+func validateLogger() error {
+	for _, err := range []error{
+		assertLogFilePath(logger.logPath),
+		assertDebugLog(logger.debugMode, logger.logPath),
+	} {
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
-func Func1() {
-	fmt.Println("f1")
-	Func2()
+func assertLogFilePath(path string) error {
+	if path == "" {
+		return fmt.Errorf("log filepath not provided")
+	}
+	if ch := invalidPathChar(path); ch != "" {
+		return fmt.Errorf("log filepath provided contains bad character: '%v'", ch)
+	}
+	if err := os.Rename(path, path); err != nil {
+		switch errors.Is(err, os.ErrNotExist) {
+		case false:
+			return fmt.Errorf("logfile assertion failed: %v", err)
+		case true:
+			dir := filepath.Dir(path)
+			sep := string(filepath.Separator)
+			name := filepath.Base(path)
+			if err = os.MkdirAll(dir, 0666); err != nil {
+				return fmt.Errorf("logfile directory creation failed: %v", err)
+			}
+			f, err := os.Create(dir + sep + name)
+			defer f.Close()
+			if err != nil {
+				return fmt.Errorf("logfile creation failed: %v", err)
+			}
+		}
+	}
+	return nil
 }
 
-type some struct {
+func assertDebugLog(debugMode bool, path string) error {
+	if !debugMode {
+		return nil
+	}
+	return assertLogFilePath(debugLogPath(path))
 }
 
-type Some interface {
-	Func3(string)
+func invalidPathChar(path string) string {
+	path = strings.ReplaceAll(path, `\`, "/")
+	layers := strings.Split(path, "/")
+	for _, layer := range layers {
+		for _, ch := range strings.Split(layer, "") {
+			switch ch {
+			case "<", ">", "/", "|", "?", "*", `"`, " ":
+				return ch
+			default:
+			}
+		}
+	}
+	return ""
 }
 
-func Func2() {
-	fmt.Println("f2")
-	sm := &some{}
-	SM := Some(sm)
-	SM.Func3("++")
+func prefix(s string) string {
+	out := timestamp()
+	switch s {
+	case debug:
+		out += " " + debug
+	case info:
+		out += " " + info
+	case warn:
+		out += " " + warn
+	case errLv:
+		out += " " + errLv
+	case fatal:
+		out += " " + fatal
+	default:
+		out += " [ ??? ]"
+	}
+	return out
 }
-func (sm *some) Func3(s string) {
-	fmt.Println("f3", s)
-	logg.Debug("this is dbg", 3, "___", sm)
-	Func4()
 
-}
-func Func4() {
-	fmt.Println("f4")
-	logg.Debug("this is dbg 22")
-}
-
-func (al *aueLogManager) Debug(msg string, args ...interface{}) {
+//Debug - Print debug message.
+//Very verbose for tracking data. Do not return early
+//Format: '{DATE} {TIME} {LEVEL} {file} {line} {funcname} [args] >> {MESSAGE}'
+func Debug(msg string, args ...interface{}) error {
+	if logger == nil {
+		return fmt.Errorf("logger was not initiated")
+	}
+	al := logger
 	if !al.debugMode {
-		return
+		return nil
+	}
+	f, err := os.OpenFile(al.logPath, flags, perm)
+	if err != nil {
+		fmt.Println(err)
+	}
+	fd, err := os.OpenFile(debugLogPath(al.logPath), flags, perm)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	argStr := argsInfo(args...)
+	codeInfo := callerFunctionInfo(true, true, true) + argStr
+	prefix := prefix(debug) + codeInfo
+	msg = prefix + " " + msg
+	al.logger.SetOutput(io.MultiWriter(f, fd))
+	al.logger.Printf("%v", msg)
+	f.Close()
+	fd.Close()
+	return nil
+}
+
+//Info - Print debug message.
+//General messages to file and stderr.
+//Format: '{DATE} {TIME} {LEVEL} >> {MESSAGE}'
+func Info(format string, args ...interface{}) error {
+	msg := fmt.Sprintf(format, args...)
+	if logger == nil {
+		return fmt.Errorf("logger was not initiated")
+	}
+	al := logger
+	if !al.debugMode {
+		return nil
+	}
+	f, err := os.OpenFile(al.logPath, flags, perm)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	prefix := prefix(info)
+	msg = prefix + " >> " + msg
+	al.logger.SetOutput(io.MultiWriter(f, os.Stderr))
+	al.logger.Printf("%v", msg)
+	f.Close()
+	return nil
+}
+
+//Warn - Print debug message.
+//Important messages.
+//Format: '{DATE} {TIME} {LEVEL} >> {MESSAGE}'
+func Warn(format string, args ...interface{}) error {
+	msg := fmt.Sprintf(format, args...)
+	if logger == nil {
+		return fmt.Errorf("logger was not initiated")
+	}
+	al := logger
+	if !al.debugMode {
+		return nil
+	}
+	f, err := os.OpenFile(al.logPath, flags, perm)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	prefix := prefix(warn)
+	msg = prefix + " >> " + msg
+	al.logger.SetOutput(io.MultiWriter(f, os.Stdout))
+	al.logger.Printf("%v", msg)
+	f.Close()
+	return nil
+}
+
+//Error - Print debug message.
+//Vey bad messages. Non-Critical
+//Format: '{DATE} {TIME} {LEVEL} >> {MESSAGE}'
+func Error(msg string) error {
+	if logger == nil {
+		return fmt.Errorf("logger was not initiated")
+	}
+	al := logger
+	if !al.debugMode {
+		return nil
 	}
 	f, err := os.OpenFile(al.logPath, flags, perm)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+	prefix := prefix(errLv)
+	msg = prefix + " >> " + msg
+	al.logger.SetOutput(io.MultiWriter(f))
+	al.logger.Printf("%v", msg)
+	f.Close()
+	return nil
+}
+
+//Fatal - Print fatal message.
+//Vey bad messages. Critical Error. Exit with code 1.
+//Format: '{DATE} {TIME} {LEVEL} >> {MESSAGE}'
+func Fatal(msg string, args ...interface{}) error {
+	if logger == nil {
+		fmt.Println("logger was not initiated")
+	}
+	al := logger
+	if !al.debugMode {
+		return nil
+	}
+	f, err := os.OpenFile(al.logPath, flags, perm)
+	if err != nil {
+		fmt.Println(err)
+	}
 	fd, err := os.OpenFile(debugLogPath(al.logPath), flags, perm)
 	if err != nil {
 		fmt.Println(err)
-		os.Exit(1)
 	}
-	prefix := debugPrefix() + " "
-	argStr := argString(args...)
-	msg = prefix + callerFunctionInfo(true, true, true) + " " + argStr + " " + msg
+
+	argStr := argsInfo(args...)
+	codeInfo := callerFunctionInfo(true, true, true) + argStr
+	prefix := prefix(fatal) + codeInfo
+	msg = prefix + " >> " + msg
 	al.logger.SetOutput(io.MultiWriter(f, fd))
 	al.logger.Printf("%v", msg)
-	//f.Close()
-	//fd.Close()
+	f.Close()
+	fd.Close()
+	fmt.Fprintf(os.Stdout, "%v\n", msg)
+	fmt.Fprintf(os.Stdout, "exit code 1")
+	os.Exit(1)
+	return nil
 }
 
-func argString(args ...interface{}) string {
+func argsInfo(args ...interface{}) string {
 	if len(args) == 0 {
 		return ""
 	}
-	s := "args: "
+	s := "("
 	for _, arg := range args {
 		switch v := arg.(type) {
 		default:
-			s += fmt.Sprintf("{%T : '%v'}", v, v)
+			s += fmt.Sprintf("'%v' %T, ", v, v)
 		}
 
 	}
-	return s
+	s = strings.TrimSuffix(s, ", ")
+	return s + ") >>"
 }
 
 func debugLogPath(logpath string) string {
@@ -143,41 +311,36 @@ func debugLogPath(logpath string) string {
 }
 
 func callerFunctionInfo(funcName, fileName, lineNumber bool) string {
-	counter, file, line, success := runtime.Caller(2)
+	counter, file, line, success := runtime.Caller(2) //back to stack on 2 levels
 	if !success {
 		return ""
 	}
 
 	fName := runtime.FuncForPC(counter).Name()
 	info := ""
-	if funcName {
-		fName = strings.TrimPrefix(fName, "github.com/Galdoba/ffstuff/app/aue/")
-		info += fName + " "
-	}
+
 	if fileName {
 		file := strings.Split(file, "github.com/Galdoba/ffstuff/app/")
-		info += file[len(file)-1] + " "
+		info += fmt.Sprintf(" [%v]", file[len(file)-1])
 	}
 	if lineNumber && line > 0 {
-		info += fmt.Sprintf("line %v", line) + " "
+		info += fmt.Sprintf(" line %v:", line)
+	}
+	if funcName {
+		fName = strings.TrimPrefix(fName, "github.com/Galdoba/ffstuff/app/aue/")
+		info += fmt.Sprintf(" func: %v", fName)
 	}
 	info = strings.TrimSuffix(info, " ")
 
 	return info
 }
 
-/*
-LOG EXAMPLE:
-2024/08/30 16:43:11.540 [DEBUG]: func name: file.go line #666 args(agr1, arg2) message
-2024/08/30 16:43:11.540 [INFO ]: operation complete
-2024/08/30 16:43:11.540 [WARN ]: failed to do X
-2024/08/30 16:43:11.540 [ERROR]: failed to do Y
-2024/08/30 16:43:11.540 [FATAL]: failed to do Z, exiting...
-
-2024/08/29 17:58:41.318 [DEBUG]: logger.(*some).Func3 aue/logger/logger.go line 92 args: {int : '3'}{string : '___'}{*logger.some : '&{}'} this is dbg
-
-
-2024/08/30 16:43:11.540 [ERROR]: failed to do Y
-2024/08/29 17:58:41.318 [DEBUG]: file:[aue/logger/logger.go] line 92: logger.(*some).Func3(3 int, ___ string, &{} *logger.some)
-    debug message: this is dbg
-*/
+func timestamp() string {
+	format := "2006/01/02 15:04:05.999"
+	formatLen := len(format)
+	stamp := time.Now().Format(format)
+	for len(stamp) < formatLen {
+		stamp += "0"
+	}
+	return stamp
+}
