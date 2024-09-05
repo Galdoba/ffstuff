@@ -1,10 +1,12 @@
 package logger
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestLogger(t *testing.T) {
-	Setup()
-
+	//Setup()
+	//fmt.Println(logMan)
 }
 
 /*

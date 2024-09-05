@@ -84,7 +84,7 @@ func TestAssembledCollection(t *testing.T) {
 	}
 }
 
-func constructTag(c Constructor)
+//func constructTag(c Constructor)
 
 func equalTags(aTag, bTag Tag) bool {
 	if aTag.Key != bTag.Key {

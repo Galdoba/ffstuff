@@ -8,7 +8,7 @@ import (
 	"github.com/Galdoba/ffstuff/app/aue/config"
 	"github.com/Galdoba/ffstuff/app/aue/internal/actions"
 	"github.com/Galdoba/ffstuff/app/aue/internal/job"
-	log "github.com/Galdoba/ffstuff/app/aue/logger"
+	log "github.com/Galdoba/ffstuff/pkg/logman"
 	"github.com/urfave/cli/v2"
 )
 
@@ -31,9 +31,9 @@ func Run() *cli.Command {
 			cfg = cfgLoaded
 			fmt.Println("config loaded")
 			err = log.Setup(
-				log.LogFilepath(cfg.AssetFiles[config.Asset_File_Log]),
-				log.DebugMode(cfgLoaded.DebugMode),
+				log.WithAppLogLevelImportance(log.LvlALL),
 			)
+			log.SetOutput(cfg.AssetFiles[config.Asset_File_Log], log.ALL)
 			if err != nil {
 				return fmt.Errorf("logger setup failed: %v", err)
 			}
