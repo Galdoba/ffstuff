@@ -3,6 +3,7 @@ package commands
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/Galdoba/ffstuff/app/aue/config"
@@ -31,7 +32,7 @@ func Run() *cli.Command {
 			cfg = cfgLoaded
 			fmt.Println("config loaded")
 			err = log.Setup(
-				log.WithAppLogLevelImportance(log.LvlALL),
+				log.WithAppLogLevelImportance(log.ImportanceALL),
 			)
 			log.SetOutput(cfg.AssetFiles[config.Asset_File_Log], log.ALL)
 			if err != nil {
@@ -49,10 +50,10 @@ func Run() *cli.Command {
 			in_dir := cfg.IN_DIR
 			for {
 				//return fmt.Errorf("testining config exit")
-				log.Debug(fmt.Sprintf("read directory:", in_dir), time.Now())
+				log.Debug(log.NewMessage(fmt.Sprintf("read directory: %v", in_dir)), nil)
 				fi, err := os.ReadDir(in_dir)
 				if err != nil {
-					log.Fatal(fmt.Sprintf("directory '%v' reading failed: %v", in_dir, err.Error()))
+					log.Fatalf(fmt.Sprintf("directory '%v' reading failed: %v", in_dir, err.Error()))
 					return err
 				}
 				projects := []string{}
@@ -66,15 +67,15 @@ func Run() *cli.Command {
 				}
 
 				for _, project := range projects {
-					log.Info("start project: %v", project)
+					projName := filepath.Base(project)
+					log.Printf("start project: %v", projName)
 					sources, err := actions.SetupSources(project, cfg.BUFFER_DIR, cfg.AssetFiles[config.Asset_File_Serial_data])
 					if len(sources) == 0 {
-
-						log.Warn("project %v: no sources created", project)
+						log.Warn("project %v: no sources created", projName)
 						continue
 					}
 					if err != nil {
-						log.Error(fmt.Errorf("project %v: source setup: %v", project, err))
+						log.Error(fmt.Errorf("project %v: source setup: %v", projName, err))
 						continue
 					}
 					processingMode := processingValue(c, cfg)

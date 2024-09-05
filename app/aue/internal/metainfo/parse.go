@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	key "github.com/Galdoba/ffstuff/app/aue/internal/define"
-	"github.com/Galdoba/ffstuff/app/aue/logger"
+	logger "github.com/Galdoba/ffstuff/pkg/logman"
 )
 
 func Parse(name string) []Meta {

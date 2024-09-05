@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/Galdoba/ffstuff/app/aue/config"
-	log "github.com/Galdoba/ffstuff/app/aue/logger"
+	log "github.com/Galdoba/ffstuff/pkg/logman"
 	"github.com/urfave/cli/v2"
 )
 
@@ -23,10 +23,11 @@ func Shout() *cli.Command {
 				return fmt.Errorf("config loading failed: %v", err)
 			}
 			cfg = cfgLoaded
-			return log.Setup(
-				log.LogFilepath(cfg.AssetFiles[config.Asset_File_Log]),
-				log.DebugMode(cfg.DebugMode),
+			log.Setup(
+				log.WithAppLogLevelImportance(log.ImportanceALL),
 			)
+			log.SetOutput(cfg.AssetFiles[config.Asset_File_Log], log.ALL)
+			return nil
 		},
 		After: func(c *cli.Context) error {
 			return nil
@@ -56,6 +57,6 @@ func internalF() {
 	log.Warn("warn")
 	log.Error(errors.New("error"))
 	log.Info("info text")
-	log.Fatal("Kill me")
-	log.Debug("shout!!!", 3, 3.14)
+	log.Fatalf("Kill me")
+	log.Debug(log.NewMessage("shout!!!").WithArgs(3, 3.14), nil)
 }

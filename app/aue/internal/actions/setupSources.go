@@ -12,7 +12,7 @@ import (
 
 	"github.com/Galdoba/ffstuff/app/aue/internal/define"
 	source "github.com/Galdoba/ffstuff/app/aue/internal/files/sourcefile"
-	"github.com/Galdoba/ffstuff/app/aue/logger"
+	logger "github.com/Galdoba/ffstuff/pkg/logman"
 	"github.com/Galdoba/ffstuff/pkg/ump"
 	"golang.org/x/text/encoding/charmap"
 	"golang.org/x/text/transform"

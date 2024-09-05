@@ -126,10 +126,10 @@ func WithLogLevels(lvls ...*loggingLevel) LogmanOptions {
 // If input is above ImportanceALL importance will be set to ImportanceALL.
 func WithAppLogLevelImportance(importance int) LogmanOptions {
 	return func(o *options) {
-		if importance < ImportanceNONE {
+		if importance > ImportanceNONE {
 			importance = ImportanceNONE
 		}
-		if importance > ImportanceALL {
+		if importance < ImportanceALL {
 			importance = ImportanceALL
 		}
 		o.appMinimumLoglevel = importance
@@ -163,7 +163,7 @@ func process(msg Message, lvls ...*loggingLevel) error {
 			errorStack = append(errorStack, fmt.Errorf("logginglevel provided was not set"))
 			continue
 		}
-		if logMan.appMinimumLoglevel >= lvl.importance {
+		if lvl.importance < logMan.appMinimumLoglevel {
 			continue
 		}
 		if !isPresent(lvl) {

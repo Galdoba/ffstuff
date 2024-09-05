@@ -9,9 +9,9 @@ Changes done:
     v 0.2.1:2024-08-28 -- Add auto renaming of source files based on $tv_series.xml
     v 0.2.2:2024-08-28 -- Add notifications
     v 0.2.3:2024-08-30 -- Reimplement sourcecollector's renaming module.
+    v 0.3.0:2024-09-05 -- Implement Logging
 
 TODO:
-    Major -- Logger Setup
     Major -- Export Task Formats to file
     Major -- Thread Separation: Error handling
     Major -- Thread Separation: Logging
