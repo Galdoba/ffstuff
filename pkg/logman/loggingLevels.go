@@ -14,6 +14,7 @@ const (
 	INFO  = "info"
 	DEBUG = "debug"
 	TRACE = "trace"
+	PING  = "ping"
 	ALL   = "All_Levels"
 )
 

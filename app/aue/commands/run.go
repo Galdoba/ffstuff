@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/Galdoba/ffstuff/app/aue/config"
 	"github.com/Galdoba/ffstuff/app/aue/internal/actions"
+	"github.com/Galdoba/ffstuff/app/aue/internal/files/sourcefile"
 	"github.com/Galdoba/ffstuff/app/aue/internal/job"
 	log "github.com/Galdoba/ffstuff/pkg/logman"
 	"github.com/urfave/cli/v2"
@@ -32,9 +34,18 @@ func Run() *cli.Command {
 			cfg = cfgLoaded
 			fmt.Println("config loaded")
 			err = log.Setup(
-				log.WithAppLogLevelImportance(log.ImportanceALL),
+				log.WithAppLogLevelImportance(log.ImportanceTRACE),
 			)
-			log.SetOutput(cfg.AssetFiles[config.Asset_File_Log], log.ALL)
+			log.ClearOutput(log.DEBUG)
+			logPathDefault := cfg.AssetFiles[config.Asset_File_Log]
+			logPathSession := strings.ReplaceAll(logPathDefault, "default.log", "last_session.log")
+			f, err := os.Create(logPathSession)
+			if err != nil {
+				fmt.Println(err)
+			}
+			f.Close()
+			log.SetOutput(logPathDefault, log.ALL)
+			log.SetOutput(logPathSession, log.ALL)
 			if err != nil {
 				return fmt.Errorf("logger setup failed: %v", err)
 			}
@@ -50,7 +61,7 @@ func Run() *cli.Command {
 			in_dir := cfg.IN_DIR
 			for {
 				//return fmt.Errorf("testining config exit")
-				log.Debug(log.NewMessage(fmt.Sprintf("read directory: %v", in_dir)), nil)
+				log.Debug(log.NewMessage(fmt.Sprintf("scan root directory")))
 				fi, err := os.ReadDir(in_dir)
 				if err != nil {
 					log.Fatalf(fmt.Sprintf("directory '%v' reading failed: %v", in_dir, err.Error()))
@@ -62,28 +73,58 @@ func Run() *cli.Command {
 						projects = append(projects, fmt.Sprintf("%v%v", cfg.IN_DIR, f.Name()))
 					}
 				}
+
 				if len(projects) == 0 {
 					log.Info("no projects detected")
 				}
 
 				for _, project := range projects {
+
 					projName := filepath.Base(project)
 					log.Printf("start project: %v", projName)
-					sources, err := actions.SetupSources(project, cfg.BUFFER_DIR, cfg.AssetFiles[config.Asset_File_Serial_data])
-					if len(sources) == 0 {
-						log.Warn("project %v: no sources created", projName)
-						continue
-					}
+					sources := []*sourcefile.SourceFile{}
+					//Project Setup
+					selectedAction, err := actions.SelectSourceAction(project)
 					if err != nil {
-						log.Error(fmt.Errorf("project %v: source setup: %v", projName, err))
+						log.Error(err)
 						continue
 					}
-					processingMode := processingValue(c, cfg)
-					bashGen := bashGenValue(c, cfg)
-
+					switch selectedAction {
+					default:
+						log.Error(fmt.Errorf("unimplemented action selected: '%v'", selectedAction))
+						continue
+					case actions.ActionRemoveProject:
+						if err := actions.RemoveProject(project); err != nil {
+							log.Error(err)
+						}
+						log.Info("end project: %v (clean)", projName)
+						continue
+					case actions.ActionSkip:
+						log.Info("end project: %v (skip)", projName)
+						continue
+					case actions.ActionSetup:
+						sourcesCreated, err := actions.SetupSources(project, cfg.BUFFER_DIR, cfg.AssetFiles[config.Asset_File_Serial_data])
+						if err != nil {
+							log.Warn("end project: %v (failed)", projName)
+							continue
+						}
+						if len(sourcesCreated) == 0 {
+							log.Debug(log.NewMessage("project %v: no sources created", projName))
+							log.Warn("end project: %v (skip)", projName)
+							continue
+						}
+						sources = sourcesCreated
+						f, err := os.Create(project + "/" + "lock")
+						if err != nil {
+							log.Warn("failed to lock %v", project)
+						}
+						f.Close()
+						log.Debug(log.NewMessage("%v locked", project))
+					}
+					//Project Execution
 					ja, err := job.New(sources, nil,
-						job.WithDirectProcessing(processingMode),
-						job.WithBashGeneration(bashGen),
+						job.WithDirectProcessing(processingValue(c, cfg)),
+						job.WithBashGeneration(bashGenValue(c, cfg)),
 						job.WithBashDestination(cfg.BUFFER_DIR),
 						job.WithBashTranslationMap(cfg.BashPathTranslation),
 						job.WithInputDir(cfg.BUFFER_DIR),
@@ -97,9 +138,9 @@ func Run() *cli.Command {
 						continue
 					}
 
-					log.Info("job creation complete: %v", project)
+					log.Info("job creation complete: %v", ja.ProjectName())
 					if err := ja.DecideType(); err != nil {
-						log.Error(err)
+						log.Warn("job type decidion failed")
 						continue
 						//return err
 					}
@@ -115,15 +156,14 @@ func Run() *cli.Command {
 						continue
 						//return err
 					}
-					log.Info("job execution completed")
+					log.Info("end project: %v (success)", projName)
 
 				}
-				fmt.Println("entering dormant mode:")
+
 				for left := cfg.SleepSeconds; left > 0; left = left - 1 {
-					fmt.Printf("                                          \rwake up in %v seconds          \r", left)
+					fmt.Fprintf(os.Stderr, "dormant mode for %v    \r", timer(left))
 					time.Sleep(time.Second)
 				}
-				fmt.Println("leave dormant mode             ")
 
 			}
 
@@ -175,4 +215,17 @@ func bashGenValue(c *cli.Context, cfg *config.Configuration) bool {
 		return false
 	}
 	return cfg.BashGeneration
+}
+
+func timer(seconds int) string {
+	h, m, s := seconds/3600, seconds/60, seconds%60
+	return fmt.Sprintf("%v:%v:%v", numToStr(h), numToStr(m), numToStr(s))
+}
+
+func numToStr(n int) string {
+	s := fmt.Sprintf("%v", n)
+	for len(s) < 2 {
+		s = "0" + s
+	}
+	return s
 }

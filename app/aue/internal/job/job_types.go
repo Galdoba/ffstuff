@@ -7,6 +7,7 @@ import (
 	source "github.com/Galdoba/ffstuff/app/aue/internal/files/sourcefile"
 	target "github.com/Galdoba/ffstuff/app/aue/internal/files/targetfile"
 	"github.com/Galdoba/ffstuff/app/aue/internal/task"
+	log "github.com/Galdoba/ffstuff/pkg/logman"
 )
 
 // func taskList(jType string) []task.Task {
@@ -86,8 +87,7 @@ func (ja *jobAdmin) setupTaskList() error {
 	output := make(map[string]*target.TargetFile)
 	for _, tgt := range ja.target {
 		output[tgt.ClaimedGoal] = tgt
-		fmt.Println("TARGET ADDED:")
-		fmt.Println(tgt.Details())
+		log.Printf("target added: %v (%v)", tgt.ExpectedName, tgt.ClaimedGoal)
 	}
 	BUFFER_IN := ja.options.inputDir
 	IN_PROGRESS := ja.options.processingDir
@@ -131,6 +131,7 @@ func (ja *jobAdmin) setupTaskList() error {
 		notificationStorage := ja.options.notificationDir
 		ja.tasks = append(ja.tasks, taskCopy(expectedReadyFile, notificationStorage+readyFileName))
 	}
+	log.Printf("task list compiled (%v tasks)", len(ja.tasks))
 	return nil
 }
 
@@ -167,6 +168,9 @@ func taskEncode(job, inputPath string, outputPaths ...string) task.Task {
 	encodeTask.SetParameters(task.NewParameterData(TASK_PARAM_Encode_input, inputPath))
 	params := []string{PURPOSE_Output_Video, PURPOSE_Output_Audio1, PURPOSE_Output_Audio2}
 	for i, param := range params {
+		if len(outputPaths)-1 < i {
+			continue
+		}
 		encodeTask.SetParameters(task.NewParameterData(param, outputPaths[i]))
 	}
 	return encodeTask

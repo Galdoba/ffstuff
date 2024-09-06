@@ -11,6 +11,7 @@ import (
 	source "github.com/Galdoba/ffstuff/app/aue/internal/files/sourcefile"
 	target "github.com/Galdoba/ffstuff/app/aue/internal/files/targetfile"
 	"github.com/Galdoba/ffstuff/app/aue/internal/task"
+	"github.com/Galdoba/ffstuff/pkg/logman"
 )
 
 type jobAdmin struct {
@@ -43,7 +44,7 @@ func (ja *jobAdmin) DecideType() error {
 	if ja.options.jobType == "" || len(ja.target) == 0 {
 		err := ja.setJobCodeAndTargets()
 		if err != nil {
-			return fmt.Errorf("job targets setup failed: %v", err)
+			return logman.Errorf("job targets setup failed: %v", err)
 		}
 	}
 
@@ -57,7 +58,7 @@ func (ja *jobAdmin) DecideType() error {
 	if err := approveSources(ja.source, ja.options.jobType); err != nil {
 		return fmt.Errorf("job decidion failed: %v", err)
 	}
-
+	logman.Ping("end")
 	return nil
 }
 
@@ -87,8 +88,9 @@ func generateBashFiles(ja *jobAdmin) error {
 	if ja.options.bashGeneration {
 		gen := bashgen.New(ja)
 		if err := gen.GenerateBash(ja.tasks); err != nil {
-			return fmt.Errorf("bash generation failed: %v", err)
+			return logman.Errorf("bash generation failed: %v", err)
 		}
+		logman.Println("bash generated")
 	}
 	return nil
 }

@@ -2,8 +2,11 @@ package logman
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/fatih/color"
 )
 
 type formatter struct {
@@ -111,5 +114,43 @@ func formatJSON(msg Message) (string, error) {
 		s += `null`
 	}
 	s += `}`
+	return s, nil
+}
+
+func formatPing(msg Message) (string, error) {
+	fldKeys := []string{}
+	for _, key := range msg.Fields() {
+		switch key {
+		case keyTime, keyLevel, keyFile, keyLine, keyFunc, keyMessage:
+		default:
+			fldKeys = append(fldKeys, key)
+		}
+	}
+	s := ""
+	for i, val := range []interface{}{
+		msg.Value(keyFile),
+		msg.Value(keyLine),
+		msg.Value(keyFunc),
+	} {
+		if val != nil {
+			switch i {
+			default:
+				//s += " " + fmt.Sprintf("%v:", val)
+			case 0:
+				file := filepath.Base(fmt.Sprintf(`%v`, val))
+				s += file + " "
+			case 1:
+				s += fmt.Sprintf(`%v`, val) + " "
+			case 2:
+				fun := filepath.Base(fmt.Sprintf(`%v`, val))
+				s += fun + " "
+			}
+		}
+	}
+	for _, k := range fldKeys {
+		s += fmt.Sprintf("%v", msg.Value(k)) + " "
+	}
+	s = strings.TrimSuffix(s, " ")
+	s = color.HiBlackString(s)
 	return s, nil
 }

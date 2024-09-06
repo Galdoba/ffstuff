@@ -58,5 +58,5 @@ func internalF() {
 	log.Error(errors.New("error"))
 	log.Info("info text")
 	log.Fatalf("Kill me")
-	log.Debug(log.NewMessage("shout!!!").WithArgs(3, 3.14), nil)
+	log.Debug(log.NewMessage("shout!!!").WithArgs(3, 3.14))
 }

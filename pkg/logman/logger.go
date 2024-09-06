@@ -24,6 +24,7 @@ const (
 	ImportanceINFO  = 50
 	ImportanceDEBUG = 30
 	ImportanceTRACE = 10
+	ImportancePING  = 1
 	ImportanceALL   = 0
 
 	//fieldKeys
@@ -155,9 +156,13 @@ func ProcessMessage(msg Message, levels ...string) error {
 
 // This is main func for processing messages on levels provided.
 // It return processing error of nil if processing successful.
+// If Message is nil function will return with no error.
 func process(msg Message, lvls ...*loggingLevel) error {
 	errorStack := []error{}
 	fatalCalled := false
+	if msg == nil {
+		return nil
+	}
 	for _, lvl := range lvls {
 		if lvl == nil {
 			errorStack = append(errorStack, fmt.Errorf("logginglevel provided was not set"))
@@ -226,7 +231,7 @@ func isPresent(lvl *loggingLevel) bool {
 }
 
 func (lvl *loggingLevel) write(text string) error {
-	text = strings.TrimSuffix(text, "\n") + "\n"
+	text = removeEmptyLines(text) + "\n"
 	errorStack := []error{}
 	for key, writer := range lvl.writers {
 		switch {
@@ -254,6 +259,18 @@ func (lvl *loggingLevel) write(text string) error {
 		return err
 	}
 	return nil
+}
+
+func removeEmptyLines(text string) string {
+	lines := strings.Split(text, "\n")
+	filteredLines := []string{}
+	for _, line := range lines {
+		if strings.TrimSpace(line) == "" {
+			continue
+		}
+		filteredLines = append(filteredLines, line)
+	}
+	return strings.Join(filteredLines, "\n  ")
 }
 
 func colorizeTags(text string) string {

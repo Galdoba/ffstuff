@@ -20,7 +20,7 @@ func TestLogMan(t *testing.T) {
 	if err2 != nil {
 		t.Errorf(err2.Error())
 	}
-	Debug(NewMessage("testing debug"), map[string]interface{}{"arg1": 5, "arg2": 7})
+	Debug(NewMessage("testing debug"), "test: 42")
 	Fatalf("testing fatal conv func")
 
 	// bt, _ := msg.MarshalJSON()

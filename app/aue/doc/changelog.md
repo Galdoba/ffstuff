@@ -10,6 +10,7 @@ Changes done:
     v 0.2.2:2024-08-28 -- Add notifications
     v 0.2.3:2024-08-30 -- Reimplement sourcecollector's renaming module.
     v 0.3.0:2024-09-05 -- Implement Logging
+    v 0.3.1:2024-09-06 -- bug fixing: renaming module
 
 TODO:
     Major -- Export Task Formats to file

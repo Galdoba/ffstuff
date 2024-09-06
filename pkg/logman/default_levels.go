@@ -12,6 +12,7 @@ const (
 	stdTagINFO  = "[INFO ]"
 	stdTagDEBUG = "[DEBUG]"
 	stdTagTRACE = "[TRACE]"
+	stdTagPing  = "[PING ]"
 )
 
 var LogLevelFATAL = &loggingLevel{
@@ -74,6 +75,16 @@ var LogLevelTRACE = &loggingLevel{
 	formatFunc: formatTextComplex,
 }
 
+var LogLevelPING = &loggingLevel{
+	name:       PING,
+	tag:        stdTagPing,
+	importance: ImportancePING,
+	callerInfo: true,
+	osExit:     false,
+	writers:    map[string]io.Writer{Stderr: os.Stderr},
+	formatFunc: formatPing,
+}
+
 func defaultLoggingLevels() map[string]*loggingLevel {
 	levels := make(map[string]*loggingLevel)
 	levels[FATAL] = LogLevelFATAL
@@ -82,5 +93,6 @@ func defaultLoggingLevels() map[string]*loggingLevel {
 	levels[INFO] = LogLevelINFO
 	levels[DEBUG] = LogLevelDEBUG
 	levels[TRACE] = LogLevelTRACE
+	levels[PING] = LogLevelPING
 	return levels
 }

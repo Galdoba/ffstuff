@@ -17,13 +17,13 @@ func Parse(name string) []Meta {
 	if err == nil {
 		return found
 	}
-	logger.Error(fmt.Errorf("parseComplex Failed:", name))
+	logger.Error(fmt.Errorf("parseComplex Failed: %v\n%v", name, err))
 
 	found, err = parseSimple(name)
 	if err == nil {
 		return found
 	}
-	logger.Error(fmt.Errorf("parseSimple Failed:", name))
+	logger.Error(fmt.Errorf("parseSimple Failed: %v\n%v", name, err))
 
 	return parseDesperate(name)
 
@@ -47,8 +47,8 @@ var ErrNotFound = errors.New("")
 func separateComplex(feed string) ([]Meta, error) {
 	found := []Meta{}
 	data := strings.Split(feed, "_")
-	if len(data) <= 3 {
-		return nil, fmt.Errorf("can't separate complex: bad feed '%v'", feed)
+	if len(data) < 3 {
+		return nil, fmt.Errorf("can't separate complex: feed '%v' has less than 3 blocks", feed)
 	}
 	prtFeed := data[len(data)-1]
 	prt := NewMeta(key.META_PRT, prtFeed)

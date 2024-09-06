@@ -2,7 +2,10 @@ package logman
 
 import (
 	"fmt"
+	"os"
 	"strings"
+
+	"github.com/fatih/color"
 )
 
 // This is a convinience function for ProcessMessage.
@@ -92,11 +95,13 @@ func Info(format string, args ...interface{}) error {
 }
 
 // This is a convinience function for ProcessMessage.
-// Debug receives message with map of additional values and writes to output writers of Level DEBUG.
+// Debug receives message with additional comments. Message will be written to writers of Level DEBUG.
+// Comments will be printed to os.Stderr EVEN if message will not be processed.
 // It returns message processing error encountered.
-func Debug(msg Message, values map[string]interface{}) error {
-	for k, val := range values {
-		msg.SetField(k, val)
+func Debug(msg Message, comments ...string) error {
+	for _, comment := range comments {
+		comment = color.HiWhiteString(comment)
+		fmt.Fprintf(os.Stderr, "#%v\n", comment)
 	}
 	if err := process(msg, logMan.logLevels[DEBUG]); err != nil {
 		return err
@@ -105,14 +110,34 @@ func Debug(msg Message, values map[string]interface{}) error {
 }
 
 // This is a convinience function for ProcessMessage.
-// Trace receives message with map of additional values and writes to output writers of Level TRACE.
+// Trace receives message with  additional comments. Message will be written to writers of Level TRACE.
+// Comments will be printed to os.Stderr EVEN if message will not be processed.
 // It returns message processing error encountered.
-func Trace(msg Message, values map[string]interface{}) error {
-	for k, val := range values {
-		msg.SetField(k, val)
+func Trace(msg Message, comments ...string) error {
+	for _, comment := range comments {
+		comment = color.HiWhiteString(comment)
+		fmt.Fprintf(os.Stderr, "#%v\n", comment)
 	}
 	if err := process(msg, logMan.logLevels[TRACE]); err != nil {
 		return err
+	}
+	return nil
+}
+
+// This is a convinience function for ProcessMessage.
+// Ping receives comments. Message with code location will be created and written to writers of Level PING.
+// Comments will be printed to os.Stderr EVEN if message will not be processed.
+// Message processing error encountered will be printed as comment.
+//
+// Never return error.
+func Ping(comments ...string) error {
+	msg := NewMessage("")
+	if err := process(msg, logMan.logLevels[PING]); err != nil {
+		fmt.Fprintf(os.Stderr, "ping error: %v\n", err)
+	}
+	for _, comment := range comments {
+		comment = color.HiBlackString(comment)
+		fmt.Fprintf(os.Stderr, "%v\n", comment)
 	}
 	return nil
 }
