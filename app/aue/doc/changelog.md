@@ -13,6 +13,7 @@ Changes done:
     v 0.3.1:2024-09-06 -- bug fixing: renaming module
 
 TODO:
+    Major -- Develop report via *.ready file
     Major -- Export Task Formats to file
     Major -- Thread Separation: Error handling
     Major -- Thread Separation: Logging
