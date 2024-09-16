@@ -91,7 +91,7 @@ func (ja *jobAdmin) setupTaskList() error {
 	}
 	BUFFER_IN := ja.options.inputDir
 	IN_PROGRESS := ja.options.processingDir
-	EDIT := ja.options.outDir
+	EDIT := ja.options.outDir + ja.options.outDirPrefix
 	DONE := ja.options.doneDir
 
 	switch ja.options.jobType {
@@ -105,6 +105,7 @@ func (ja *jobAdmin) setupTaskList() error {
 			ja.tasks = append(ja.tasks, taskMove(oldPath, newPath))
 		}
 		//encode
+		ja.tasks = append(ja.tasks, taskMakeDir(EDIT))
 		inputPaths := setupPaths(IN_PROGRESS, input[PURPOSE_Input_Media].Name())
 		outputsPaths := setupOutputPaths(EDIT, output)
 		encodeTask := taskEncode(ja.options.jobType, inputPaths[0], outputsPaths...)
@@ -148,6 +149,14 @@ func taskMove(old, new string) task.Task {
 	tskMove := task.NewTask(TASK_MoveFile)
 	tskMove.SetParameters(
 		task.NewParameterData(TASK_PARAM_OldPath, old),
+		task.NewParameterData(TASK_PARAM_NewPath, new),
+	)
+	return tskMove
+}
+
+func taskMakeDir(new string) task.Task {
+	tskMove := task.NewTask(TASK_Make_Dir)
+	tskMove.SetParameters(
 		task.NewParameterData(TASK_PARAM_NewPath, new),
 	)
 	return tskMove

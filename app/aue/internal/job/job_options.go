@@ -9,6 +9,7 @@ type jobOptions struct {
 	processingDir      string
 	doneDir            string
 	outDir             string
+	outDirPrefix       string
 	notificationDir    string
 	directProcessing   bool
 	bashGeneration     bool

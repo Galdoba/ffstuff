@@ -2,7 +2,6 @@ package actions
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/Galdoba/ffstuff/pkg/logman"
 )
@@ -14,13 +13,10 @@ const (
 )
 
 func SelectSourceAction(sourceDir string) (string, error) {
-	fi, err := os.ReadDir(sourceDir)
+
+	filesFound, _, err := ScanDir(sourceDir)
 	if err != nil {
 		return ActionSkip, fmt.Errorf("failed to read project directory: %v", err)
-	}
-	filesFound := []string{}
-	for _, f := range fi {
-		filesFound = append(filesFound, f.Name())
 	}
 	if len(filesFound) == 0 {
 		logman.Warn("%v is empty", sourceDir)

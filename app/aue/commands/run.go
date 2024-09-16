@@ -3,7 +3,6 @@ package commands
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -16,6 +15,7 @@ import (
 )
 
 var cfg *config.Configuration
+var sessionID = timestamplogFormat(time.Now())
 
 func Run() *cli.Command {
 	return &cli.Command{
@@ -38,7 +38,7 @@ func Run() *cli.Command {
 			)
 			log.ClearOutput(log.DEBUG)
 			logPathDefault := cfg.AssetFiles[config.Asset_File_Log]
-			logPathSession := strings.ReplaceAll(logPathDefault, "default.log", "last_session.log")
+			logPathSession := strings.ReplaceAll(logPathDefault, "default.log", "session_"+sessionID+".log")
 			f, err := os.Create(logPathSession)
 			if err != nil {
 				fmt.Println(err)
@@ -57,21 +57,26 @@ func Run() *cli.Command {
 			return nil
 		},
 		Action: func(c *cli.Context) error {
-			log.Info("start: aue run")
+			log.Info("aue start session: %v", sessionID)
 			in_dir := cfg.IN_DIR
+			failCounter := 0
 			for {
+
 				//return fmt.Errorf("testining config exit")
 				log.Debug(log.NewMessage(fmt.Sprintf("scan root directory")))
-				fi, err := os.ReadDir(in_dir)
+				rootFiles, projects, err := actions.ScanDir(in_dir)
 				if err != nil {
-					log.Fatalf(fmt.Sprintf("directory '%v' reading failed: %v", in_dir, err.Error()))
-					return err
-				}
-				projects := []string{}
-				for _, f := range fi {
-					if f.IsDir() {
-						projects = append(projects, fmt.Sprintf("%v%v", cfg.IN_DIR, f.Name()))
+					log.Errorf(fmt.Sprintf("directory '%v' reading failed: %v", in_dir, err.Error()))
+					failCounter++
+					if failCounter%5 == 0 {
+						fmt.Println("TODO: Alert!!")
+						return err
 					}
+					continue
+
+				}
+				if len(rootFiles) == 0 {
+					log.Errorf("no metadata files detected")
 				}
 
 				if len(projects) == 0 {
@@ -79,12 +84,12 @@ func Run() *cli.Command {
 				}
 
 				for _, project := range projects {
+					proj_dir := in_dir + "/" + project + "/"
 
-					projName := filepath.Base(project)
-					log.Printf("start project: %v", projName)
+					log.Printf("start project: %v", project)
 					sources := []*sourcefile.SourceFile{}
 					//Project Setup
-					selectedAction, err := actions.SelectSourceAction(project)
+					selectedAction, err := actions.SelectSourceAction(proj_dir)
 					if err != nil {
 						log.Error(err)
 						continue
@@ -94,27 +99,27 @@ func Run() *cli.Command {
 						log.Error(fmt.Errorf("unimplemented action selected: '%v'", selectedAction))
 						continue
 					case actions.ActionRemoveProject:
-						if err := actions.RemoveProject(project); err != nil {
+						if err := actions.RemoveProject(proj_dir); err != nil {
 							log.Error(err)
 						}
-						log.Info("end project: %v (clean)", projName)
+						log.Info("end project: %v (clean)", project)
 						continue
 					case actions.ActionSkip:
-						log.Info("end project: %v (skip)", projName)
+						log.Info("end project: %v (skip)", project)
 						continue
 					case actions.ActionSetup:
-						sourcesCreated, err := actions.SetupSources(project, cfg.BUFFER_DIR, cfg.AssetFiles[config.Asset_File_Serial_data])
+						sourcesCreated, err := actions.SetupSources(proj_dir, cfg.BUFFER_DIR, cfg.AssetFiles[config.Asset_File_Serial_data])
 						if err != nil {
-							log.Warn("end project: %v (failed)", projName)
+							log.Warn("end project: %v (failed)", project)
 							continue
 						}
 						if len(sourcesCreated) == 0 {
-							log.Debug(log.NewMessage("project %v: no sources created", projName))
-							log.Warn("end project: %v (skip)", projName)
+							log.Debug(log.NewMessage("project %v: no sources created", project))
+							log.Warn("end project: %v (skip)", project)
 							continue
 						}
 						sources = sourcesCreated
-						f, err := os.Create(project + "/" + "lock")
+						f, err := os.Create(proj_dir + "lock")
 						if err != nil {
 							log.Warn("failed to lock %v", project)
 						}
@@ -156,7 +161,7 @@ func Run() *cli.Command {
 						continue
 						//return err
 					}
-					log.Info("end project: %v (success)", projName)
+					log.Info("end project: %v (success)", project)
 
 				}
 
@@ -228,4 +233,14 @@ func numToStr(n int) string {
 		s = "0" + s
 	}
 	return s
+}
+
+func timestamplogFormat(tm time.Time) string {
+	format := "060102150405"
+	formatLen := len(format)
+	stamp := tm.Format(format)
+	for len(stamp) < formatLen {
+		stamp += "0"
+	}
+	return stamp
 }

@@ -9,14 +9,16 @@ import (
 	target "github.com/Galdoba/ffstuff/app/aue/internal/files/targetfile"
 	"github.com/Galdoba/ffstuff/app/aue/internal/media"
 	"github.com/Galdoba/ffstuff/app/aue/internal/metainfo"
+	"github.com/Galdoba/ffstuff/pkg/logman"
 )
 
 type fileBridge struct {
-	sourceFiles     []*source.SourceFile
-	metaInfo        metainfo.Collection
-	targetFiles     []*target.TargetFile
-	targetsModified []target.TargetFile
-	outputBase      string
+	sourceFiles       []*source.SourceFile
+	metaInfo          metainfo.Collection
+	targetFiles       []*target.TargetFile
+	targetsModified   []target.TargetFile
+	outputBase        string
+	destinationPrefix string
 }
 
 func New() *fileBridge {
@@ -85,6 +87,7 @@ func (br *fileBridge) sealConnections() error {
 
 	}
 	br.defineProjectName()
+	br.calculateEditDir()
 	err := br.updateTargets()
 	if err != nil {
 		return fmt.Errorf("sealing failed: %v", err)
@@ -114,7 +117,6 @@ func (br *fileBridge) updateTargets() error {
 			return fmt.Errorf("target was modified before: %v", target)
 		}
 		target.ExpectedName += br.ProjectBase()
-
 		switch target.ClaimedGoal {
 		case PURPOSE_Output_Video:
 			target.ExpectedName += "_HD.mp4"
@@ -127,6 +129,15 @@ func (br *fileBridge) updateTargets() error {
 		}
 		br.targetFiles[i] = target
 	}
+	return nil
+}
+
+func (br *fileBridge) calculateEditDir() error {
+	if len(br.targetFiles) == 0 {
+		logman.Warn("edit path omited: no target files received")
+		return nil
+	}
+	br.destinationPrefix = br.metaInfo.Show(META_Base) + "_" + br.metaInfo.Show(META_Season) + "/"
 	return nil
 }
 
@@ -199,4 +210,8 @@ func (br *fileBridge) Targets() []*target.TargetFile {
 
 func (br *fileBridge) ProjectBase() string {
 	return br.outputBase
+}
+
+func (br *fileBridge) DestinationPrefix() string {
+	return br.destinationPrefix
 }

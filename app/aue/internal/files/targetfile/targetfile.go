@@ -7,10 +7,11 @@ import (
 )
 
 type TargetFile struct {
-	ClaimedGoal        string
-	UsedSourcesNames   []string
-	ExpectedName       string
-	ExpectedStreamType string
+	ClaimedGoal            string
+	UsedSourcesNames       []string
+	ExpectedName           string
+	ExpectedStreamType     string
+	ExpectedDestinationDir string
 }
 
 func New(goal string, sources []string) *TargetFile {

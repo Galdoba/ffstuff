@@ -11,6 +11,7 @@ Changes done:
     v 0.2.3:2024-08-30 -- Reimplement sourcecollector's renaming module.
     v 0.3.0:2024-09-05 -- Implement Logging
     v 0.3.1:2024-09-06 -- bug fixing: renaming module
+    v 0.3.2:2024-09-16 -- result files routing
 
 TODO:
     Major -- Develop report via *.ready file
@@ -25,7 +26,7 @@ TODO:
     Minor -- Unbind devtools/command library
     Minor -- Relocate to own Repo and create testing branch
     Minor -- Clean bash files
-    Minor -- Move Source setup to Processing
+    Minor -- Move Source setup to Processing thread
     Minor -- Test: actions
     Minor -- Test: bashgen
     Minor -- Test: sourcefile

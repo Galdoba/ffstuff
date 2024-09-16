@@ -54,11 +54,11 @@ func (ja *jobAdmin) DecideType() error {
 	}
 	ja.source = br.Sources()
 	ja.target = br.Targets()
+	ja.options.outDirPrefix = br.DestinationPrefix()
 	ja.name = br.ProjectBase()
 	if err := approveSources(ja.source, ja.options.jobType); err != nil {
-		return fmt.Errorf("job decidion failed: %v", err)
+		return logman.Errorf("job decidion failed: %v", err)
 	}
-	logman.Ping("end")
 	return nil
 }
 
@@ -70,10 +70,16 @@ func (ja *jobAdmin) CompileTasks() error {
 func (ja *jobAdmin) Execute() error {
 	for _, err := range []error{
 		generateBashFiles(ja),
+	} {
+		if err != nil {
+			return logman.Errorf("job '%v': bash generation failed: %v", ja.ProjectName(), err)
+		}
+	}
+	for _, err := range []error{
 		processDirectly(ja),
 	} {
 		if err != nil {
-			return fmt.Errorf("job '%v' execution failed: %v", ja.ProjectName(), err)
+			return logman.Errorf("job '%v': direct execution failed: %v", ja.ProjectName(), err)
 		}
 	}
 
@@ -90,7 +96,7 @@ func generateBashFiles(ja *jobAdmin) error {
 		if err := gen.GenerateBash(ja.tasks); err != nil {
 			return logman.Errorf("bash generation failed: %v", err)
 		}
-		logman.Println("bash generated")
+		logman.Info("bash generated")
 	}
 	return nil
 }
@@ -101,6 +107,7 @@ func processDirectly(ja *jobAdmin) error {
 			if err := t.Execute(); err != nil {
 				return fmt.Errorf("task execution failed: %v", t.String())
 			}
+			logman.Info("direct execution completed")
 		}
 	}
 	return nil
