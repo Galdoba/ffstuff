@@ -137,7 +137,7 @@ func (br *fileBridge) calculateEditDir() error {
 		logman.Warn("edit path omited: no target files received")
 		return nil
 	}
-	br.destinationPrefix = br.metaInfo.Show(META_Base) + "_" + br.metaInfo.Show(META_Season) + "/"
+	br.destinationPrefix = br.metaInfo.Show(META_Base) + "_s" + br.metaInfo.Show(META_Season) + "/"
 	return nil
 }
 
