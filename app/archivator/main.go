@@ -5,17 +5,18 @@ import (
 	"os"
 
 	"github.com/Galdoba/ffstuff/app/archivator/commands"
+	"github.com/Galdoba/ffstuff/pkg/stdpath"
 	"github.com/urfave/cli/v2"
 )
 
 func main() {
 
 	app := cli.NewApp()
-
 	app.Version = "0.0.1"
 	app.Usage = "track/send/retrive files from archve"
 	app.Description = "TODO: Description"
 	app.Flags = []cli.Flag{}
+	stdpath.SetAppName(app.Name)
 
 	//ДО НАЧАЛА ДЕЙСТВИЯ
 	app.Before = func(c *cli.Context) error {
@@ -24,6 +25,7 @@ func main() {
 	}
 	app.Commands = []*cli.Command{
 		commands.Health(),
+		commands.Setup(),
 	}
 
 	//ПО ОКОНЧАНИЮ ДЕЙСТВИЯ

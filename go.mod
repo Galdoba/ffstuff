@@ -1,11 +1,9 @@
 module github.com/Galdoba/ffstuff
 
-go 1.21
-
-//toolchain go1.21.6
+go 1.18
 
 require (
-	github.com/Galdoba/devtools v0.0.0-20240819031827-cc60df8daa89
+	github.com/Galdoba/devtools v0.0.0-20240920010929-e26ac7eca93f
 	github.com/Galdoba/utils v0.0.0-20211006043430-41d7b3fa4b0a
 	github.com/fatih/color v1.17.0
 	github.com/k0kubun/go-ansi v0.0.0-20180517002512-3bf9e2903213
@@ -15,15 +13,15 @@ require (
 	github.com/mattn/go-runewidth v0.0.16
 	github.com/nsf/termbox-go v1.1.1
 	github.com/olekukonko/tablewriter v0.0.5
-	github.com/urfave/cli/v2 v2.27.2
+	github.com/urfave/cli/v2 v2.27.4
 	golang.design/x/clipboard v0.7.0
 	gopkg.in/AlecAivazis/survey.v1 v1.8.8
 	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
-	cloud.google.com/go/auth v0.9.3 // indirect
-	cloud.google.com/go/auth/oauth2adapt v0.2.4 // indirect
+	cloud.google.com/go/auth v0.1.1 // indirect
+	cloud.google.com/go/auth/oauth2adapt v0.1.0 // indirect
 	cloud.google.com/go/compute v1.23.3 // indirect
 	cloud.google.com/go/compute/metadata v0.5.0 // indirect
 	github.com/atotto/clipboard v0.1.4 // indirect
@@ -43,10 +41,10 @@ require (
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
-	github.com/google/s2a-go v0.1.8 // indirect
+	github.com/google/s2a-go v0.1.7 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.3 // indirect
-	github.com/googleapis/gax-go/v2 v2.13.0 // indirect
+	github.com/googleapis/gax-go/v2 v2.12.2 // indirect
 	github.com/gookit/color v1.5.4 // indirect
 	github.com/mitchellh/hashstructure/v2 v2.0.2 // indirect
 	github.com/stretchr/testify v1.9.0 // indirect
@@ -96,7 +94,7 @@ require (
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/swallowstalker/postopush v0.0.0-20190802102728-6ec7e791aff1 // indirect
 	github.com/urfave/cli/v3 v3.0.0-alpha9
-	github.com/xrash/smetrics v0.0.0-20240312152122-5f08fbb34913 // indirect
+	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect
 	golang.org/x/exp/shiny v0.0.0-20231226003508-02704c960a9b // indirect
 	golang.org/x/image v0.14.0 // indirect
 	golang.org/x/mobile v0.0.0-20231127183840-76ac6878050a // indirect
@@ -104,7 +102,7 @@ require (
 	golang.org/x/sys v0.24.0 // indirect
 	golang.org/x/term v0.23.0 // indirect
 	golang.org/x/text v0.17.0 // indirect
-	google.golang.org/api v0.196.0
+	google.golang.org/api v0.165.0
 	gopkg.in/toast.v1 v1.0.0-20180812000517-0a84660828b2 // indirect
 	gopkg.in/yaml.v2 v2.4.0
 )

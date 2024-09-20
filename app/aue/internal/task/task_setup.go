@@ -29,7 +29,7 @@ func NewTask(name string) *cliTask {
 		ct.parameter[bashFormat] = fmt.Sprintf("cp {%v} {%v}", TASK_PARAM_OldPath, TASK_PARAM_NewPath)
 		ct.execFunc = copyFileFunc
 	case TASK_Make_Dir:
-		ct.parameter[bashFormat] = fmt.Sprintf("mkdir {%v}", TASK_PARAM_NewPath)
+		ct.parameter[bashFormat] = fmt.Sprintf("mkdir {%v} || continue", TASK_PARAM_NewPath)
 		ct.execFunc = makeDirFunc
 	case TASK_Encode_v1a1:
 		ct.parameter[bashFormat] = fmt.Sprintf("ffmpeg -n -r 25 -i {%v} "+

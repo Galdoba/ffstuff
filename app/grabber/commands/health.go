@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/Galdoba/ffstuff/app/archivator/config"
+	"github.com/Galdoba/ffstuff/app/grabber/config"
 	"github.com/Galdoba/ffstuff/pkg/stdpath"
 	"github.com/urfave/cli/v2"
 )
@@ -13,7 +13,7 @@ func Health() *cli.Command {
 	return &cli.Command{
 		Name: "health",
 		//Aliases:     []string{"fs"},
-		Usage: "check program files",
+		Usage: "TODO: Check program files",
 
 		BashComplete: func(*cli.Context) {
 		},
@@ -39,12 +39,12 @@ func Health() *cli.Command {
 						),
 					)
 				}
-				if cfg.SOURCE_ROOT_PATH == "" {
-					it.addIssue(newIssue(fmt.Sprintf("Config: source root not set"),
-						issueSolution("run: archivator setup"),
-					))
-				}
-				if cfg.DESTINATION_ROOT_PATH == "" {
+				// if cfg.SOURCE_ROOT_PATH == "" {
+				// 	it.addIssue(newIssue(fmt.Sprintf("Config: source root not set"),
+				// 		issueSolution("run: archivator setup"),
+				// 	))
+				// }
+				if cfg.DEFAULT_DESTINATION == "" {
 					it.addIssue(newIssue(fmt.Sprintf("Config: destination root not set"),
 						issueSolution("run: archivator setup"),
 					))

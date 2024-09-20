@@ -3,37 +3,25 @@ package config
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 
+	"github.com/Galdoba/ffstuff/pkg/stdpath"
 	"gopkg.in/yaml.v3"
 )
 
 const (
-	ARCHIVE_ROOT_PATH        = "Direct"
-	PROCESSING_MODE_BASH     = "Bash"
-	Undefined                = "UNDEFINED"
-	Asset_File_Log           = "Asset_File_Log"
-	Asset_File_Serial_data   = "Asset_File_Serial_data"
-	Asset_File_Movie_data    = "Asset_File_Movie_data"
-	Asset_File_Stats_Global  = "Asset_File_Stats_Global"
-	Asset_File_Stats_Session = "Asset_File_Stats_Session"
+	DESTINATION_ROOT_PATH = "Direct"
+	SOURCE_ROOT_PATH      = "Bash"
 )
 
 type Configuration struct {
-	Version           string `yaml:"version"`
-	ARCHIVE_ROOT_PATH string `yaml:"Directory: Archive Root"`
-	LOG               string `yaml:"File     : Log         "`
-	DB                string `yaml:"File     : Index File  "`
+	Version               string `yaml:"version"`
+	SOURCE_ROOT_PATH      string `yaml:"Directory: Source Root"`
+	DESTINATION_ROOT_PATH string `yaml:"Directory: Destination Root"`
+	LOG                   string `yaml:"File     : Log         "`
 }
 
-var sep string = string(filepath.Separator)
-
-func configDir() string {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		panic("can't get userhome")
-	}
-	return fmt.Sprintf("%v%v.config%varchivator%v", home, sep, sep, sep)
+func init() {
+	stdpath.SetAppName("archivator")
 }
 
 func Load(key ...string) (*Configuration, error) {
@@ -41,7 +29,7 @@ func Load(key ...string) (*Configuration, error) {
 	for _, k := range key {
 		confKey = k
 	}
-	path := configDir() + confKey + ".config"
+	path := stdpath.ConfigFile(confKey)
 	bt, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("can't read config file: %v", err)
@@ -61,15 +49,16 @@ func Save(cfg *Configuration, key ...string) error {
 	}
 	bt, err := yaml.Marshal(cfg)
 	if err != nil {
-		fmt.Errorf("config marshaling failed: %v", err)
+		return fmt.Errorf("config marshaling failed: %v", err)
 	}
-	f, err := os.Create(configDir() + confKey + ".config")
+	path := stdpath.ConfigFile(confKey)
+	f, err := os.Create(path)
 	if err != nil {
-		fmt.Errorf("%v config file creation failed: %v", confKey, err)
+		return fmt.Errorf("%v config file creation failed: %v", confKey, err)
 	}
 	_, err = f.Write(bt)
 	if err != nil {
-		fmt.Errorf("%v config file writing failed: %v", confKey, err)
+		return fmt.Errorf("%v config file writing failed: %v", confKey, err)
 	}
 	return nil
 }
@@ -77,8 +66,8 @@ func Save(cfg *Configuration, key ...string) error {
 func NewConfig(version string) *Configuration {
 	cfg := Configuration{}
 	cfg.Version = version
-	cfg.ARCHIVE_ROOT_PATH = Undefined
-	cfg.LOG = Undefined
-	cfg.DB = Undefined
+	cfg.SOURCE_ROOT_PATH = ""
+	cfg.DESTINATION_ROOT_PATH = ""
+	cfg.LOG = ""
 	return &cfg
 }
