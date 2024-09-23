@@ -28,10 +28,10 @@ func Health() *cli.Command {
 			it := newIssueTracker()
 			cfg, err := config.Load()
 			if err != nil {
-				it.addIssue(newIssue(fmt.Sprintf("Config: failed to load"), issueErr(err), issueSolution("run: 'archivator setup'")))
+				return fmt.Errorf("no config detected\nsolution: run 'grabber setup'")
 			}
 			if cfg != nil {
-				if cfg.Version == c.App.Version {
+				if cfg.Version != c.App.Version {
 					it.addIssue(
 						newIssue(fmt.Sprintf("Config: config version (%v) does not match with app version (%v)", cfg.Version, c.App.Version),
 							issueSolution(
@@ -39,22 +39,11 @@ func Health() *cli.Command {
 						),
 					)
 				}
-				// if cfg.SOURCE_ROOT_PATH == "" {
-				// 	it.addIssue(newIssue(fmt.Sprintf("Config: source root not set"),
-				// 		issueSolution("run: archivator setup"),
-				// 	))
-				// }
-				if cfg.DEFAULT_DESTINATION == "" {
-					it.addIssue(newIssue(fmt.Sprintf("Config: destination root not set"),
-						issueSolution("run: archivator setup"),
-					))
+			}
+			for i, err := range config.Validate(cfg) {
+				if err != nil {
+					it.addIssue(newIssue(fmt.Sprintf("config issue %v", i+1), issueErr(err)))
 				}
-				if cfg.LOG == "" {
-					it.addIssue(newIssue(fmt.Sprintf("Config: logfile not set"),
-						issueSolution("run: archivator setup"),
-					))
-				}
-
 			}
 			it.report()
 			return nil

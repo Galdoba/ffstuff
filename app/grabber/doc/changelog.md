@@ -1,0 +1,16 @@
+Versioning:
+    Relese.Major.Minor:Release Date
+
+Changes done:
+    v 0.0.1:240923 -- Initial commit
+    
+
+TODO:
+    Major -- New Command: health (check config/paths/etc...)
+    Major -- New Command: setup (setup config)
+    Major -- New Command: config (deep config modification - replace Setup)
+    Major -- New Command: grab (single copy task)
+    Major -- New Command: run (continiuos session handling)
+    
+    Minor -- Test: all
+
