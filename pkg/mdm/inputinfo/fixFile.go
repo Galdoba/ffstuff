@@ -168,8 +168,8 @@ func gatherInfo() []inputdata {
 	return allData
 }
 
-//, from 'Chetyre_sezona_v_gavane_s01_05_PRT230109004417_SER_00079_18.mp4':
-//Input #0, mov,mp4,m4a,3gp,3g2,mj2, from '\\nas\ROOT\IN\@TRAILERS\_DONE\5_neizvestnyh_TRL\5_neizvestnyh_Trailer_20_rus_eng_HD.mov':
+// , from 'Chetyre_sezona_v_gavane_s01_05_PRT230109004417_SER_00079_18.mp4':
+// Input #0, mov,mp4,m4a,3gp,3g2,mj2, from '\\nas\ROOT\IN\@TRAILERS\_DONE\5_neizvestnyh_TRL\5_neizvestnyh_Trailer_20_rus_eng_HD.mov':
 func skipTrashData(original inputdata) inputdata {
 	fixed := inputdata{}
 	for _, line := range original.data {

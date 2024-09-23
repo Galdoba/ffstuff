@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 
-	log "github.com/sirupsen/logrus"
+	log "github.com/Galdoba/ffstuff/pkg/logman"
 	"golang.org/x/oauth2/google"
 
 	"google.golang.org/api/option"

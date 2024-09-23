@@ -39,7 +39,7 @@ TZ:
 
 var configMap map[string]string
 
-//var logger glog.Logger
+// var logger glog.Logger
 var username string
 var programName string
 

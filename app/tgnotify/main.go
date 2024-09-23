@@ -262,34 +262,34 @@ func main() {
 			Action: func(c *cli.Context) error {
 
 				//https://t.me/c/1338947033/144079
-				token := cfg.ApiToken()
-				fmt.Println(token)
-				bot, err := tgbotapi.NewBotAPI(token)
-				if err != nil {
-					fmt.Println(token)
-					return fmt.Errorf("create bot api: %v", err.Error())
-				}
+				// token := cfg.ApiToken()
+				// fmt.Println(token)
+				// bot, err := tgbotapi.NewBotAPI(token)
+				// if err != nil {
+				// 	fmt.Println(token)
+				// 	return fmt.Errorf("create bot api: %v", err.Error())
+				// }
 
-				chatKey := c.String("to_chat")
-				chats := cfg.ChatChannels()
-				if _, ok := chats[chatKey]; ok != true {
-					return fmt.Errorf("no key '%v' found in config file", chatKey)
-				}
+				// chatKey := c.String("to_chat")
+				// chats := cfg.ChatChannels()
+				// if _, ok := chats[chatKey]; ok != true {
+				// 	return fmt.Errorf("no key '%v' found in config file", chatKey)
+				// }
 
-				chatID, _, err := ChatIDAndChatTopic(chatKey)
-				if err != nil {
-					return err
-				}
+				// chatID, _, err := ChatIDAndChatTopic(chatKey)
+				// if err != nil {
+				// 	return err
+				// }
 
-				chatConfig := tgbotapi.NewForward()
-				chatConfig.ChatID = chatID
-				chatConfig.SuperGroupUsername = chatKey
+				// chatConfig := tgbotapi.NewForward()
+				// chatConfig.ChatID = chatID
+				// chatConfig.SuperGroupUsername = chatKey
 
-				chatData, err := bot.GetChat(chatConfig)
-				if err != nil {
-					fmt.Println("chatErr", err.Error())
-				}
-				fmt.Println(chatData.PinnedMessage.Text)
+				// chatData, err := bot.GetChat(chatConfig)
+				// if err != nil {
+				// 	fmt.Println("chatErr", err.Error())
+				// }
+				// fmt.Println(chatData.PinnedMessage.Text)
 
 				// editMsgSignal := tgbotapi.NewEditMessageText(chatID, topic, "edited message")
 				// editMsgSignal.ParseMode = tgbotapi.ModeHTML

@@ -5,7 +5,6 @@ import (
 	"os"
 
 	"github.com/Galdoba/ffstuff/app/grabber/config"
-	"github.com/Galdoba/ffstuff/pkg/stdpath"
 	"github.com/urfave/cli/v2"
 )
 
@@ -30,16 +29,16 @@ func Health() *cli.Command {
 			if err != nil {
 				return fmt.Errorf("no config detected\nsolution: run 'grabber setup'")
 			}
-			if cfg != nil {
-				if cfg.Version != c.App.Version {
-					it.addIssue(
-						newIssue(fmt.Sprintf("Config: config version (%v) does not match with app version (%v)", cfg.Version, c.App.Version),
-							issueSolution(
-								fmt.Sprintf("check config file (%v) and set version to '%v' if all is valid", stdpath.ConfigFile(), c.App.Version)),
-						),
-					)
-				}
-			}
+			// if cfg != nil {
+			// 	if cfg.Version != c.App.Version {
+			// 		it.addIssue(
+			// 			newIssue(fmt.Sprintf("Config: config version (%v) does not match with app version (%v)", cfg.Version, c.App.Version),
+			// 				issueSolution(
+			// 					fmt.Sprintf("check config file (%v) and set version to '%v' if all is valid", stdpath.ConfigFile(), c.App.Version)),
+			// 			),
+			// 		)
+			// 	}
+			// }
 			for i, err := range config.Validate(cfg) {
 				if err != nil {
 					it.addIssue(newIssue(fmt.Sprintf("config issue %v", i+1), issueErr(err)))

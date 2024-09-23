@@ -1,8 +1,0 @@
-Root,string,Search Root,false,, , 
-WhLst,[]string,White List,false,, , 
-BlLst,[]string,Black List,false,, , 
-BlLstEnbl,bool,Black List Enabled,false,, , 
-WhLstEnbl,bool,White List Enabled,false,, , 
-UpdtCycl,int,Update Cycle,false,seconds,default,15
-MaxThreads,int,Maximum Search Threads,false,,default,4
-encoding,yaml, , , , , 

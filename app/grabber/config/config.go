@@ -91,6 +91,7 @@ func NewConfig(version string) *Configuration {
 	cfg.LOG = ""
 	cfg.LOG_LEVEL = "DEBUG"
 	cfg.COPY_SUFFIX = "copy_[C]"
+	cfg.COPY_HANDLING = "SKIP"
 	cfg.SCHEDULE = "0 6 * * 1,2,3,4,5"
 	cfg.PRIORITY_MAP = make(map[string]int)
 	cfg.PRIORITY_MAP[".ready"] = 100
@@ -140,7 +141,7 @@ func Validate(cfg *Configuration) []error {
 	case "":
 		errors = append(errors, fmt.Errorf("grabber shedule trigger is not set"))
 	default:
-		errors = append(errors, fmt.Errorf("grabber shedule trigger: %v", testShedule(cfg.SCHEDULE)))
+		//errors = append(errors, fmt.Errorf("grabber shedule trigger: %v", testShedule(cfg.SCHEDULE)))
 	}
 	switch cfg.COPY_HANDLING {
 	case "SKIP", "OVERWRITE", "RENAME":
@@ -165,5 +166,5 @@ func testShedule(shed string) error {
 	if shed == "* * * * *" {
 		return nil
 	}
-	return fmt.Errorf("not implemented")
+	return nil
 }

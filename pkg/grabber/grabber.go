@@ -5,16 +5,14 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strconv"
 	"time"
 
-	"github.com/Galdoba/ffstuff/pkg/glog"
-	"github.com/Galdoba/ffstuff/pkg/namedata"
-	"github.com/Galdoba/ffstuff/pkg/stamp"
-	"github.com/Galdoba/utils"
+	"github.com/Galdoba/ffstuff/pkg/logman"
 )
 
-//CopyFile - takes file path, and making a copy of the file in the destination directory
+// CopyFile - takes file path, and making a copy of the file in the destination directory
 func CopyFile(source string, destination string, flags ...bool) error {
 	vocal := false
 	if len(flags) > 0 {
@@ -38,7 +36,7 @@ func CopyFile(source string, destination string, flags ...bool) error {
 	}
 
 	//check earlirer copies
-	srcBase := namedata.RetrieveShortName(source)
+	srcBase := filepath.Base(source)
 	_, err := os.Stat(destination + srcBase)
 	if err == nil {
 		fmt.Printf("Copy exists: %v%v\n", destination, srcBase)
@@ -100,7 +98,7 @@ func CopyFile(source string, destination string, flags ...bool) error {
 }
 
 func copyContent(source, destination string) error {
-	srcBase := namedata.RetrieveShortName(source)
+	srcBase := filepath.Base(source)
 	in, err := os.Open(source)
 	if err != nil {
 		return err
@@ -233,7 +231,7 @@ func finishETA(bts, size, speed int64) string {
 	left := size - bts
 	secs := left / speed
 	//return secondsStamp(secs)
-	return stamp.Seconds(secs)
+	return Seconds(secs)
 }
 
 func secondsStamp(seconds int64) string {
@@ -264,42 +262,31 @@ func secondsStamp(seconds int64) string {
 // 	LogError(error) error
 // }
 
-func LogWith(l glog.Logger, err error) error {
-	if err != nil {
-		l.ERROR(err.Error())
-		return err
-	}
-	return nil
-}
-
-func Download(logger glog.Logger, source, destination string) error {
-	if utils.InFileContains("c:\\Users\\pemaltynov\\.ffstuff\\dowloaded.txt", source) != -1 {
-		return LogWith(logger, errors.New("file was downloaded recently"))
-	}
+func Download(source, destination string) error {
 
 	srcInfo, errS := os.Stat(source)
 	if errS != nil {
-		return LogWith(logger, errors.New("source: "+errS.Error()))
+		logman.Errorf("source: " + errS.Error())
 	}
 	if !srcInfo.Mode().IsRegular() { // cannot copy non-regular files (e.g., directories, symlinks, devices, etc.)
-		return LogWith(logger, errors.New("cannot copy source: "+srcInfo.Name()+" ("+srcInfo.Mode().String()+")"))
+		logman.Errorf("cannot copy source: " + srcInfo.Name() + " (" + srcInfo.Mode().String() + ")")
 	}
 	//destinations checks
 	destInfo, errD := os.Stat(destination)
 	if errD != nil {
-		return LogWith(logger, errors.New("destination: "+errD.Error()))
+		logman.Errorf("destination: " + errD.Error())
 	}
 	if !destInfo.IsDir() {
-		return LogWith(logger, errors.New("Destination is not a directory: "+destInfo.Name()))
+		logman.Errorf("Destination is not a directory: " + destInfo.Name())
 	}
 
 	//check earlirer copies
-	srcBase := namedata.RetrieveShortName(source)
+	srcBase := filepath.Base(source)
 	copyInfo, err := os.Stat(destination + srcBase)
 	if err == nil {
-		logger.TRACE("copy exists: " + destination + srcBase)
+		logman.Trace(logman.NewMessage("copy exists: " + destination + srcBase))
 		if srcInfo.Size() != copyInfo.Size() {
-			LogWith(logger, errors.New("file sizes does not match"))
+			logman.Errorf("file sizes does not match")
 			return errors.New("copy sizes does not match")
 		}
 		return errors.New("valid copy exists")
@@ -307,21 +294,21 @@ func Download(logger glog.Logger, source, destination string) error {
 	//copy
 	in, err := os.Open(source)
 	if err != nil {
-		return LogWith(logger, err)
+		logman.Error(err)
 	}
 	defer in.Close()
 	out, err := os.Create(destination + srcBase)
 	if err != nil {
-		return LogWith(logger, err)
+		logman.Error(err)
 	}
 	defer out.Close()
 
 	go copyContent(source, destination)
-	logger.INFO(namedata.RetrieveShortName(source) + " --> " + destination)
+	logman.Info(filepath.Base(source) + " --> " + destination)
 	doneCopying := false
 	sourceSize := srcInfo.Size()
 	if sourceSize == 0 {
-		return LogWith(logger, errors.New("source size = 0 bytes"))
+		logman.Errorf("source size = 0 bytes")
 	}
 	time.Sleep(time.Second)
 	speedArray := []int64{}
@@ -333,7 +320,7 @@ func Download(logger glog.Logger, source, destination string) error {
 			speedArray = speedArray[1:]
 		}
 		if err != nil {
-			LogWith(logger, err)
+			logman.Error(err)
 		}
 		time.Sleep(time.Millisecond * 1000)
 		msg := downloadbar(copySize, sourceSize, speedArray)
@@ -344,7 +331,7 @@ func Download(logger glog.Logger, source, destination string) error {
 		fmt.Print(msg)
 		//logger.TRACE(msg)
 	}
-	utils.AddLineToFile("c:\\Users\\pemaltynov\\.ffstuff\\dowloaded.txt", source)
+
 	return nil
 }
 
@@ -433,4 +420,27 @@ func CopyM(out io.Writer, in io.Reader) error {
 		err = e
 	}
 	return err
+}
+
+func Seconds(seconds int64) string {
+	hh := seconds / 3600
+	mm := (seconds - (hh * 3600)) / 60
+	for mm > 60 {
+		hh++
+		mm -= 60
+	}
+	ss := seconds % 60
+	hStr := strconv.Itoa(int(hh))
+	mStr := strconv.Itoa(int(mm))
+	sStr := strconv.Itoa(int(ss))
+	if len(hStr) < 2 {
+		hStr = "0" + hStr
+	}
+	if len(mStr) < 2 {
+		mStr = "0" + mStr
+	}
+	if len(sStr) < 2 {
+		sStr = "0" + sStr
+	}
+	return hStr + ":" + mStr + ":" + sStr
 }

@@ -3,6 +3,7 @@ Versioning:
 
 Changes done:
     v 0.0.1:240923 -- Initial commit
+    v 0.1.0:240923 -- Direct copy prototype
     
 
 TODO:
