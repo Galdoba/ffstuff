@@ -2,17 +2,20 @@ package commands
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/Galdoba/ffstuff/app/grabber/config"
 	"github.com/Galdoba/ffstuff/app/grabber/internal/actions"
+	"github.com/Galdoba/ffstuff/app/grabber/internal/copyprocess"
 	"github.com/Galdoba/ffstuff/app/grabber/internal/validation"
 	"github.com/Galdoba/ffstuff/pkg/logman"
 	"github.com/urfave/cli/v2"
 )
 
 var dest string
+var sortMethod string
 
 var cfg *config.Configuration
 
@@ -54,16 +57,29 @@ func Grab() *cli.Command {
 			if err := validateDestination(c); err != nil {
 				return err
 			}
-			args, err := validateArguments(c)
+			sources, err := validateArguments(c)
 			if err != nil {
 				return err
 			}
-			logman.Printf("grab to %v\n", dest)
-			sorted := sortOrder(args...)
-			fmt.Println("sorting...")
-			for _, arg := range sorted {
-				actions.CopyFile(arg, dest, true)
-			}
+
+			//create new action
+			copyAction := copyprocess.NewCopyAction(
+				copyprocess.WithSourcePaths(sources...),
+				copyprocess.WithDestination(dest),
+			)
+
+			//start action
+			copyAction.Start()
+			// logman.Printf("grab to %v\n", dest)
+			// sorted := sortOrder(args...)
+			// fmt.Println("sorting...")
+			// for _, arg := range sorted {
+			// 	err := actions.CopyFile(arg, dest)
+			// 	if err != nil {
+			// 		logman.Error(err)
+			// 	}
+			// 	handleOrigins(arg)
+			// }
 
 			logman.Debug(logman.NewMessage("end   'grub'"))
 			return nil
@@ -81,6 +97,21 @@ func Grab() *cli.Command {
 				Value:       "",
 				Destination: new(string),
 				Aliases:     []string{"d"},
+			},
+			&cli.BoolFlag{
+				Name:    "size_sort",
+				Usage:   "use sort by size method (overwrite config)",
+				Aliases: []string{"ss"},
+			},
+			&cli.BoolFlag{
+				Name:    "priority_sort",
+				Usage:   "use sort by priority method (overwrite config)",
+				Aliases: []string{"ps"},
+			},
+			&cli.BoolFlag{
+				Name:    "no_sort",
+				Usage:   "use no sort method (overwrite config)",
+				Aliases: []string{"ns"},
 			},
 		},
 		SkipFlagParsing:        false,
@@ -109,42 +140,94 @@ func validateDestination(c *cli.Context) error {
 	return nil
 }
 
-func validateArguments(c *cli.Context) ([]string, error) {
-	args := c.Args().Slice()
-	if len(args) == 0 {
-		return args, logman.Errorf("no argumets provided: grabber grab expect source files as arguments")
+func validateSortMethod(c *cli.Context) error {
+	sortMethod = cfg.SORT_METHOD
+	sum := 0
+	for _, val := range []bool{c.Bool("ss"), c.Bool("ps"), c.Bool("ns")} {
+		if val {
+			sum++
+		}
 	}
-	return args, nil
+	if sum > 1 {
+		fmt.Errorf("flags -ss (%v), -ps (%v) and -ns (%v) are mutualy exclusive", c.Bool("ss"), c.Bool("ps"), c.Bool("ns"))
+	}
+	if c.Bool("ss") {
+		sortMethod = config.SORT_BY_SIZE
+	}
+	if c.Bool("ps") {
+		sortMethod = config.SORT_BY_PRIORITY
+	}
+	if c.Bool("ns") {
+		sortMethod = config.SORT_BY_NONE
+	}
+	return nil
 }
 
-func sortOrder(args ...string) []string {
-	sortedByScore := make(map[int][]string)
-	scoreMax := -1000000
-	scoreMin := 1000000
+func validateArguments(c *cli.Context) ([]string, error) {
+	if err := validateDestination(c); err != nil {
+		return nil, logman.Errorf("arguments validation: %v", err)
+	}
+
+	args := c.Args().Slice()
+	if len(args) == 0 {
+		logman.Errorf("no arguments provided: 'grab' command expects source files as arguments")
+		return nil, ErrBadArguments
+	}
+	sourcePaths := []string{}
 	for _, arg := range args {
-		upArg := strings.ToUpper(arg)
-		scoreTotal := 0
-		for key, score := range cfg.PRIORITY_MAP {
-			upKey := strings.ToUpper(key)
-			if strings.Contains(upArg, upKey) {
-				scoreTotal += score
+		if strings.HasSuffix(arg, cfg.MARKER_FILE_EXTENTION) {
+			related, err := actions.DiscoverRelatedFiles(arg)
+			if err != nil {
+				logman.Error(err)
 			}
-		}
-		sortedByScore[scoreTotal] = append(sortedByScore[scoreTotal], arg)
-		if scoreTotal > scoreMax {
-			scoreMax = scoreTotal
-		}
-		if scoreTotal < scoreMin {
-			scoreMin = scoreTotal
+			for _, file := range related {
+				sourcePaths = append(sourcePaths, file)
+			}
+			sourcePaths = append(sourcePaths, arg)
 		}
 	}
-	sorted := []string{}
-	for i := scoreMax; i >= scoreMin; i-- {
-		if list, ok := sortedByScore[i]; ok {
-			for _, path := range list {
-				sorted = append(sorted, path)
+
+	return sourcePaths, nil
+}
+
+// func sortOrder(c *cli.Context, sources ...string) []string {
+// 	sortMethod := "NONE"
+// 	if c.Bool("sort_by_size") {
+// 		sortMethod = "SIZE"
+// 	}
+
+// 	return sorted
+// }
+
+func fileType(path string) string {
+	if strings.HasSuffix(path, cfg.MARKER_FILE_EXTENTION) {
+		return "markerFile"
+	}
+	return "sourceFile"
+}
+
+func handleOrigins(arg string) {
+	fType := fileType(arg)
+	switch fType {
+	case "markerFile":
+		switch cfg.DELETE_ORIGINAL_MARKER {
+		case true:
+			logman.Debug(nil, fmt.Sprintf("delete marker file: %v", arg))
+			if errRM := os.Remove(arg); errRM != nil {
+				logman.Warn("failed to remove marker file: %v", errRM.Error())
 			}
+		case false:
+			logman.Debug(logman.NewMessage("keeping marker file: %v", arg))
+		}
+	case "sourceFile":
+		switch cfg.DELETE_ORIGINAL_SOURCE {
+		case true:
+			logman.Debug(nil, fmt.Sprintf("delete source file: %v", arg))
+			if errRM := os.Remove(arg); errRM != nil {
+				logman.Warn("failed to remove source file: %v", errRM.Error())
+			}
+		case false:
+			logman.Debug(logman.NewMessage("keeping source file: %v", arg))
 		}
 	}
-	return sorted
 }

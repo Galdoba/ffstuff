@@ -1,11 +1,13 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"time"
 
 	"github.com/Galdoba/ffstuff/app/grabber/commands"
+	"github.com/Galdoba/ffstuff/app/grabber/config"
 	"github.com/Galdoba/ffstuff/pkg/stdpath"
 	"github.com/urfave/cli/v2"
 )
@@ -47,6 +49,9 @@ func main() {
 	if err := app.Run(args); err != nil {
 		errOut := fmt.Sprintf("%v error: %v", app.Name, err.Error())
 		println(errOut)
+		if errors.Is(err, config.ErrNoConfig) {
+			fmt.Printf("suggestion: run 'grabber setup'")
+		}
 		os.Exit(1)
 	}
 

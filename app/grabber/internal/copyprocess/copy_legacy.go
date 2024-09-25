@@ -1,4 +1,4 @@
-package actions
+package copyprocess
 
 import (
 	"errors"
@@ -11,40 +11,6 @@ import (
 
 	"github.com/Galdoba/ffstuff/pkg/namedata"
 )
-
-type copyActionState struct {
-	source            string
-	dest              string
-	status            int
-	outcome           string
-	copyExistDecidion string
-	atempt            int
-	atemptLimit       int
-	formater          func(string, ...interface{}) string
-	err               error
-	nameTabLen        int
-}
-
-func NewCopyAction(src, dest string, opts ...Option) *copyActionState {
-	cas := copyActionState{}
-	cas.source = src
-	cas.dest = dest
-	settings := defaultCopyOptions()
-	for _, modify := range opts {
-		modify(&settings)
-	}
-	cas.atemptLimit = settings.atemptLimit
-	cas.nameTabLen = settings.nameTabLen
-	cas.formater = settings.formatter
-	return &cas
-}
-
-func (cas *copyActionState) Start() error {
-	if err := cas.validatePaths(); err != nil {
-		return err
-	}
-	return nil
-}
 
 // CopyFile - takes file path, and making a copy of the file in the destination directory
 func CopyFile(source string, destination string) error {
@@ -97,7 +63,7 @@ func CopyFile(source string, destination string) error {
 		time.Sleep(time.Millisecond * 1000)
 		if copySize >= sourceSize {
 
-			fmt.Println(filepath.Base(source), "        done")
+			fmt.Printf(filepath.Base(source), "         done\r")
 
 			doneCopying = true
 		}

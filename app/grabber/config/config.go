@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -12,6 +13,9 @@ import (
 const (
 	DESTINATION_ROOT_PATH = "Direct"
 	SOURCE_ROOT_PATH      = "Bash"
+	SORT_BY_SIZE          = "SIZE"
+	SORT_BY_PRIORITY      = "PRIORITY"
+	SORT_BY_NONE          = "NONE"
 )
 
 /*
@@ -26,23 +30,29 @@ system    - выскакивающее уведомление на локаль�
 проверка возраста файлов
 */
 type Configuration struct {
-	Version             string         `yaml:"version"`
-	DEFAULT_DESTINATION string         `yaml:"Default Destination Directory"`
-	TASK_DIR            string         `yaml:"Queue Storage Directory,omitempty"`
-	SEARCH_ROOTS        []string       `yaml:"Directories: Search Markers In,omitempty"`
-	LOG                 string         `yaml:"Log File"`
-	LOG_LEVEL           string         `yaml:"Minimum Log Level"`
-	LOG_BY_SESSION      bool           `yaml:"Log By Session,omitempty"`
-	TRIGGER_BY_SCHEDULE bool           `yaml:"Schedule Trigger,omitempty"`
-	SCHEDULE            string         `yaml:"Schedule,omitempty"`
-	TRIGGER_BY_TIMEOUT  bool           `yaml:"Timeout Trigger,omitempty"`
-	TIMEOUT             int            `yaml:"Timeout (Seconds),omitempty"`
-	PRIORITY_MAP        map[string]int `yaml:"Processing Priority"`
-	GRAB_BY_SIZE        bool           `yaml:"Process Small Files First (Ignore Priority)"`
-	COPY_PREFIX         string         `yaml:"New Copy Prefix Mask,omitempty"`
-	COPY_SUFFIX         string         `yaml:"New Copy Suffix Mask,omitempty"`
-	COPY_HANDLING       string         `yaml:"Existing Copy Handling"`
+	Version                string         `yaml:"version"`
+	MARKER_FILE_EXTENTION  string         `yaml:"Marker File Extention"`
+	DEFAULT_DESTINATION    string         `yaml:"Default Destination Directory"`
+	TASK_DIR               string         `yaml:"Queue Storage Directory,omitempty"`
+	SEARCH_ROOTS           []string       `yaml:"Directories: Search Markers In,omitempty"`
+	LOG                    string         `yaml:"Log File"`
+	LOG_LEVEL              string         `yaml:"Minimum Log Level"`
+	LOG_BY_SESSION         bool           `yaml:"Log By Session,omitempty"`
+	TRIGGER_BY_SCHEDULE    bool           `yaml:"Schedule Trigger,omitempty"`
+	SCHEDULE               string         `yaml:"Schedule,omitempty"`
+	TRIGGER_BY_TIMEOUT     bool           `yaml:"Timeout Trigger,omitempty"`
+	TIMEOUT                int            `yaml:"Timeout (Seconds),omitempty"`
+	GRAB_BY_SIZE           bool           `yaml:"Process Small Files First (Ignore Priority)"`
+	COPY_PREFIX            string         `yaml:"New Copy Prefix Mask,omitempty"`
+	COPY_SUFFIX            string         `yaml:"New Copy Suffix Mask,omitempty"`
+	COPY_HANDLING          string         `yaml:"Existing Copy Handling"`
+	DELETE_ORIGINAL_MARKER bool           `yaml:"Delete Original Marker File"`
+	DELETE_ORIGINAL_SOURCE bool           `yaml:"Delete Original Source File"`
+	SORT_METHOD            string         `yaml:"Default Sorting Method"` //None/Size/Priority
+	PRIORITY_MAP           map[string]int `yaml:"Processing Priority"`
 }
+
+var ErrNoConfig = errors.New("no config found")
 
 func Load(key ...string) (*Configuration, error) {
 	confKey := "default"
@@ -52,6 +62,9 @@ func Load(key ...string) (*Configuration, error) {
 	path := stdpath.ConfigFile(confKey)
 	bt, err := os.ReadFile(path)
 	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil, ErrNoConfig
+		}
 		return nil, fmt.Errorf("can't read config file: %v", err)
 	}
 	cfg := &Configuration{}
@@ -87,6 +100,8 @@ func Save(cfg *Configuration, key ...string) error {
 func NewConfig(version string) *Configuration {
 	cfg := Configuration{}
 	cfg.Version = version
+	cfg.MARKER_FILE_EXTENTION = ".ready"
+
 	cfg.DEFAULT_DESTINATION = ""
 	cfg.LOG = ""
 	cfg.LOG_LEVEL = "DEBUG"
@@ -159,6 +174,12 @@ func Validate(cfg *Configuration) []error {
 	if cfg.TIMEOUT < 0 {
 		errors = append(errors, fmt.Errorf("grabber Timeout Trigger is invalid (expect int >= 0)"))
 	}
+	switch cfg.SORT_METHOD {
+	case SORT_BY_SIZE, SORT_BY_PRIORITY, SORT_BY_NONE:
+	default:
+		errors = append(errors, fmt.Errorf("grabber default sorting method is invalid (expect string 'SIZE', 'PRIORITY' or 'NONE')"))
+	}
+
 	return errors
 }
 

@@ -1,8 +1,11 @@
 package commands
 
 import (
+	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/Galdoba/devtools/decidion/operator"
 	"github.com/Galdoba/ffstuff/app/grabber/config"
@@ -39,9 +42,30 @@ func Setup() *cli.Command {
 				if errInput != nil {
 					return fmt.Errorf("input failed: %v", errInput)
 				}
+				sep := string(filepath.Separator)
+				input = strings.TrimSuffix(input, sep) + sep
 				cfg.DEFAULT_DESTINATION = input
 				cfg.LOG = stdpath.LogFile()
-				fmt.Println("log file path:", cfg.LOG)
+				f, err = os.OpenFile(cfg.LOG, os.O_WRONLY|os.O_APPEND, 0666)
+				if err != nil {
+					if errors.Is(err, os.ErrNotExist) {
+						fmt.Println("log file does not exist")
+						label := fmt.Sprintf("Log file: %v\nCreate?", cfg.LOG)
+						switch operator.Confirm(label) {
+						case false:
+						case true:
+							if err := os.MkdirAll(stdpath.LogDir(), 0666); err != nil {
+								fmt.Println(err.Error())
+							}
+							f, err := os.Create(stdpath.LogFile())
+							if err != nil {
+								fmt.Println(err.Error())
+							}
+							f.Close()
+						}
+					}
+				}
+				f.Close()
 				cfg.LOG_LEVEL = "DEBUG"
 				if err := config.Save(cfg); err != nil {
 					return fmt.Errorf("config saving failed: %v", err)
@@ -51,6 +75,7 @@ func Setup() *cli.Command {
 				fmt.Println(string(bt))
 				fmt.Println("===================")
 			}
+
 			fmt.Println("Setup successful. grabber is ready to go!")
 			return nil
 		},
