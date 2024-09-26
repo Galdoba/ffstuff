@@ -3,22 +3,20 @@ package copyprocess
 type Option func(*copyOptions)
 
 type copyOptions struct {
-	sourcePaths            []string
-	destination            string
-	atemptLimit            int
-	nameTabLen             int
-	formatter              func(string, ...interface{}) string
-	copyExistDecidion      string
-	copyPrefix             string
-	copySuffix             string
-	delete_original_source bool
-	delete_original_marker bool
+	sourcePaths   []string
+	destination   string
+	atemptLimit   int
+	nameTabLen    int
+	markerExt     string
+	deleteMarkers bool
+	deleteAll     bool
 }
 
 func defaultCopyOptions() copyOptions {
 	return copyOptions{
-		atemptLimit: 5,
-		nameTabLen:  -1,
+		atemptLimit:   5,
+		nameTabLen:    -1,
+		deleteMarkers: true,
 	}
 }
 
@@ -45,5 +43,11 @@ func sliceContains(sl []string, s string) bool {
 func WithDestination(dest string) Option {
 	return func(co *copyOptions) {
 		co.destination = dest
+	}
+}
+
+func WithMarkerExt(ext string) Option {
+	return func(co *copyOptions) {
+		co.markerExt = ext
 	}
 }

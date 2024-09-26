@@ -33,9 +33,9 @@ func formatTextComplex(msg Message) (string, error) {
 	for i, val := range []interface{}{
 		msg.Value(keyLevel),
 		msg.Value(keyMessage),
+		msg.Value(keyFunc),
 		msg.Value(keyFile),
 		msg.Value(keyLine),
-		msg.Value(keyFunc),
 	} {
 		if val != nil {
 			switch i {
@@ -46,11 +46,11 @@ func formatTextComplex(msg Message) (string, error) {
 			case 1:
 				s += " " + fmt.Sprintf("%v", val)
 			case 2:
-				s += " " + fmt.Sprintf("\n  caller: file={%v}", val)
+				s += " " + fmt.Sprintf("\n  caller: func={%v}", val)
 			case 3:
-				s += " " + fmt.Sprintf("line={%v}", val)
+				s += " " + fmt.Sprintf("file={%v}", val)
 			case 4:
-				s += " " + fmt.Sprintf("func={%v}", val)
+				s += " " + fmt.Sprintf("line={%v}", val)
 
 			}
 		}

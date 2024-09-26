@@ -1,14 +1,22 @@
 package copyprocess
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/Galdoba/ffstuff/app/grabber/internal/origin"
+)
 
 const (
 	Status_Pending = 0
 )
 
 type copyActionState struct {
-	sourcePaths []string
-	destination string
+	sourcePaths    []origin.Origin
+	destination    string
+	markerExt      string
+	creationErrors []error
+	deleteAll      bool
+	deleteMarker   bool
 }
 
 func NewCopyAction(opts ...Option) *copyActionState {
@@ -19,15 +27,25 @@ func NewCopyAction(opts ...Option) *copyActionState {
 	for _, modify := range opts {
 		modify(&settings)
 	}
-	cas.sourcePaths = settings.sourcePaths
 	cas.destination = settings.destination
+	cas.markerExt = settings.markerExt
 
+	for _, src := range settings.sourcePaths {
+		fmt.Println("---")
+		originFile := origin.New(src)
+
+		cas.sourcePaths = append(cas.sourcePaths, originFile)
+	}
 	return &cas
 }
 
 func (cas *copyActionState) Start() error {
 	fmt.Println("me COPY start!!")
-	fmt.Println(cas)
+	fmt.Println("grab order:")
+	for i, src := range cas.sourcePaths {
+		fmt.Println(i+1, src)
+
+	}
 	// if err := cas.validatePaths(); err != nil {
 	// 	return err
 	// }

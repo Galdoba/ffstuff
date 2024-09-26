@@ -5,6 +5,7 @@ import (
 	"io/fs"
 	"log"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
@@ -42,6 +43,7 @@ const (
 type logManager struct {
 	appMinimumLoglevel int
 	logLevels          map[string]*loggingLevel
+	longCallerNames    bool
 	logger             *log.Logger
 }
 
@@ -59,6 +61,7 @@ func Setup(opts ...LogmanOptions) error {
 	}
 
 	al.appMinimumLoglevel = opt.appMinimumLoglevel
+	al.longCallerNames = opt.longCallerNames
 	al.logger = log.New(os.Stdout, "", 0)
 	logMan = &al
 	return nil
@@ -99,6 +102,7 @@ type LogmanOptions func(*options)
 
 type options struct {
 	appMinimumLoglevel int
+	longCallerNames    bool
 	logLevels          map[string]*loggingLevel
 }
 
@@ -134,6 +138,12 @@ func WithAppLogLevelImportance(importance int) LogmanOptions {
 			importance = ImportanceALL
 		}
 		o.appMinimumLoglevel = importance
+	}
+}
+
+func WithLongCallerNames(val bool) LogmanOptions {
+	return func(o *options) {
+		o.longCallerNames = val
 	}
 }
 
@@ -299,6 +309,9 @@ func joinErrors(message string, errs ...error) error {
 
 func callerFunctionInfo(n int) (string, int, string) {
 	counter, file, line, success := runtime.Caller(n) //back to stack on n levels
+	if !logMan.longCallerNames {
+		file = filepath.Base(file)
+	}
 	if !success {
 		return "", 0, ""
 	}

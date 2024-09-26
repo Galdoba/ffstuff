@@ -17,7 +17,7 @@ func DiscoverRelatedFiles(markerFile string) ([]string, error) {
 	sep := string(filepath.Separator)
 	fi, err := os.ReadDir(dir)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read directory: %v")
+		return nil, fmt.Errorf("failed to read directory: %v", dir)
 	}
 	for _, f := range fi {
 		if f.IsDir() {
