@@ -63,6 +63,7 @@ require (
 	github.com/Galdoba/utils v0.0.0-20211006043430-41d7b3fa4b0a
 	github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1
 	github.com/malashin/ffinfo v0.0.0-20221209093859-4b0670e459ad
+	github.com/mileusna/crontab v1.2.0
 	github.com/urfave/cli/v2 v2.27.4
 	golang.org/x/exp v0.0.0-20190731235908-ec7cb31e5a56 // indirect
 	golang.org/x/image v0.6.0 // indirect

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/Galdoba/ffstuff/app/grabber/commands/grabberflag"
 	"github.com/Galdoba/ffstuff/app/grabber/internal/validation"
 	"github.com/Galdoba/ffstuff/pkg/stdpath"
 	"gopkg.in/yaml.v3"
@@ -33,25 +34,20 @@ system    - выскакивающее уведомление на локаль�
 проверка возраста файлов
 */
 type Configuration struct {
-	Version                    string         `yaml:"version"`
-	MARKER_FILE_EXTENTION      string         `yaml:"Marker File Extention"`
-	DEFAULT_DESTINATION        string         `yaml:"Default Destination Directory"`
-	TASK_DIR                   string         `yaml:"Queue Storage Directory,omitempty"`
-	SEARCH_ROOTS               []string       `yaml:"Directories: Search Markers In,omitempty"`
-	LOG                        string         `yaml:"Log File"`
-	LOG_LEVEL                  string         `yaml:"Minimum Log Level"`
-	LOG_BY_SESSION             bool           `yaml:"Log By Session,omitempty"`
-	TRIGGER_BY_SCHEDULE        bool           `yaml:"Schedule Trigger,omitempty"`
-	SCHEDULE                   string         `yaml:"Schedule,omitempty"`
-	TRIGGER_BY_TIMEOUT         bool           `yaml:"Timeout Trigger,omitempty"`
-	TIMEOUT                    int            `yaml:"Timeout (Seconds),omitempty"`
-	GRAB_BY_SIZE               bool           `yaml:"Process Small Files First (Ignore Priority)"`
-	COPY_PREFIX                string         `yaml:"New Copy Prefix Mask,omitempty"`
-	COPY_SUFFIX                string         `yaml:"New Copy Suffix Mask,omitempty"`
-	COPY_HANDLING              string         `yaml:"Existing Copy Handling"`
-	DELETE_ORIGINAL_MARKER     bool           `yaml:"Delete Original Marker File"`
-	DELETE_ORIGINAL_SOURCE     bool           `yaml:"Delete Original Source File"`
-	SORT_METHOD                string         `yaml:"Default Sorting Method"` //None/Size/Priority
+	Version               string            `yaml:"version"`
+	MARKER_FILE_EXTENTION string            `yaml:"Marker File Extention"`
+	DEFAULT_DESTINATION   string            `yaml:"Default Destination Directory"`
+	SEARCH_ROOTS          []string          `yaml:"Directories: Search Markers (track mode only)"`
+	LOG                   string            `yaml:"Log File"`
+	LOG_LEVEL             string            `yaml:"Minimum Log Level"`
+	LOG_BY_SESSION        bool              `yaml:"Create Log File for Every Session,omitempty"`
+	CRON_TRIGGERS         map[string]string `yaml:"Cron Triggers"`
+	COPY_PREFIX           string            `yaml:"New Copy Prefix Mask,omitempty"`
+	COPY_SUFFIX           string            `yaml:"New Copy Suffix Mask,omitempty"`
+	COPY_HANDLING         string            `yaml:"Existing Copy Handling"`
+	DELETE_ORIGINAL       string            `yaml:"Delete Original Files"`
+	SORT_METHOD           string            `yaml:"Default Sorting Method"`
+
 	FILE_PRIORITY_WEIGHTS      map[string]int `yaml:"File Priority Weights"`
 	DIRECTORY_PRIORITY_WEIGHTS map[string]int `yaml:"Directory Priority Weights"`
 }
@@ -109,10 +105,12 @@ func NewConfig(version string) *Configuration {
 	cfg.DEFAULT_DESTINATION = ""
 	cfg.LOG = ""
 	cfg.LOG_LEVEL = "DEBUG"
-	cfg.COPY_HANDLING = COPY_HANDLER_SKIP
+	cfg.COPY_HANDLING = grabberflag.VALUE_COPY_SKIP
+	cfg.DELETE_ORIGINAL = grabberflag.VALUE_DELETE_MARKER
+	cfg.SORT_METHOD = grabberflag.VALUE_SORT_PRIORITY
 	cfg.COPY_SUFFIX = "copy_[C]"
-	cfg.SCHEDULE = "0 6 * * 1,2,3,4,5"
-	cfg.DELETE_ORIGINAL_MARKER = true
+	cfg.CRON_TRIGGERS = make(map[string]string)
+	cfg.CRON_TRIGGERS["* * * * *"] = "test every minute"
 	cfg.FILE_PRIORITY_WEIGHTS = make(map[string]int)
 	cfg.FILE_PRIORITY_WEIGHTS[".ready"] = 100
 	cfg.FILE_PRIORITY_WEIGHTS[".srt"] = 100
@@ -159,12 +157,7 @@ func Validate(cfg *Configuration) []error {
 			errors = append(errors, fmt.Errorf("grabber default destination: %v", err))
 		}
 	}
-	switch cfg.SCHEDULE {
-	case "":
-		errors = append(errors, fmt.Errorf("grabber shedule trigger is not set"))
-	default:
-		//errors = append(errors, fmt.Errorf("grabber shedule trigger: %v", testShedule(cfg.SCHEDULE)))
-	}
+
 	if cfg.COPY_PREFIX+cfg.COPY_SUFFIX == "" {
 		errors = append(errors, fmt.Errorf("grabber New Copy Mask is not set"))
 	}
@@ -174,13 +167,11 @@ func Validate(cfg *Configuration) []error {
 	if cfg.DIRECTORY_PRIORITY_WEIGHTS == nil {
 		errors = append(errors, fmt.Errorf("grabber Directory Priority Weights are not set"))
 	}
-	if cfg.TIMEOUT < 0 {
-		errors = append(errors, fmt.Errorf("grabber Timeout Trigger is invalid (expect int >= 0)"))
-	}
+
 	switch cfg.SORT_METHOD {
-	case SORT_BY_SIZE, SORT_BY_PRIORITY, SORT_BY_NONE:
+	case grabberflag.VALUE_SORT_PRIORITY, grabberflag.VALUE_SORT_SIZE, grabberflag.VALUE_SORT_NONE:
 	default:
-		errors = append(errors, fmt.Errorf("grabber default sorting method is invalid (expect string 'SIZE', 'PRIORITY' or 'NONE')"))
+		errors = append(errors, fmt.Errorf("grabber default sorting method is invalid (expect string '%v', '%v' or '%v')", grabberflag.VALUE_SORT_PRIORITY, grabberflag.VALUE_SORT_SIZE, grabberflag.VALUE_SORT_NONE))
 	}
 
 	return errors

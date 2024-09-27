@@ -3,9 +3,12 @@ package commands
 import (
 	"fmt"
 
-	"github.com/Galdoba/ffstuff/app/grabber/commands/grab"
+	"github.com/Galdoba/ffstuff/app/grabber/commands/grabberargs"
+	"github.com/Galdoba/ffstuff/app/grabber/commands/grabberflag"
 	"github.com/Galdoba/ffstuff/app/grabber/config"
+	"github.com/Galdoba/ffstuff/app/grabber/internal/actions"
 	"github.com/Galdoba/ffstuff/app/grabber/internal/origin"
+	"github.com/Galdoba/ffstuff/app/grabber/internal/process"
 	"github.com/Galdoba/ffstuff/pkg/logman"
 	"github.com/urfave/cli/v2"
 )
@@ -14,56 +17,87 @@ var cfg *config.Configuration
 
 func Grab() *cli.Command {
 	return &cli.Command{
-		Name:        "grab",
-		Aliases:     []string{},
-		Usage:       "TODO: Direct command for transfering operation(s)",
-		UsageText:   "grabber grab [command options] args...",
-		Description: "Desc",
-		Args:        false,
-		ArgsUsage:   "Args Usage Text",
-		Category:    "",
+		Name:      "grab",
+		Aliases:   []string{},
+		Usage:     "direct command for transfering files",
+		UsageText: "grabber grab [command options] args...",
+		Description: "Setup single process to copy source files to destination directory. Command receives filepaths as arguments.\n" +
+			"If argument is 'marker' file grabber will search all related files in the same directory and add them for transfering.",
+		Args:      false,
+		ArgsUsage: "Args Usage Text",
+		Category:  "",
 		Before: func(*cli.Context) error {
-			cfgLoaded, err := config.Load()
-			if err != nil {
-				return err
-			}
-			errs := config.Validate(cfgLoaded)
-			switch len(errs) {
-			default:
-				for _, err := range errs {
-					if err != nil {
-						fmt.Println(err)
-					}
-				}
-				return fmt.Errorf("config errors detected")
-			case 0:
-				cfg = cfgLoaded
-				setupLogger(cfg.LOG_LEVEL, cfg.LOG)
-			}
-			return nil
+			return commandInit()
 		},
 		Action: func(c *cli.Context) error {
+
 			logman.Debug(logman.NewMessage("start 'grub'"))
 			//Setup process
-			grabProcessSettings := grab.NewProcessControl(cfg)
-			if err := grabProcessSettings.Modify(c); err != nil {
-				return fmt.Errorf("operation process setup failed: %v", err)
+			logman.Debug(logman.NewMessage("check flags"))
+			if err := grabberflag.ValidateGrabFlags(c); err != nil {
+				return logman.Errorf("flag validation failed: %v", err)
 			}
-			if err := grabProcessSettings.Assert(); err != nil {
-				return fmt.Errorf("operation setup invalid")
-			}
-			grabProcessSettings.Status()
-			//Setup Sources
-			sourcePaths, validationErrors := grab.ValidateArgs(c.Args().Slice()...)
-			origin.ConstructorSetup(
-				origin.WithFilePriority(grabProcessSettings.FileWeights),
-				origin.WithDirectoryPriority(grabProcessSettings.DirWeights),
-				origin.KillAll(grabProcessSettings.KillAll),
-				origin.KillMarkers(grabProcessSettings.KillMarker),
-				origin.WithMarkerExt(grabProcessSettings.MarkerExt),
-			)
-			fmt.Println(sourcePaths, validationErrors)
 
+			logman.Debug(logman.NewMessage("check arguments"))
+			if err := grabberargs.ValidateGrabArguments(c.Args().Slice()...); err != nil {
+				return logman.Errorf("argument validation failed: %v", err)
+			}
+
+			logman.Debug(logman.NewMessage("set process options"))
+			options := process.DefineGrabOptions(c, cfg)
+			process, err := process.New(options...)
+			if err != nil {
+				return logman.Errorf("process creation failed")
+			}
+			//Setup sources
+			if err := origin.ConstructorSetup(
+				origin.WithFilePriority(cfg.FILE_PRIORITY_WEIGHTS),
+				origin.WithDirectoryPriority(cfg.DIRECTORY_PRIORITY_WEIGHTS),
+				origin.KillSignal(process.DeleteDecidion),
+				origin.WithMarkerExt(cfg.MARKER_FILE_EXTENTION),
+			); err != nil {
+				return logman.Errorf("source constructor setup failed: %v", err)
+			}
+			sources := []origin.Origin{}
+			for _, arg := range c.Args().Slice() {
+				sources = append(sources, origin.New(arg))
+				related, err := actions.DiscoverRelatedFiles(arg)
+				if err != nil {
+					logman.Warn("failed to discover related files: %v", err)
+				}
+				for _, found := range related {
+					sources = append(sources, origin.New(found))
+				}
+			}
+			logman.Printf("%v sorce files received", len(sources))
+			//Sort
+
+			fmt.Println(process)
+			for i, src := range sources {
+				fmt.Println(i, src)
+			}
+
+			// grabProcessSettings := grab.NewProcessControl(cfg)
+			// logman.Debug(logman.NewMessage("operation processing settings created"))
+			// if err := grabProcessSettings.Modify(c); err != nil {
+			// 	return fmt.Errorf("operation process setup failed: %v", err)
+			// }
+			// if err := grabProcessSettings.Assert(); err != nil {
+			// 	return fmt.Errorf("operation setup invalid")
+			// }
+			// logman.Debug(logman.NewMessage("operation processing settings asserted"))
+
+			// //Setup Sources
+			// sourcePaths, validationErrors := grab.ValidateArgs(c.Args().Slice()...)
+			// if len(validationErrors) != 0 {
+			// 	logman.Warn("%v validation errors", len(validationErrors))
+			// 	if len(sourcePaths) == 0 {
+			// 		return logman.Errorf("no valid arguments received")
+			// 	}
+			// }
+			// sourceList := grab.SetupSourceList(grabProcessSettings, sourcePaths...)
+			// logman.Printf("total %v source files set", len(sourceList))
+			// logman.Debug(logman.NewMessage("emulatng sorting"))
 			// if err := validateDestination(c); err != nil {
 			// 	return err
 			// }
@@ -97,83 +131,35 @@ func Grab() *cli.Command {
 		Subcommands: []*cli.Command{},
 		Flags: []cli.Flag{
 			&cli.StringFlag{
-				Name:        "dest",
-				Category:    "PATH:",
-				Usage:       "destination where files will be downloaded to\n",
-				DefaultText: "",
+				Name:        grabberflag.DESTINATION,
+				Usage:       "sets where files will be downloaded to",
+				DefaultText: "from config file",
 				Required:    false,
 				Hidden:      false,
 				HasBeenSet:  false,
 				Value:       "",
 				Destination: new(string),
-				Aliases:     []string{"d"},
-			},
-			&cli.BoolFlag{
-				Name:               "size_sort",
-				Category:           "SORTING:",
-				Usage:              "sort order by size (supress config settings)",
-				DisableDefaultText: true,
-				Aliases:            []string{"ss"},
-			},
-			&cli.BoolFlag{
-				Name:               "priority_sort",
-				Category:           "SORTING:",
-				Usage:              "sort by calculating priority scores (supress config settings)",
-				DisableDefaultText: true,
-				Aliases:            []string{"ps"},
-			},
-			&cli.BoolFlag{
-				Name:               "no_sort",
-				Category:           "SORTING:",
-				Usage:              "do not sort (supress config settings)",
-				DisableDefaultText: true,
-				Aliases:            []string{"ns"},
+				Aliases:     []string{"dest"},
 			},
 
-			&cli.BoolFlag{
-				Name:     "copy_skip",
-				Category: "COPY HANDLING",
-				Usage:    "if copy exist file will not be grabbed",
-				Aliases:  []string{"cs"},
+			&cli.StringFlag{
+				Name:    grabberflag.COPY,
+				Usage:   "set decidion if target file with same name exists\n	  valid values: skip, remane or overwrite",
+				Value:   grabberflag.VALUE_COPY_SKIP,
+				Aliases: []string{"c"},
 			},
-			&cli.BoolFlag{
-				Name:     "copy_rename",
-				Category: "COPY HANDLING",
-				Usage:    "if copy exist file will be renamed",
-				Aliases:  []string{"cr"},
+			&cli.StringFlag{
+				Name:    grabberflag.DELETE,
+				Usage:   "set which original files will be deleted after grabbing\n	  valid values: none, marker or all",
+				Value:   grabberflag.VALUE_DELETE_MARKER,
+				Aliases: []string{"d"},
 			},
-			&cli.BoolFlag{
-				Name:     "copy_overwrite",
-				Category: "COPY HANDLING",
-				Usage:    "if copy exist file will be overwritten",
-				Aliases:  []string{"co"},
-			},
-
-			&cli.BoolFlag{
-				Name:     "delete_marker",
-				Category: "DELETE ORIGINAL FILES",
-				Usage:    "delete marker files after grabbing",
-				Aliases:  []string{"dm"},
-			},
-			&cli.BoolFlag{
-				Name:     "delete_all",
-				Category: "DELETE ORIGINAL FILES",
-				Usage:    "delete all original files after grabbing",
-				Aliases:  []string{"da"},
+			&cli.StringFlag{
+				Name:    grabberflag.SORT,
+				Usage:   "set method to decide grabbing order\n	  valid values: priority, size or none",
+				Value:   grabberflag.VALUE_SORT_PRIORITY,
+				Aliases: []string{"so"},
 			},
 		},
 	}
-}
-
-func setupSourceConstructor() error {
-	if err := origin.ConstructorSetup(
-		origin.WithFilePriority(cfg.FILE_PRIORITY_WEIGHTS),
-		origin.WithDirectoryPriority(cfg.DIRECTORY_PRIORITY_WEIGHTS),
-		origin.KillAll(cfg.DELETE_ORIGINAL_MARKER),
-		origin.KillAll(cfg.DELETE_ORIGINAL_SOURCE),
-		origin.WithMarkerExt(cfg.MARKER_FILE_EXTENTION),
-	); err != nil {
-		return logman.Errorf("source constructor setup failed: %v", err)
-	}
-	return nil
 }

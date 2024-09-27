@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/Galdoba/ffstuff/app/grabber/commands/grabberflag"
 )
 
 type origin struct {
@@ -22,8 +24,7 @@ type ConstructorOption func(*constructorOptions)
 type constructorOptions struct {
 	filePriorityMap map[string]int
 	dirPriorityMap  map[string]int
-	killMarker      bool
-	killAll         bool
+	killSignal      string
 	markerExt       string
 }
 
@@ -42,8 +43,7 @@ func ConstructorSetup(options ...ConstructorOption) error {
 	}
 	originConstructor.filePriorityMap = settngs.filePriorityMap
 	originConstructor.dirPriorityMap = settngs.dirPriorityMap
-	originConstructor.killMarker = settngs.killMarker
-	originConstructor.killAll = settngs.killAll
+	originConstructor.killSignal = settngs.killSignal
 	originConstructor.markerExt = settngs.markerExt
 	if originConstructor.markerExt == "" {
 		return fmt.Errorf("marker extention was not provided")
@@ -54,8 +54,7 @@ func ConstructorSetup(options ...ConstructorOption) error {
 type constructor struct {
 	filePriorityMap map[string]int
 	dirPriorityMap  map[string]int
-	killMarker      bool
-	killAll         bool
+	killSignal      string
 	markerExt       string
 }
 
@@ -68,8 +67,9 @@ type Origin interface {
 func New(path string) *origin {
 	o := origin{}
 	o.path = path
+
 	if strings.HasSuffix(path, originConstructor.markerExt) {
-		if originConstructor.killMarker {
+		if originConstructor.killSignal == grabberflag.VALUE_DELETE_MARKER {
 			o.killOnDone = true
 		}
 		bt, err := os.ReadFile(o.path)
@@ -83,7 +83,7 @@ func New(path string) *origin {
 			o.message = string(bt)
 		}
 	}
-	if originConstructor.killAll {
+	if originConstructor.killSignal == grabberflag.VALUE_DELETE_ALL {
 		o.killOnDone = true
 	}
 	for key, score := range originConstructor.filePriorityMap {
@@ -125,15 +125,9 @@ func WithDirectoryPriority(priorityMap map[string]int) ConstructorOption {
 	}
 }
 
-func KillMarkers(killSignal bool) ConstructorOption {
+func KillSignal(killSignal string) ConstructorOption {
 	return func(co *constructorOptions) {
-		co.killMarker = killSignal
-	}
-}
-
-func KillAll(killSignal bool) ConstructorOption {
-	return func(co *constructorOptions) {
-		co.killMarker = killSignal
+		co.killSignal = killSignal
 	}
 }
 
