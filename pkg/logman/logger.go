@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/fatih/color"
+	"github.com/gookit/color"
 )
 
 var logMan *logManager
@@ -286,11 +286,12 @@ func removeEmptyLines(text string) string {
 func colorizeTags(text string) string {
 	//TODO: temporary
 	//need to make formatter struct which will colorize text
-	text = strings.ReplaceAll(text, stdTagFATAL, color.RedString(stdTagFATAL))
-	text = strings.ReplaceAll(text, stdTagERROR, color.HiRedString(stdTagERROR))
-	text = strings.ReplaceAll(text, stdTagWARN, color.YellowString(stdTagWARN))
-	text = strings.ReplaceAll(text, stdTagDEBUG, color.CyanString(stdTagDEBUG))
-	text = strings.ReplaceAll(text, stdTagTRACE, color.HiBlackString(stdTagTRACE))
+
+	text = strings.ReplaceAll(text, stdTagFATAL, color.S256(88).Sprintf(stdTagFATAL))
+	text = strings.ReplaceAll(text, stdTagERROR, color.S256(196).Sprintf(stdTagERROR))
+	text = strings.ReplaceAll(text, stdTagWARN, color.S256(184).Sprintf(stdTagWARN))
+	text = strings.ReplaceAll(text, stdTagDEBUG, color.S256(159).Sprintf(stdTagDEBUG))
+	text = strings.ReplaceAll(text, stdTagTRACE, color.S256(244).Sprintf(stdTagTRACE))
 	return text
 }
 
@@ -320,7 +321,7 @@ func callerFunctionInfo(n int) (string, int, string) {
 }
 
 func timestampFormat(tm time.Time) string {
-	format := "2006/01/02 15:04:05.999"
+	format := "2006-01-02 15:04:05.999"
 	formatLen := len(format)
 	stamp := tm.Format(format)
 	for len(stamp) < formatLen {

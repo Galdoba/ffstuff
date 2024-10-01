@@ -6,13 +6,13 @@ import (
 )
 
 const (
-	stdTagFATAL = "[FATAL]"
-	stdTagERROR = "[ERROR]"
-	stdTagWARN  = "[WARN ]"
-	stdTagINFO  = "[INFO ]"
-	stdTagDEBUG = "[DEBUG]"
-	stdTagTRACE = "[TRACE]"
-	stdTagPing  = "[PING ]"
+	stdTagFATAL = "[fatal]"
+	stdTagERROR = "[error]"
+	stdTagWARN  = "[warn]"
+	stdTagINFO  = "[info]"
+	stdTagDEBUG = "[debug]"
+	stdTagTRACE = "[trace]"
+	stdTagPing  = "[ping]"
 )
 
 var LogLevelFATAL = &loggingLevel{

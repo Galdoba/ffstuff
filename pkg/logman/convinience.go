@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/fatih/color"
+	"github.com/gookit/color"
 )
 
 // This is a convinience function for ProcessMessage.
@@ -100,7 +100,7 @@ func Info(format string, args ...interface{}) error {
 // It returns message processing error encountered.
 func Debug(msg Message, comments ...string) error {
 	for _, comment := range comments {
-		comment = color.HiWhiteString(comment)
+		comment = color.S256(253).Sprintf("%v", comment)
 		fmt.Fprintf(os.Stderr, "#%v\n", comment)
 	}
 	if err := process(msg, logMan.logLevels[DEBUG]); err != nil {
@@ -115,7 +115,7 @@ func Debug(msg Message, comments ...string) error {
 // It returns message processing error encountered.
 func Trace(msg Message, comments ...string) error {
 	for _, comment := range comments {
-		comment = color.HiWhiteString(comment)
+		comment = color.S256(253).Sprintf("%v", comment)
 		fmt.Fprintf(os.Stderr, "#%v\n", comment)
 	}
 	if err := process(msg, logMan.logLevels[TRACE]); err != nil {
@@ -136,7 +136,7 @@ func Ping(comments ...string) error {
 		fmt.Fprintf(os.Stderr, "ping error: %v\n", err)
 	}
 	for _, comment := range comments {
-		comment = color.HiBlackString(comment)
+		comment = color.S256(239).Sprintf("%v", comment)
 		fmt.Fprintf(os.Stderr, "%v\n", comment)
 	}
 	return nil
