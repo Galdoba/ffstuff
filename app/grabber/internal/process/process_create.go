@@ -107,3 +107,7 @@ func assertSortDecidion(pr *Process) (string, error) {
 	}
 
 }
+
+func (pr *Process) ShowOrder() {
+	fmt.Println(pr.sortDecidion)
+}

@@ -12,6 +12,7 @@ import (
 type origin struct {
 	path       string
 	message    string
+	group      string
 	killOnDone bool
 	score      int
 	err        error
@@ -64,7 +65,7 @@ type Origin interface {
 	MustDie() bool
 }
 
-func New(path string) *origin {
+func New(path string, group ...string) *origin {
 	o := origin{}
 	o.path = path
 
@@ -95,6 +96,9 @@ func New(path string) *origin {
 		if strings.Contains(filepath.Dir(o.path), key) {
 			o.score += score
 		}
+	}
+	for _, gr := range group {
+		o.group = gr
 	}
 	return &o
 }

@@ -59,20 +59,22 @@ func Grab() *cli.Command {
 				return logman.Errorf("source constructor setup failed: %v", err)
 			}
 			sources := []origin.Origin{}
-			for _, arg := range c.Args().Slice() {
-				sources = append(sources, origin.New(arg))
+			for grNum, arg := range c.Args().Slice() {
+				gr := fmt.Sprintf("group_%02d", grNum)
+				sources = append(sources, origin.New(arg, gr))
 				related, err := actions.DiscoverRelatedFiles(arg)
 				if err != nil {
 					logman.Warn("failed to discover related files: %v", err)
 				}
 				for _, found := range related {
-					sources = append(sources, origin.New(found))
+					sources = append(sources, origin.New(found, gr))
 				}
 			}
 			logman.Printf("%v sorce files received", len(sources))
 			//Sort
 
 			fmt.Println(process)
+			process.ShowOrder()
 			for i, src := range sources {
 				fmt.Println(i, src)
 			}
