@@ -5,6 +5,7 @@ const (
 	COPY                 = "copy"
 	DELETE               = "delete"
 	SORT                 = "sort_order"
+	KEEP_GROUPS          = "keep_groups"
 	VALUE_COPY_SKIP      = "skip"
 	VALUE_COPY_RENAME    = "rename"
 	VALUE_COPY_OVERWRITE = "overwrite"

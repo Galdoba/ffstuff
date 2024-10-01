@@ -2,6 +2,8 @@ package commands
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/Galdoba/ffstuff/app/grabber/commands/grabberargs"
 	"github.com/Galdoba/ffstuff/app/grabber/commands/grabberflag"
@@ -9,6 +11,7 @@ import (
 	"github.com/Galdoba/ffstuff/app/grabber/internal/actions"
 	"github.com/Galdoba/ffstuff/app/grabber/internal/origin"
 	"github.com/Galdoba/ffstuff/app/grabber/internal/process"
+	"github.com/Galdoba/ffstuff/app/grabber/internal/sourcesort"
 	"github.com/Galdoba/ffstuff/pkg/logman"
 	"github.com/urfave/cli/v2"
 )
@@ -71,61 +74,35 @@ func Grab() *cli.Command {
 				}
 			}
 			logman.Printf("%v sorce files received", len(sources))
+
 			//Sort
+			switch process.SortDecidion {
+			case grabberflag.VALUE_SORT_PRIORITY:
+				sources = sourcesort.SortByPriority(process.KeepMarkerGroups, sources...)
+			case grabberflag.VALUE_SORT_SIZE:
+				sources = sourcesort.SortBySize(process.KeepMarkerGroups, sources...)
+			case grabberflag.VALUE_SORT_NONE:
+			}
+			//grab
+			dest := process.DestinationDir
+			for i, src := range sources {
+				name := filepath.Base(src.Path())
+				logman.Debug(logman.NewMessage("emulating %v: %v to %v", i, name, dest))
+				oldCopy, err := exists(dest + name)
+				if err != nil {
+					logman.Errorf("old copy check received unexpected error: %v", err)
+				}
+				if oldCopy {
+					logman.Warn("old copy exist: renaming %v to %v", name)
+
+				}
+			}
 
 			fmt.Println(process)
 			process.ShowOrder()
 			for i, src := range sources {
 				fmt.Println(i, src)
 			}
-
-			// grabProcessSettings := grab.NewProcessControl(cfg)
-			// logman.Debug(logman.NewMessage("operation processing settings created"))
-			// if err := grabProcessSettings.Modify(c); err != nil {
-			// 	return fmt.Errorf("operation process setup failed: %v", err)
-			// }
-			// if err := grabProcessSettings.Assert(); err != nil {
-			// 	return fmt.Errorf("operation setup invalid")
-			// }
-			// logman.Debug(logman.NewMessage("operation processing settings asserted"))
-
-			// //Setup Sources
-			// sourcePaths, validationErrors := grab.ValidateArgs(c.Args().Slice()...)
-			// if len(validationErrors) != 0 {
-			// 	logman.Warn("%v validation errors", len(validationErrors))
-			// 	if len(sourcePaths) == 0 {
-			// 		return logman.Errorf("no valid arguments received")
-			// 	}
-			// }
-			// sourceList := grab.SetupSourceList(grabProcessSettings, sourcePaths...)
-			// logman.Printf("total %v source files set", len(sourceList))
-			// logman.Debug(logman.NewMessage("emulatng sorting"))
-			// if err := validateDestination(c); err != nil {
-			// 	return err
-			// }
-			// sources, err := validateArguments(c)
-			// if err != nil {
-			// 	return err
-			// }
-
-			//create new action
-			// copyAction := copyprocess.NewCopyAction(
-			// 	copyprocess.WithSourcePaths(sources...),
-			// 	copyprocess.WithDestination(dest),
-			// )
-
-			// //start action
-			// copyAction.Start()
-			// // logman.Printf("grab to %v\n", dest)
-			// sorted := sortOrder(args...)
-			// fmt.Println("sorting...")
-			// for _, arg := range sorted {
-			// 	err := actions.CopyFile(arg, dest)
-			// 	if err != nil {
-			// 		logman.Error(err)
-			// 	}
-			// 	handleOrigins(arg)
-			// }
 
 			logman.Debug(logman.NewMessage("end   'grub'"))
 			return nil
@@ -162,6 +139,22 @@ func Grab() *cli.Command {
 				Value:   grabberflag.VALUE_SORT_PRIORITY,
 				Aliases: []string{"so"},
 			},
+			&cli.BoolFlag{
+				Name:    grabberflag.KEEP_GROUPS,
+				Usage:   "keep files from one group close to each other in grabbing order",
+				Aliases: []string{"kg"},
+			},
 		},
 	}
+}
+
+func exists(path string) (bool, error) {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true, nil
+	}
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	return false, err
 }

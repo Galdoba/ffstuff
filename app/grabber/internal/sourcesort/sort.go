@@ -5,67 +5,100 @@ import (
 	"math"
 	"os"
 	"slices"
-	"strings"
+
+	"github.com/Galdoba/ffstuff/app/grabber/internal/origin"
 )
 
-func SortByPriority(priorityMap map[string]int, feed ...string) []string {
-	sortedByScore := make(map[int][]string)
+type PriorityProvider interface {
+	NamesPriority() map[string]int
+	DirectoryPriority() map[string]int
+}
+
+func SortByPriority(keepGroups bool, feed ...origin.Origin) []origin.Origin {
+	sortedByScore := make(map[int][]origin.Origin)
 	scoreMax := math.MaxInt * -1
 	scoreMin := math.MaxInt
+	///get score
 	for _, unit := range feed {
-		upUnit := strings.ToUpper(unit)
-		scoreTotal := 0
-		for key, score := range priorityMap {
-			upKey := strings.ToUpper(key)
-			if strings.Contains(upUnit, upKey) {
-				scoreTotal += score
+		sortedByScore[unit.Score()] = append(sortedByScore[unit.Score()], unit)
+		scoreMin, scoreMax = updateMinMax(scoreMin, scoreMax, unit.Score())
+	}
+	sorted := []origin.Origin{}
+	//sort
+	for i := scoreMax; i >= scoreMin; i-- {
+		if list, ok := sortedByScore[i]; ok {
+			for _, src := range list {
+				sorted = append(sorted, src)
 			}
-		}
-		sortedByScore[scoreTotal] = append(sortedByScore[scoreTotal], unit)
-		if scoreTotal > scoreMax {
-			scoreMax = scoreTotal
-		}
-		if scoreTotal < scoreMin {
-			scoreMin = scoreTotal
 		}
 	}
-	sorted := []string{}
-	for i := scoreMax; i >= scoreMin; i-- {
-		if i < 0 {
-			break
-		}
-		if list, ok := sortedByScore[i]; ok {
-			for _, path := range list {
-				sorted = append(sorted, path)
-			}
-		}
+	if keepGroups {
+		sorted = groupSorted(sorted)
 	}
 	return sorted
 }
 
-func SortBySize(feed ...string) []string {
+func groupSorted(sorted []origin.Origin) []origin.Origin {
+	groups := []string{}
+	for _, src := range sorted {
+		groups = appendUnique(groups, src.Group())
+	}
+	groupSorted := []origin.Origin{}
+	for _, grp := range groups {
+		for _, src := range sorted {
+			if src.Group() == grp {
+				groupSorted = append(groupSorted, src)
+			}
+		}
+	}
+	return groupSorted
+}
+
+func updateMinMax(min, max, new int) (int, int) {
+	if new > max {
+		max = new
+	}
+	if new < min {
+		min = new
+	}
+	return min, max
+}
+
+func appendUnique(sl []string, elem string) []string {
+	for _, s := range sl {
+		if s == elem {
+			return sl
+		}
+	}
+	return append(sl, elem)
+}
+
+func SortBySize(keepGroups bool, feed ...origin.Origin) []origin.Origin {
 	allSizes := []int64{}
-	sourceSizeMap := make(map[string]int64)
-	for _, path := range feed {
-		f, err := os.Stat(path)
+	sourceSizeMap := make(map[origin.Origin]int64)
+	for _, unit := range feed {
+		f, err := os.Stat(unit.Path())
 		if err != nil {
-			fmt.Println("bad path", path)
+			fmt.Println("stats:", err.Error())
 			continue
 		}
 		size := f.Size()
 		allSizes = append(allSizes, size)
-		sourceSizeMap[f.Name()] = size
+		sourceSizeMap[unit] = size
 	}
 	slices.Sort(allSizes)
 	allSizes = removeDuplicates(allSizes)
-	sorted := []string{}
+	sorted := []origin.Origin{}
 	for _, sizeKey := range allSizes {
 		for source, size := range sourceSizeMap {
-			if size == sizeKey {
-				sorted = append(sorted, source)
-				break
+			if size != sizeKey {
+				continue
 			}
+			sorted = append(sorted, source)
 		}
+	}
+	if keepGroups {
+		sorted = groupSorted(sorted)
 	}
 
 	return sorted

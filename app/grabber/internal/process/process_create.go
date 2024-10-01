@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/Galdoba/ffstuff/app/grabber/commands/grabberflag"
+	"github.com/Galdoba/ffstuff/app/grabber/internal/validation"
 	"github.com/Galdoba/ffstuff/pkg/logman"
 )
 
@@ -31,7 +32,9 @@ type Process struct {
 	mode                  string
 	copyDecidion          string
 	DeleteDecidion        string
-	sortDecidion          string
+	SortDecidion          string
+	KeepMarkerGroups      bool
+	DestinationDir        string
 }
 
 func New(opts ...ProcessOption) (*Process, error) {
@@ -44,7 +47,9 @@ func New(opts ...ProcessOption) (*Process, error) {
 	pr.mode = settings.mode
 	pr.copyDecidion = settings.copy_decidion
 	pr.DeleteDecidion = settings.delete_decidion
-	pr.sortDecidion = settings.sort_decidion
+	pr.SortDecidion = settings.sort_decidion
+	pr.KeepMarkerGroups = settings.keepmarkerGroups
+	pr.DestinationDir = settings.destination
 	logman.Debug(logman.NewMessage("validate process configuration"))
 	err := pr.validate()
 	if err == nil {
@@ -59,6 +64,7 @@ func (pr *Process) validate() error {
 		assertCopyDecidion,
 		assertDeleteDecidion,
 		assertSortDecidion,
+		assertDestination,
 	} {
 		msg, err := assert(pr)
 		if err != nil {
@@ -99,15 +105,23 @@ func assertDeleteDecidion(pr *Process) (string, error) {
 }
 
 func assertSortDecidion(pr *Process) (string, error) {
-	switch pr.sortDecidion {
+	switch pr.SortDecidion {
 	case grabberflag.VALUE_SORT_PRIORITY, grabberflag.VALUE_SORT_SIZE, grabberflag.VALUE_SORT_NONE:
-		return "process.sortDecidion: " + pr.sortDecidion, nil
+		return "process.SortDecidion: " + pr.SortDecidion, nil
 	default:
-		return "", fmt.Errorf("process sortDecidion invalid: %v", pr.sortDecidion)
+		return "", fmt.Errorf("process SortDecidion invalid: %v", pr.SortDecidion)
 	}
 
 }
 
+func assertDestination(pr *Process) (string, error) {
+	if err := validation.DirectoryValidation(pr.DestinationDir); err != nil {
+		return "", err
+	}
+	return "process.DestinationDir: " + pr.DestinationDir, nil
+
+}
+
 func (pr *Process) ShowOrder() {
-	fmt.Println(pr.sortDecidion)
+	fmt.Println(pr.SortDecidion)
 }

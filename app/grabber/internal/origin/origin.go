@@ -62,7 +62,9 @@ type constructor struct {
 type Origin interface {
 	Path() string
 	Message() string
+	Group() string
 	MustDie() bool
+	Score() int
 }
 
 func New(path string, group ...string) *origin {
@@ -109,8 +111,14 @@ func (or *origin) Path() string {
 func (or *origin) Message() string {
 	return or.message
 }
+func (or *origin) Group() string {
+	return or.group
+}
 func (or *origin) MustDie() bool {
 	return or.killOnDone
+}
+func (or *origin) Score() int {
+	return or.score
 }
 
 func WithFilePriority(priorityMap map[string]int) ConstructorOption {

@@ -9,10 +9,12 @@ import (
 type ProcessOption func(*prOpt)
 
 type prOpt struct {
-	mode            string
-	copy_decidion   string
-	delete_decidion string
-	sort_decidion   string
+	mode             string
+	copy_decidion    string
+	delete_decidion  string
+	sort_decidion    string
+	destination      string
+	keepmarkerGroups bool
 }
 
 func defaultOptions() prOpt {
@@ -45,6 +47,18 @@ func SetSortDecidion(decidion string) ProcessOption {
 	}
 }
 
+func SetDestination(decidion string) ProcessOption {
+	return func(opt *prOpt) {
+		opt.destination = decidion
+	}
+}
+
+func SetGroupKeeping(decidion bool) ProcessOption {
+	return func(opt *prOpt) {
+		opt.keepmarkerGroups = decidion
+	}
+}
+
 func DefineGrabOptions(c *cli.Context, cfg *config.Configuration) []ProcessOption {
 	options := []ProcessOption{}
 	options = append(options, SetMode(MODE_GRAB))
@@ -66,5 +80,15 @@ func DefineGrabOptions(c *cli.Context, cfg *config.Configuration) []ProcessOptio
 		sort_decidion = cfg.SORT_METHOD
 	}
 	options = append(options, SetSortDecidion(sort_decidion))
+
+	dest := c.String(grabberflag.DESTINATION)
+	if dest == "" {
+		dest = cfg.DEFAULT_DESTINATION
+	}
+	options = append(options, SetDestination(dest))
+
+	keepGroups := c.Bool(grabberflag.KEEP_GROUPS)
+	options = append(options, SetGroupKeeping(keepGroups))
+
 	return options
 }
