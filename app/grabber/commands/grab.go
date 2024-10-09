@@ -76,12 +76,10 @@ func Grab() *cli.Command {
 			logman.Printf("%v sorce files received", len(sources))
 
 			//Sort
-			switch process.SortDecidion {
-			case grabberflag.VALUE_SORT_PRIORITY:
-				sources = sourcesort.SortByPriority(process.KeepMarkerGroups, sources...)
-			case grabberflag.VALUE_SORT_SIZE:
-				sources = sourcesort.SortBySize(process.KeepMarkerGroups, sources...)
-			case grabberflag.VALUE_SORT_NONE:
+			sources, err = sourcesort.Sort(process, sources...)
+			if err != nil {
+				fmt.Println("sorting error:", err.Error())
+				return err
 			}
 			//grab
 			dest := process.DestinationDir

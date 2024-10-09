@@ -56,3 +56,13 @@ func DirectoryValidation(path string) error {
 		return fmt.Errorf("absolute path expected")
 	}
 }
+
+func Exists(filepath string) (bool, error) {
+	if _, err := os.Stat("/path/to/whatever"); err == nil {
+		return true, nil
+	} else if errors.Is(err, os.ErrNotExist) {
+		return false, nil
+	} else {
+		return false, err
+	}
+}

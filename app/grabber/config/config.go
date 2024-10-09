@@ -42,8 +42,9 @@ type Configuration struct {
 	LOG_LEVEL             string            `yaml:"Minimum Log Level"`
 	LOG_BY_SESSION        bool              `yaml:"Create Log File for Every Session,omitempty"`
 	CRON_TRIGGERS         map[string]string `yaml:"Cron Triggers"`
-	COPY_PREFIX           string            `yaml:"New Copy Prefix Mask,omitempty"`
-	COPY_SUFFIX           string            `yaml:"New Copy Suffix Mask,omitempty"`
+	COPY_MARKER           string            `yaml:"New Copy Suffix Mask,omitempty"`
+	COPY_MARKER_comment   string            `yaml:"Copy Marker Comment,omitempty"`
+	COPY_PREFIX           bool              `yaml:"Use Prefix instead of Suffix for Renaming"`
 	COPY_HANDLING         string            `yaml:"Existing Copy Handling"`
 	DELETE_ORIGINAL       string            `yaml:"Delete Original Files"`
 	SORT_METHOD           string            `yaml:"Default Sorting Method"`
@@ -108,7 +109,8 @@ func NewConfig(version string) *Configuration {
 	cfg.COPY_HANDLING = grabberflag.VALUE_COPY_SKIP
 	cfg.DELETE_ORIGINAL = grabberflag.VALUE_DELETE_MARKER
 	cfg.SORT_METHOD = grabberflag.VALUE_SORT_PRIORITY
-	cfg.COPY_SUFFIX = "copy_[C]"
+	cfg.COPY_MARKER = "_copy_([C])"
+	cfg.COPY_MARKER = "valid tags: [C] - Counter; TO BE EXPECTED: [T]; [D]; [S]"
 	cfg.CRON_TRIGGERS = make(map[string]string)
 	cfg.CRON_TRIGGERS["* * * * *"] = "test every minute"
 	cfg.FILE_PRIORITY_WEIGHTS = make(map[string]int)
@@ -158,7 +160,7 @@ func Validate(cfg *Configuration) []error {
 		}
 	}
 
-	if cfg.COPY_PREFIX+cfg.COPY_SUFFIX == "" {
+	if cfg.COPY_MARKER == "" {
 		errors = append(errors, fmt.Errorf("grabber New Copy Mask is not set"))
 	}
 	if cfg.FILE_PRIORITY_WEIGHTS == nil {

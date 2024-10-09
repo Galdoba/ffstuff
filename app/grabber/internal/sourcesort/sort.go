@@ -6,12 +6,42 @@ import (
 	"os"
 	"slices"
 
+	"github.com/Galdoba/ffstuff/app/grabber/commands/grabberflag"
 	"github.com/Galdoba/ffstuff/app/grabber/internal/origin"
+	"github.com/Galdoba/ffstuff/app/grabber/internal/process"
+	"github.com/Galdoba/ffstuff/pkg/logman"
 )
 
 type PriorityProvider interface {
 	NamesPriority() map[string]int
 	DirectoryPriority() map[string]int
+}
+
+func Sort(prc *process.Process, sources ...origin.Origin) ([]origin.Origin, error) {
+	filtered := unique(sources)
+	switch prc.SortDecidion {
+	case grabberflag.VALUE_SORT_PRIORITY:
+		sources = SortByPriority(prc.KeepMarkerGroups, filtered...)
+	case grabberflag.VALUE_SORT_SIZE:
+		sources = SortBySize(prc.KeepMarkerGroups, filtered...)
+	case grabberflag.VALUE_SORT_NONE:
+	}
+	return sources, nil
+}
+
+func unique(nonFiltered []origin.Origin) []origin.Origin {
+	filtered := []origin.Origin{}
+outer:
+	for _, src := range nonFiltered {
+		for _, fl := range filtered {
+			if fl.Path() == src.Path() {
+				logman.Warn("rejecting '%v': reason source file duplicated", fl.Path())
+				continue outer
+			}
+		}
+		filtered = append(filtered, src)
+	}
+	return filtered
 }
 
 func SortByPriority(keepGroups bool, feed ...origin.Origin) []origin.Origin {

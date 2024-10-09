@@ -15,4 +15,7 @@ const (
 	VALUE_SORT_PRIORITY  = "priority"
 	VALUE_SORT_SIZE      = "size"
 	VALUE_SORT_NONE      = "none"
+
+	COPY_MARKER_TAG_COUNTER = "[C]"
+	COPY_MARKER_TAG_TIME    = "[T]"
 )
