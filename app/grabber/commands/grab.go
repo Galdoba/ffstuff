@@ -3,7 +3,6 @@ package commands
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 
 	"github.com/Galdoba/ffstuff/app/grabber/commands/grabberargs"
 	"github.com/Galdoba/ffstuff/app/grabber/commands/grabberflag"
@@ -12,6 +11,7 @@ import (
 	"github.com/Galdoba/ffstuff/app/grabber/internal/origin"
 	"github.com/Galdoba/ffstuff/app/grabber/internal/process"
 	"github.com/Galdoba/ffstuff/app/grabber/internal/sourcesort"
+	"github.com/Galdoba/ffstuff/app/grabber/internal/target"
 	"github.com/Galdoba/ffstuff/pkg/logman"
 	"github.com/urfave/cli/v2"
 )
@@ -34,7 +34,7 @@ func Grab() *cli.Command {
 		},
 		Action: func(c *cli.Context) error {
 
-			logman.Debug(logman.NewMessage("start 'grub'"))
+			logman.Debug(logman.NewMessage("start 'grab'"))
 			//Setup process
 			logman.Debug(logman.NewMessage("check flags"))
 			if err := grabberflag.ValidateGrabFlags(c); err != nil {
@@ -61,6 +61,14 @@ func Grab() *cli.Command {
 			); err != nil {
 				return logman.Errorf("source constructor setup failed: %v", err)
 			}
+			//Setup target manager
+			tm, err := target.NewTargetManager(cfg,
+				target.WithDestination(process.DestinationDir),
+				target.WithCopyHandling(process.CopyDecidion))
+			if err != nil {
+				return logman.Errorf("target manager setup failed: %v", err)
+			}
+			//compile source list
 			sources := []origin.Origin{}
 			for grNum, arg := range c.Args().Slice() {
 				gr := fmt.Sprintf("group_%02d", grNum)
@@ -73,7 +81,7 @@ func Grab() *cli.Command {
 					sources = append(sources, origin.New(found, gr))
 				}
 			}
-			logman.Printf("%v sorce files received", len(sources))
+			logman.Printf("%v source files received", len(sources))
 
 			//Sort
 			sources, err = sourcesort.Sort(process, sources...)
@@ -82,18 +90,32 @@ func Grab() *cli.Command {
 				return err
 			}
 			//grab
-			dest := process.DestinationDir
 			for i, src := range sources {
-				name := filepath.Base(src.Path())
-				logman.Debug(logman.NewMessage("emulating %v: %v to %v", i, name, dest))
-				oldCopy, err := exists(dest + name)
+				tgtName, err := tm.NewTarget(src)
 				if err != nil {
-					logman.Errorf("old copy check received unexpected error: %v", err)
+					logman.Errorf("failed to create target for source '%v': %v", src.Name())
+					continue
 				}
-				if oldCopy {
-					logman.Warn("old copy exist: renaming %v to %v", name)
+				if tgtName == "" {
+					switch process.CopyDecidion {
+					case grabberflag.VALUE_COPY_SKIP:
+						logman.Warn("skip %v", src.Name())
+					default:
+						logman.Errorf("failed to compile target for source '%v'", src.Name())
+						continue
+					}
+				}
+				process.SourceTargetMap[src] = tgtName
+				name := process.SourceTargetMap[src]
+				logman.Debug(logman.NewMessage("emulating %v: %v to %v", i, src.Path(), name))
+				// oldCopy, err := exists(dest + name)
+				// if err != nil {
+				// 	logman.Errorf("old copy check received unexpected error: %v", err)
+				// }
+				// if oldCopy {
+				// 	logman.Warn("old copy exist: renaming %v to %v", name)
 
-				}
+				// }
 			}
 
 			fmt.Println(process)
@@ -102,7 +124,7 @@ func Grab() *cli.Command {
 				fmt.Println(i, src)
 			}
 
-			logman.Debug(logman.NewMessage("end   'grub'"))
+			logman.Debug(logman.NewMessage("end   'grab'"))
 			return nil
 		},
 		Subcommands: []*cli.Command{},
@@ -121,7 +143,7 @@ func Grab() *cli.Command {
 
 			&cli.StringFlag{
 				Name:    grabberflag.COPY,
-				Usage:   "set decidion if target file with same name exists\n	  valid values: skip, remane or overwrite",
+				Usage:   "set decidion if target file with same name exists\n	  valid values: skip, rename or overwrite",
 				Value:   grabberflag.VALUE_COPY_SKIP,
 				Aliases: []string{"c"},
 			},

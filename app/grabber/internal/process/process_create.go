@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/Galdoba/ffstuff/app/grabber/commands/grabberflag"
+	"github.com/Galdoba/ffstuff/app/grabber/internal/origin"
 	"github.com/Galdoba/ffstuff/app/grabber/internal/validation"
 	"github.com/Galdoba/ffstuff/pkg/logman"
 )
@@ -30,11 +31,12 @@ type Process struct {
 	cronShedule           string
 	nextSheduleTrigger    int
 	mode                  string
-	copyDecidion          string
+	CopyDecidion          string
 	DeleteDecidion        string
 	SortDecidion          string
 	KeepMarkerGroups      bool
 	DestinationDir        string
+	SourceTargetMap       map[origin.Origin]string
 }
 
 func New(opts ...ProcessOption) (*Process, error) {
@@ -44,8 +46,9 @@ func New(opts ...ProcessOption) (*Process, error) {
 	for _, enrich := range opts {
 		enrich(&settings)
 	}
+	pr.SourceTargetMap = make(map[origin.Origin]string)
 	pr.mode = settings.mode
-	pr.copyDecidion = settings.copy_decidion
+	pr.CopyDecidion = settings.copy_decidion
 	pr.DeleteDecidion = settings.delete_decidion
 	pr.SortDecidion = settings.sort_decidion
 	pr.KeepMarkerGroups = settings.keepmarkerGroups
@@ -85,11 +88,11 @@ func assertMode(pr *Process) (string, error) {
 }
 
 func assertCopyDecidion(pr *Process) (string, error) {
-	switch pr.copyDecidion {
+	switch pr.CopyDecidion {
 	case grabberflag.VALUE_COPY_SKIP, grabberflag.VALUE_COPY_RENAME, grabberflag.VALUE_COPY_OVERWRITE:
-		return "process.copyDecidion: " + pr.copyDecidion, nil
+		return "process.CopyDecidion: " + pr.CopyDecidion, nil
 	default:
-		return "", fmt.Errorf("process copyDecidion invalid: %v", pr.copyDecidion)
+		return "", fmt.Errorf("process CopyDecidion invalid: %v", pr.CopyDecidion)
 	}
 
 }

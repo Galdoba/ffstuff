@@ -61,6 +61,7 @@ type constructor struct {
 
 type Origin interface {
 	Path() string
+	Name() string
 	Message() string
 	Group() string
 	MustDie() bool
@@ -108,6 +109,11 @@ func New(path string, group ...string) *origin {
 func (or *origin) Path() string {
 	return or.path
 }
+
+func (or *origin) Name() string {
+	return filepath.Base(or.path)
+}
+
 func (or *origin) Message() string {
 	return or.message
 }
