@@ -24,7 +24,7 @@ func commandInit() error {
 		return fmt.Errorf("config errors detected")
 	case 0:
 		cfg = cfgLoaded
-		if err := setupLogger(cfg.LOG_LEVEL, cfg.LOG); err != nil {
+		if err := setupLogger(cfg.CONSOLE_LOG_LEVEL, cfg.FILE_LOG_LEVEL, cfg.LOG); err != nil {
 			return fmt.Errorf("logger initialization failed: %v", err)
 		}
 		// if err := setupSourceConstructor(); err != nil {
@@ -35,13 +35,35 @@ func commandInit() error {
 	return nil
 }
 
-func setupLogger(level, logpath string) error {
-	switch level {
+func setupLogger(levelConsole, levelFile, logpath string) error {
+	levelConsole = strings.ToUpper(levelConsole)
+	levelFile = strings.ToUpper(levelFile)
+	keepToConsole := []string{}
+	switch levelConsole {
 	case "":
-		return fmt.Errorf("config field 'Minimum Log Level' contains no data")
+		return fmt.Errorf("config field 'Minimum Log Level: Terminal' contains no data")
 	default:
-		return fmt.Errorf("config field 'Minimum Log Level' contains invalid data: '%v'\n"+
-			"expecting: TRACE, DEBUG, INFO, WARN, ERROR или FATAL", level)
+		return fmt.Errorf("config field 'Minimum Log Level: Terminal' contains invalid data: '%v' "+
+			"(expecting: TRACE, DEBUG, INFO, WARN, ERROR or FATAL)", levelConsole)
+	case strings.ToUpper(logman.TRACE):
+		keepToConsole = []string{logman.TRACE, logman.DEBUG, logman.INFO, logman.WARN, logman.ERROR, logman.FATAL}
+	case strings.ToUpper(logman.DEBUG):
+		keepToConsole = []string{logman.DEBUG, logman.INFO, logman.WARN, logman.ERROR, logman.FATAL}
+	case strings.ToUpper(logman.INFO):
+		keepToConsole = []string{logman.INFO, logman.WARN, logman.ERROR, logman.FATAL}
+	case strings.ToUpper(logman.WARN):
+		keepToConsole = []string{logman.WARN, logman.ERROR, logman.FATAL}
+	case strings.ToUpper(logman.ERROR):
+		keepToConsole = []string{logman.ERROR, logman.FATAL}
+	case strings.ToUpper(logman.FATAL):
+		keepToConsole = []string{logman.FATAL}
+	}
+	switch levelFile {
+	case "":
+		return fmt.Errorf("config field 'Minimum Log Level: File' contains no data")
+	default:
+		return fmt.Errorf("config field 'Minimum Log Level: File' contains invalid data: '%v' "+
+			"(expecting: TRACE, DEBUG, INFO, WARN, ERROR or FATAL)", levelConsole)
 	case strings.ToUpper(logman.TRACE):
 		if err := logman.Setup(logman.WithAppLogLevelImportance(logman.ImportanceTRACE)); err != nil {
 			return fmt.Errorf("logger setup failed: %v", err)
@@ -69,6 +91,19 @@ func setupLogger(level, logpath string) error {
 	}
 	logman.ClearOutput(logman.ALL)
 	logman.SetOutput(logpath, logman.ALL)
-	logman.SetOutput(logman.Stderr, logman.ALL)
+	keepOutput := []string{}
+	keep := false
+	for _, level := range keepToConsole {
+		if strings.ToUpper(level) == levelConsole {
+			keep = true
+		}
+		if keep {
+			keepOutput = append(keepOutput, level)
+		}
+	}
+	if len(keepOutput) == 0 {
+		keepOutput = []string{logman.FATAL}
+	}
+	logman.SetOutput(logman.Stderr, keepOutput...)
 	return nil
 }

@@ -15,6 +15,7 @@ type origin struct {
 	group      string
 	killOnDone bool
 	score      int
+	isMarker   bool
 	err        error
 }
 
@@ -66,6 +67,7 @@ type Origin interface {
 	Group() string
 	MustDie() bool
 	Score() int
+	IsMarker() bool
 }
 
 func New(path string, group ...string) *origin {
@@ -73,6 +75,7 @@ func New(path string, group ...string) *origin {
 	o.path = path
 
 	if strings.HasSuffix(path, originConstructor.markerExt) {
+		o.isMarker = true
 		if originConstructor.killSignal == grabberflag.VALUE_DELETE_MARKER {
 			o.killOnDone = true
 		}
@@ -125,6 +128,9 @@ func (or *origin) MustDie() bool {
 }
 func (or *origin) Score() int {
 	return or.score
+}
+func (or *origin) IsMarker() bool {
+	return or.isMarker
 }
 
 func WithFilePriority(priorityMap map[string]int) ConstructorOption {

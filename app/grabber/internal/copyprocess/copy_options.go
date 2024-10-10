@@ -1,9 +1,11 @@
 package copyprocess
 
+import "github.com/Galdoba/ffstuff/app/grabber/internal/origin"
+
 type Option func(*copyOptions)
 
 type copyOptions struct {
-	sourcePaths   []string
+	sourcePaths   []origin.Origin
 	destination   string
 	atemptLimit   int
 	nameTabLen    int
@@ -20,7 +22,7 @@ func defaultCopyOptions() copyOptions {
 	}
 }
 
-func WithSourcePaths(sourcePaths ...string) Option {
+func WithSourcePaths(sourcePaths ...origin.Origin) Option {
 	return func(co *copyOptions) {
 		for _, arg := range sourcePaths {
 			if sliceContains(co.sourcePaths, arg) {
@@ -31,9 +33,9 @@ func WithSourcePaths(sourcePaths ...string) Option {
 	}
 }
 
-func sliceContains(sl []string, s string) bool {
+func sliceContains(sl []origin.Origin, s origin.Origin) bool {
 	for _, have := range sl {
-		if have == s {
+		if have.Path() == s.Path() {
 			return true
 		}
 	}

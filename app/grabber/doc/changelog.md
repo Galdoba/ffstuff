@@ -1,13 +1,14 @@
 Versioning:
-    Relese.Major.Minor:Release Date
+    Relese.Major.Minor:Commit Date:Commit Number
 
 Changes done:
-    v 0.0.1:240923 -- Initial commit
-    v 0.1.0:240923 -- Direct copy prototype
-    v 0.1.0:240926 -- refactoring: grab process control
-    v 0.1.0:240927 -- refactoring: grab process control (again)
-    v 0.1.0:241001 -- sorting
-    v 0.1.0:241010 -- renaming
+    v 0.0.1:240923:1 -- Initial commit
+    v 0.0.1:240923:1 -- Direct copy prototype
+    v 0.0.1:240926:1 -- refactoring: grab process control
+    v 0.0.1:240927:1 -- refactoring: grab process control (again)
+    v 0.0.1:241001:1 -- sorting
+    v 0.0.1:241010:1 -- renaming
+    v 0.1.0:241010   -- prototype release
     
 
 TODO:

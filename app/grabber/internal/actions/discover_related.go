@@ -5,9 +5,15 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/Galdoba/ffstuff/app/grabber/internal/origin"
 )
 
-func DiscoverRelatedFiles(markerFile string) ([]string, error) {
+func DiscoverRelatedFiles(source origin.Origin) ([]string, error) {
+	if !source.IsMarker() {
+		return nil, nil
+	}
+	markerFile := source.Path()
 	dir := filepath.Dir(markerFile)
 	ext := filepath.Ext(markerFile)
 

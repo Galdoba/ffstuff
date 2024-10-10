@@ -8,85 +8,84 @@ import (
 	"path/filepath"
 	"strconv"
 	"time"
-
-	"github.com/Galdoba/ffstuff/pkg/namedata"
 )
 
 // CopyFile - takes file path, and making a copy of the file in the destination directory
-func CopyFile(source string, destination string) error {
+// func CopyFile0(source string, destination string) error {
 
-	srcInfo, errS := os.Stat(source)
-	if errS != nil {
-		return errors.New("Source: " + errS.Error())
-	}
-	if !srcInfo.Mode().IsRegular() { // cannot copy non-regular files (e.g., directories, symlinks, devices, etc.)
-		return errors.New("Cannot copy source: " + srcInfo.Name() + " (" + srcInfo.Mode().String() + ")")
-	}
-	//destinations checks
-	destInfo, errD := os.Stat(destination)
-	if errD != nil {
-		return errors.New("Destination: " + errD.Error())
-	}
-	if !destInfo.IsDir() {
-		return errors.New("Destination is not a directory: " + destInfo.Name())
-	}
+// 	srcInfo, errS := os.Stat(source)
+// 	if errS != nil {
+// 		return errors.New("Source: " + errS.Error())
+// 	}
+// 	if !srcInfo.Mode().IsRegular() { // cannot copy non-regular files (e.g., directories, symlinks, devices, etc.)
+// 		return errors.New("Cannot copy source: " + srcInfo.Name() + " (" + srcInfo.Mode().String() + ")")
+// 	}
+// 	//destinations checks
+// 	destInfo, errD := os.Stat(destination)
+// 	if errD != nil {
+// 		return errors.New("Destination: " + errD.Error())
+// 	}
+// 	if !destInfo.IsDir() {
+// 		return errors.New("Destination is not a directory: " + destInfo.Name())
+// 	}
 
-	srcBase := filepath.Base(source)
+// 	srcBase := filepath.Base(source)
 
+// 	in, err := os.Open(source)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	defer in.Close()
+// 	out, err := os.Create(destination + srcBase)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	defer out.Close()
+
+// 	go copyContent(source, destination)
+// 	doneCopying := false
+// 	sourceSize := srcInfo.Size()
+// 	if sourceSize == 0 {
+// 		return errors.New("source size = 0 bytes")
+// 	}
+// 	time.Sleep(time.Second)
+
+// 	for !doneCopying {
+// 		copyFile, err := os.Stat(destination + srcBase)
+// 		copySize := copyFile.Size()
+
+// 		fmt.Printf("%v %v", filepath.Base(source), downloadbar(copySize, sourceSize))
+// 		if err != nil {
+// 			fmt.Println(err)
+// 		}
+// 		time.Sleep(time.Millisecond * 1000)
+// 		if copySize >= sourceSize {
+
+// 			fmt.Printf("%v%v", filepath.Base(source), "         done\r")
+
+// 			doneCopying = true
+// 		}
+// 	}
+
+// 	return nil
+// }
+
+func copyContent(source, target string, copyErr *errorCollector) error {
 	in, err := os.Open(source)
 	if err != nil {
+		copyErr.collected = append(copyErr.collected, err)
 		return err
 	}
 	defer in.Close()
-	out, err := os.Create(destination + srcBase)
+	out, err := os.Create(target)
 	if err != nil {
+		copyErr.collected = append(copyErr.collected, err)
 		return err
 	}
 	defer out.Close()
-
-	go copyContent(source, destination)
-	doneCopying := false
-	sourceSize := srcInfo.Size()
-	if sourceSize == 0 {
-		return errors.New("source size = 0 bytes")
-	}
-	time.Sleep(time.Second)
-
-	for !doneCopying {
-		copyFile, err := os.Stat(destination + srcBase)
-		copySize := copyFile.Size()
-
-		fmt.Printf("%v %v", filepath.Base(source), downloadbar(copySize, sourceSize))
-		if err != nil {
-			fmt.Println(err)
-		}
-		time.Sleep(time.Millisecond * 1000)
-		if copySize >= sourceSize {
-
-			fmt.Printf(filepath.Base(source), "         done\r")
-
-			doneCopying = true
-		}
-	}
-
-	return nil
-}
-
-func copyContent(source, destination string) error {
-	srcBase := namedata.RetrieveShortName(source)
-	in, err := os.Open(source)
-	if err != nil {
-		return err
-	}
-	defer in.Close()
-	out, err := os.Create(destination + srcBase)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-	//_, err = io.Copy(out, in)
 	err = CopyM(out, in)
 	if err != nil {
+		copyErr.collected = append(copyErr.collected, err)
 		return err
 	}
 	return nil
@@ -188,4 +187,64 @@ func CopyM(out io.Writer, in io.Reader) error {
 		err = e
 	}
 	return err
+}
+
+// CopyFile - takes file path, and making a copy of the file with target filepath
+func CopyFile(source, target string) error {
+
+	srcInfo, errS := os.Stat(source)
+	if errS != nil {
+		return errors.New("Source: " + errS.Error())
+	}
+	if !srcInfo.Mode().IsRegular() { // cannot copy non-regular files (e.g., directories, symlinks, devices, etc.)
+		return errors.New("Cannot copy source: " + srcInfo.Name() + " (" + srcInfo.Mode().String() + ")")
+	}
+	//destinations checks
+	// destInfo, errD := os.Stat(target)
+	// if errD != nil {
+	// 	return errors.New("Destination: " + errD.Error())
+	// }
+	// if !destInfo.IsDir() {
+	// 	return errors.New("Destination is not a directory: " + destInfo.Name())
+	// }
+
+	// srcBase := filepath.Base(source)
+
+	in, err := os.Open(source)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+	// out, err := os.Create(target)
+	// if err != nil {
+	// 	return err
+	// }
+	// defer out.Close()
+
+	go copyContent(source, target, nil)
+	doneCopying := false
+	sourceSize := srcInfo.Size()
+	if sourceSize == 0 {
+		return errors.New("source size = 0 bytes")
+	}
+	time.Sleep(time.Second)
+
+	for !doneCopying {
+		copyFile, err := os.Stat(target)
+		copySize := copyFile.Size()
+
+		fmt.Printf("%v %v", filepath.Base(source), downloadbar(copySize, sourceSize))
+		if err != nil {
+			fmt.Println(err)
+		}
+		time.Sleep(time.Millisecond * 1000)
+		if copySize >= sourceSize {
+
+			fmt.Printf("%v%v", filepath.Base(source), "         done\r")
+
+			doneCopying = true
+		}
+	}
+
+	return nil
 }

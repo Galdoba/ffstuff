@@ -50,8 +50,8 @@ func defaultTargetOptions(cfg *config.Configuration) targetOption {
 	return targetOption{
 		directory:    cfg.DEFAULT_DESTINATION,
 		copyHandling: cfg.COPY_HANDLING,
-		prefix:       cfg.COPY_PREFIX,
-		suffix:       cfg.COPY_MARKER,
+		//prefix:       cfg.COPY_PREFIX,
+		//suffix:       cfg.COPY_MARKER,
 	}
 }
 

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/Galdoba/ffstuff/app/grabber/commands/grabberflag"
 	"github.com/Galdoba/ffstuff/app/grabber/internal/validation"
@@ -39,15 +40,16 @@ type Configuration struct {
 	DEFAULT_DESTINATION   string            `yaml:"Default Destination Directory"`
 	SEARCH_ROOTS          []string          `yaml:"Directories: Search Markers (track mode only)"`
 	LOG                   string            `yaml:"Log File"`
-	LOG_LEVEL             string            `yaml:"Minimum Log Level"`
+	CONSOLE_LOG_LEVEL     string            `yaml:"Minimum Log Level: Terminal"`
+	FILE_LOG_LEVEL        string            `yaml:"Minimum Log Level: File    "`
 	LOG_BY_SESSION        bool              `yaml:"Create Log File for Every Session,omitempty"`
-	CRON_TRIGGERS         map[string]string `yaml:"Cron Triggers"`
-	COPY_MARKER           string            `yaml:"New Copy Suffix Mask,omitempty"`
-	COPY_MARKER_comment   string            `yaml:"Copy Marker Comment,omitempty"`
-	COPY_PREFIX           bool              `yaml:"Use Prefix instead of Suffix for Renaming"`
-	COPY_HANDLING         string            `yaml:"Existing Copy Handling"`
-	DELETE_ORIGINAL       string            `yaml:"Delete Original Files"`
-	SORT_METHOD           string            `yaml:"Default Sorting Method"`
+	CRON_TRIGGERS         map[string]string `yaml:"Cron Triggers (not implemented)"`
+	//COPY_MARKER           string            `yaml:"New Copy Suffix Mask,omitempty"`
+	//COPY_MARKER_comment   string            `yaml:"Copy Marker Comment,omitempty"`
+	//COPY_PREFIX           bool              `yaml:"Use Prefix instead of Suffix for Renaming"`
+	COPY_HANDLING   string `yaml:"Existing Copy Handling"`
+	DELETE_ORIGINAL string `yaml:"Delete Original Files"`
+	SORT_METHOD     string `yaml:"Default Sorting Method"`
 
 	FILE_PRIORITY_WEIGHTS      map[string]int `yaml:"File Priority Weights"`
 	DIRECTORY_PRIORITY_WEIGHTS map[string]int `yaml:"Directory Priority Weights"`
@@ -105,12 +107,13 @@ func NewConfig(version string) *Configuration {
 	cfg.SORT_METHOD = SORT_BY_NONE
 	cfg.DEFAULT_DESTINATION = ""
 	cfg.LOG = ""
-	cfg.LOG_LEVEL = "DEBUG"
+	cfg.CONSOLE_LOG_LEVEL = "DEBUG"
+	cfg.FILE_LOG_LEVEL = "DEBUG"
 	cfg.COPY_HANDLING = grabberflag.VALUE_COPY_SKIP
 	cfg.DELETE_ORIGINAL = grabberflag.VALUE_DELETE_MARKER
 	cfg.SORT_METHOD = grabberflag.VALUE_SORT_PRIORITY
-	cfg.COPY_MARKER = "_copy_([C])"
-	cfg.COPY_MARKER = "valid tags: [C] - Counter; TO BE EXPECTED: [T]; [D]; [S]"
+	//cfg.COPY_MARKER = "_copy_([C])"
+	//cfg.COPY_MARKER_comment = "valid tags: [C] - Counter; TO BE EXPECTED: [T]; [D]; [S]"
 	cfg.CRON_TRIGGERS = make(map[string]string)
 	cfg.CRON_TRIGGERS["* * * * *"] = "test every minute"
 	cfg.FILE_PRIORITY_WEIGHTS = make(map[string]int)
@@ -144,11 +147,18 @@ func Validate(cfg *Configuration) []error {
 		}
 	}
 	logLevelExpect := "\nexpecting: TRACE, DEBUG, INFO, WARN, ERROR or FATAL"
-	switch cfg.LOG_LEVEL {
+	switch strings.ToUpper(cfg.CONSOLE_LOG_LEVEL) {
 	case "":
-		errors = append(errors, fmt.Errorf("grabber log level is not set %v", logLevelExpect))
+		errors = append(errors, fmt.Errorf("grabber terminal log level is not set %v", logLevelExpect))
 	default:
-		errors = append(errors, fmt.Errorf("grabber log level is unknown: '%v'%v", cfg.LOG_LEVEL, logLevelExpect))
+		errors = append(errors, fmt.Errorf("grabber terminal log level is unknown: '%v'%v", cfg.CONSOLE_LOG_LEVEL, logLevelExpect))
+	case "TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL":
+	}
+	switch strings.ToUpper(cfg.FILE_LOG_LEVEL) {
+	case "":
+		errors = append(errors, fmt.Errorf("grabber logfile level is not set %v", logLevelExpect))
+	default:
+		errors = append(errors, fmt.Errorf("grabber log level is unknown: '%v'%v", cfg.FILE_LOG_LEVEL, logLevelExpect))
 	case "TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL":
 	}
 	switch cfg.DEFAULT_DESTINATION {
@@ -160,9 +170,9 @@ func Validate(cfg *Configuration) []error {
 		}
 	}
 
-	if cfg.COPY_MARKER == "" {
-		errors = append(errors, fmt.Errorf("grabber New Copy Mask is not set"))
-	}
+	// if cfg.COPY_MARKER == "" {
+	// 	errors = append(errors, fmt.Errorf("grabber New Copy Mask is not set"))
+	// }
 	if cfg.FILE_PRIORITY_WEIGHTS == nil {
 		errors = append(errors, fmt.Errorf("grabber File Priority Weights are not set"))
 	}

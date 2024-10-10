@@ -12,7 +12,7 @@ func Health() *cli.Command {
 	return &cli.Command{
 		Name: "health",
 		//Aliases:     []string{"fs"},
-		Usage: "TODO: Check program files",
+		Usage: "Check program files",
 
 		BashComplete: func(*cli.Context) {
 		},

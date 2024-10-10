@@ -19,7 +19,7 @@ func init() {
 func main() {
 
 	app := cli.NewApp()
-	app.Version = "0.0.1:" + dateTag()
+	app.Version = "0.1.0:" + dateTag()
 	app.Usage = "utility for copy/move operations management"
 	app.UsageText = "grabber [global options] command [command options] [arguments]..."
 	app.Description = "grabber allows copy/move files by direct command or in delayed manner via crone-like shedule \n" +
@@ -34,11 +34,11 @@ func main() {
 	}
 	app.Commands = []*cli.Command{
 		commands.Grab(),
+		commands.Setup(),
+		commands.Health(),
 		commands.Search(),
 		commands.Queue(),
 		commands.Run(),
-		commands.Setup(),
-		commands.Health(),
 	}
 
 	//ПО ОКОНЧАНИЮ ДЕЙСТВИЯ

@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/Galdoba/ffstuff/app/grabber/commands/grabberargs"
 	"github.com/Galdoba/ffstuff/app/grabber/commands/grabberflag"
 	"github.com/Galdoba/ffstuff/app/grabber/config"
 	"github.com/Galdoba/ffstuff/app/grabber/internal/actions"
+	"github.com/Galdoba/ffstuff/app/grabber/internal/copyprocess"
 	"github.com/Galdoba/ffstuff/app/grabber/internal/origin"
 	"github.com/Galdoba/ffstuff/app/grabber/internal/process"
 	"github.com/Galdoba/ffstuff/app/grabber/internal/sourcesort"
@@ -22,7 +22,7 @@ func Grab() *cli.Command {
 	return &cli.Command{
 		Name:      "grab",
 		Aliases:   []string{},
-		Usage:     "direct command for transfering files",
+		Usage:     "Direct command for transfering files",
 		UsageText: "grabber grab [command options] args...",
 		Description: "Setup single process to copy source files to destination directory. Command receives filepaths as arguments.\n" +
 			"If argument is 'marker' file grabber will search all related files in the same directory and add them for transfering.",
@@ -42,9 +42,9 @@ func Grab() *cli.Command {
 			}
 
 			logman.Debug(logman.NewMessage("check arguments"))
-			if err := grabberargs.ValidateGrabArguments(c.Args().Slice()...); err != nil {
-				return logman.Errorf("argument validation failed: %v", err)
-			}
+			// if err := grabberargs.ValidateGrabArguments(c.Args().Slice()...); err != nil {
+			// 	return logman.Errorf("argument validation failed: %v", err)
+			// }
 
 			logman.Debug(logman.NewMessage("set process options"))
 			options := process.DefineGrabOptions(c, cfg)
@@ -72,8 +72,9 @@ func Grab() *cli.Command {
 			sources := []origin.Origin{}
 			for grNum, arg := range c.Args().Slice() {
 				gr := fmt.Sprintf("group_%02d", grNum)
-				sources = append(sources, origin.New(arg, gr))
-				related, err := actions.DiscoverRelatedFiles(arg)
+				src := origin.New(arg, gr)
+				sources = append(sources, src)
+				related, err := actions.DiscoverRelatedFiles(src)
 				if err != nil {
 					logman.Warn("failed to discover related files: %v", err)
 				}
@@ -86,11 +87,11 @@ func Grab() *cli.Command {
 			//Sort
 			sources, err = sourcesort.Sort(process, sources...)
 			if err != nil {
-				fmt.Println("sorting error:", err.Error())
-				return err
+				return logman.Errorf("sort error: %v", err)
 			}
-			//grab
-			for i, src := range sources {
+			//targeting
+			filteredSources := []origin.Origin{}
+			for _, src := range sources {
 				tgtName, err := tm.NewTarget(src)
 				if err != nil {
 					logman.Errorf("failed to create target for source '%v': %v", src.Name())
@@ -100,28 +101,23 @@ func Grab() *cli.Command {
 					switch process.CopyDecidion {
 					case grabberflag.VALUE_COPY_SKIP:
 						logman.Warn("skip %v", src.Name())
+						continue
 					default:
 						logman.Errorf("failed to compile target for source '%v'", src.Name())
 						continue
 					}
 				}
 				process.SourceTargetMap[src] = tgtName
-				name := process.SourceTargetMap[src]
-				logman.Debug(logman.NewMessage("emulating %v: %v to %v", i, src.Path(), name))
-				// oldCopy, err := exists(dest + name)
-				// if err != nil {
-				// 	logman.Errorf("old copy check received unexpected error: %v", err)
-				// }
-				// if oldCopy {
-				// 	logman.Warn("old copy exist: renaming %v to %v", name)
-
-				// }
+				filteredSources = append(filteredSources, src)
 			}
+			copyProc := copyprocess.NewCopyAction(process.SourceTargetMap,
+				copyprocess.WithDestination(process.DestinationDir),
+				copyprocess.WithMarkerExt(cfg.MARKER_FILE_EXTENTION),
+				copyprocess.WithSourcePaths(filteredSources...),
+			)
+			if err := copyProc.Start(); err != nil {
+				return err
 
-			fmt.Println(process)
-			process.ShowOrder()
-			for i, src := range sources {
-				fmt.Println(i, src)
 			}
 
 			logman.Debug(logman.NewMessage("end   'grab'"))

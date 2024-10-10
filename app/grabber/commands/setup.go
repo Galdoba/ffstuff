@@ -18,7 +18,7 @@ import (
 func Setup() *cli.Command {
 	return &cli.Command{
 		Name:  "setup",
-		Usage: "TODO: Setup program files",
+		Usage: "Setup program files",
 
 		Action: func(c *cli.Context) error {
 			cfgPath := stdpath.ConfigFile()
@@ -38,11 +38,23 @@ func Setup() *cli.Command {
 					os.Exit(1)
 				}
 				cfg := config.NewConfig(c.App.Version)
-				input, errInput := operator.Input("input default destination directory:", validation.DirectoryValidation)
-				if errInput != nil {
-					return fmt.Errorf("input failed: %v", errInput)
-				}
+				input := stdpath.ProgramDir()
+				input = strings.TrimSpace(input)
 				sep := string(filepath.Separator)
+				input = strings.TrimSuffix(input, sep) + sep
+				fmt.Println("default destination directory is", stdpath.ProgramDir())
+				switch operator.Confirm(fmt.Sprintf("set custom destination directory?")) {
+				case true:
+					input, err = operator.Input("input default destination directory:", validation.DirectoryValidation)
+					if err != nil {
+						return fmt.Errorf("input failed: %v", err)
+					}
+				case false:
+					if err := os.MkdirAll(stdpath.ProgramDir(), 0666); err != nil {
+						return fmt.Errorf("program directory creation failed: %v", err)
+					}
+				}
+				input = strings.TrimSpace(input)
 				input = strings.TrimSuffix(input, sep) + sep
 				cfg.DEFAULT_DESTINATION = input
 				cfg.LOG = stdpath.LogFile()
@@ -66,7 +78,8 @@ func Setup() *cli.Command {
 					}
 				}
 				f.Close()
-				cfg.LOG_LEVEL = "DEBUG"
+				cfg.CONSOLE_LOG_LEVEL = "INFO"
+				cfg.FILE_LOG_LEVEL = "INFO"
 				if err := config.Save(cfg); err != nil {
 					return fmt.Errorf("config saving failed: %v", err)
 				}
