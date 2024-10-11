@@ -24,21 +24,11 @@ func Health() *cli.Command {
 		},
 		Action: func(c *cli.Context) error {
 			//stdpath.SetAppName(c.App.Name)
-			it := newIssueTracker()
+			it := newIssueTracker(c.App.Name)
 			cfg, err := config.Load()
 			if err != nil {
 				return fmt.Errorf("no config detected\nsolution: run 'grabber setup'")
 			}
-			// if cfg != nil {
-			// 	if cfg.Version != c.App.Version {
-			// 		it.addIssue(
-			// 			newIssue(fmt.Sprintf("Config: config version (%v) does not match with app version (%v)", cfg.Version, c.App.Version),
-			// 				issueSolution(
-			// 					fmt.Sprintf("check config file (%v) and set version to '%v' if all is valid", stdpath.ConfigFile(), c.App.Version)),
-			// 			),
-			// 		)
-			// 	}
-			// }
 			for i, err := range config.Validate(cfg) {
 				if err != nil {
 					it.addIssue(newIssue(fmt.Sprintf("config issue %v", i+1), issueErr(err)))
@@ -64,11 +54,12 @@ func Health() *cli.Command {
 }
 
 type issueTracker struct {
-	issues []issue
+	issues  []issue
+	appName string
 }
 
-func newIssueTracker() *issueTracker {
-	return &issueTracker{}
+func newIssueTracker(name string) *issueTracker {
+	return &issueTracker{appName: name}
 }
 
 func (it *issueTracker) addIssue(issue issue) {
@@ -78,12 +69,12 @@ func (it *issueTracker) addIssue(issue issue) {
 func (it *issueTracker) report() {
 	switch len(it.issues) {
 	case 0:
-		fmt.Fprintf(os.Stdout, "Health: ok")
+		fmt.Fprintf(os.Stdout, "%v health: ok", it.appName)
 		return
 	case 1:
-		fmt.Fprintf(os.Stderr, "Health: 1 issue\n")
+		fmt.Fprintf(os.Stderr, "%v health: 1 issue\n", it.appName)
 	default:
-		fmt.Fprintf(os.Stderr, "Health: %v issues\n", len(it.issues))
+		fmt.Fprintf(os.Stderr, "%v health: %v issues\n", it.appName, len(it.issues))
 	}
 	for i, issue := range it.issues {
 		text := fmt.Sprintf("  issue %v: %v\n", i+1, issue.message)

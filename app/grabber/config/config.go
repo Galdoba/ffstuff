@@ -104,11 +104,11 @@ func NewConfig(version string) *Configuration {
 	cfg := Configuration{}
 	cfg.Version = version
 	cfg.MARKER_FILE_EXTENTION = ".ready"
-	cfg.SORT_METHOD = SORT_BY_NONE
-	cfg.DEFAULT_DESTINATION = ""
-	cfg.LOG = ""
-	cfg.CONSOLE_LOG_LEVEL = "DEBUG"
-	cfg.FILE_LOG_LEVEL = "DEBUG"
+	cfg.SORT_METHOD = SORT_BY_PRIORITY
+	cfg.DEFAULT_DESTINATION = stdpath.ProgramDir()
+	cfg.LOG = stdpath.LogFile()
+	cfg.CONSOLE_LOG_LEVEL = "INFO"
+	cfg.FILE_LOG_LEVEL = "INFO"
 	cfg.COPY_HANDLING = grabberflag.VALUE_COPY_SKIP
 	cfg.DELETE_ORIGINAL = grabberflag.VALUE_DELETE_MARKER
 	cfg.SORT_METHOD = grabberflag.VALUE_SORT_PRIORITY

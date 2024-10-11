@@ -9,6 +9,7 @@ Changes done:
     v 0.0.1:241001:1 -- sorting
     v 0.0.1:241010:1 -- renaming
     v 0.1.0:241010   -- prototype release
+    v 0.1.0:241010:1 -- refactoring: setup and health commands
     
 
 TODO:

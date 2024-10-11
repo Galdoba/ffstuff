@@ -5,12 +5,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/Galdoba/devtools/decidion/operator"
 	"github.com/Galdoba/ffstuff/app/grabber/config"
-	"github.com/Galdoba/ffstuff/app/grabber/internal/validation"
 	"github.com/Galdoba/ffstuff/pkg/stdpath"
+	"github.com/fatih/color"
 	"github.com/urfave/cli/v2"
 	"gopkg.in/yaml.v3"
 )
@@ -22,74 +21,57 @@ func Setup() *cli.Command {
 
 		Action: func(c *cli.Context) error {
 			cfgPath := stdpath.ConfigFile()
-			fmt.Println("config path:", cfgPath)
-			switch operator.Confirm(fmt.Sprintf("Create/revert to default values?")) {
-			case false:
-				return nil
-			case true:
-				if err := os.MkdirAll(stdpath.ConfigDir(), 0666); err != nil {
-					fmt.Printf("config directory creation failed: %v\n", err)
-					os.Exit(1)
-				}
-				f, err := os.Create(cfgPath)
-				defer f.Close()
-				if err != nil {
-					fmt.Printf("config file creation failed: %v\n", err)
-					os.Exit(1)
-				}
-				cfg := config.NewConfig(c.App.Version)
-				input := stdpath.ProgramDir()
-				input = strings.TrimSpace(input)
-				sep := string(filepath.Separator)
-				input = strings.TrimSuffix(input, sep) + sep
-				fmt.Println("default destination directory is", stdpath.ProgramDir())
-				switch operator.Confirm(fmt.Sprintf("set custom destination directory?")) {
+			fmt.Printf("Config path: %v\n", color.HiCyanString(cfgPath))
+			wantCreateFile := false
+			f, err := os.OpenFile(cfgPath, os.O_RDWR, 0666)
+			if err != nil {
+				switch errors.Is(err, os.ErrNotExist) {
+				default:
+					fmt.Printf("failed to open config file: %v\n", err)
 				case true:
-					input, err = operator.Input("input default destination directory:", validation.DirectoryValidation)
-					if err != nil {
-						return fmt.Errorf("input failed: %v", err)
-					}
-				case false:
-					if err := os.MkdirAll(stdpath.ProgramDir(), 0666); err != nil {
-						return fmt.Errorf("program directory creation failed: %v", err)
-					}
+					wantCreateFile = true
 				}
-				input = strings.TrimSpace(input)
-				input = strings.TrimSuffix(input, sep) + sep
-				cfg.DEFAULT_DESTINATION = input
-				cfg.LOG = stdpath.LogFile()
-				f, err = os.OpenFile(cfg.LOG, os.O_WRONLY|os.O_APPEND, 0666)
-				if err != nil {
-					if errors.Is(err, os.ErrNotExist) {
-						fmt.Println("log file does not exist")
-						label := fmt.Sprintf("Log file: %v\nCreate?", cfg.LOG)
-						switch operator.Confirm(label) {
-						case false:
-						case true:
-							if err := os.MkdirAll(stdpath.LogDir(), 0666); err != nil {
-								fmt.Println(err.Error())
-							}
-							f, err := os.Create(stdpath.LogFile())
-							if err != nil {
-								fmt.Println(err.Error())
-							}
-							f.Close()
-						}
-					}
-				}
-				f.Close()
-				cfg.CONSOLE_LOG_LEVEL = "INFO"
-				cfg.FILE_LOG_LEVEL = "INFO"
-				if err := config.Save(cfg); err != nil {
-					return fmt.Errorf("config saving failed: %v", err)
-				}
-				bt, _ := yaml.Marshal(cfg)
-				fmt.Println("===================")
-				fmt.Println(string(bt))
-				fmt.Println("===================")
 			}
+			f.Close()
 
-			fmt.Println("Setup successful. grabber is ready to go!")
+			if !wantCreateFile {
+				fmt.Println("Config file found")
+				switch operator.Confirm("Revert to default values?") {
+				case false:
+					fmt.Println("Setup done")
+					os.Exit(2)
+				case true:
+					fmt.Println("Reverting config to default values")
+					wantCreateFile = true
+				}
+			}
+			if wantCreateFile {
+				if err := os.MkdirAll(filepath.Dir(cfgPath), 0666); err != nil {
+					fmt.Printf("Config directory creation failed: %v\n", err)
+					os.Exit(1)
+				}
+				_, err := os.Create(cfgPath)
+				if err != nil {
+					fmt.Printf("Config file creation failed: %v\n", err)
+					os.Exit(1)
+				}
+			}
+			cfg := config.NewConfig(c.App.Version)
+			errs := config.Validate(cfg)
+			if len(errs) != 0 {
+				fmt.Println("Config contains errors:")
+				for _, err := range errs {
+					fmt.Println(" ", err)
+				}
+			}
+			config.Save(cfg)
+
+			bt, _ := yaml.Marshal(cfg)
+			fmt.Println("===================")
+			fmt.Println(string(bt))
+			fmt.Println("===================")
+
+			fmt.Printf("Setup successful. %v is ready to go!", c.App.Name)
 			return nil
 		},
 		OnUsageError: func(cCtx *cli.Context, err error, isSubcommand bool) error {
