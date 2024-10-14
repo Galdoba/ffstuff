@@ -1,0 +1,5 @@
+2024-10-11 14:00:05.221 [info]: process testing complete
+2024-10-11 14:00:05.221 [warn]: process testing complete
+2024-10-11 14:00:05.267 [debug]: testing debug
+2024-10-11 14:00:05.269 [fatal]: testing fatal conv func 
+    caller: func={github.com/Galdoba/ffstuff/pkg/logman/v2.TestLogMan} file={logger_test.go} line={24}

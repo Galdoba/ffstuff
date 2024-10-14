@@ -21,7 +21,7 @@ func Setup() *cli.Command {
 
 		Action: func(c *cli.Context) error {
 			cfgPath := stdpath.ConfigFile()
-			fmt.Printf("Config path: %v\n", color.HiCyanString(cfgPath))
+			fmt.Printf("%v: %v\n", color.HiCyanString("Config Path"), cfgPath)
 			wantCreateFile := false
 			f, err := os.OpenFile(cfgPath, os.O_RDWR, 0666)
 			if err != nil {
@@ -57,6 +57,12 @@ func Setup() *cli.Command {
 				}
 			}
 			cfg := config.NewConfig(c.App.Version)
+			cfg.LOG = stdpath.LogFile()
+			cfg.DEFAULT_DESTINATION = stdpath.ProgramDir()
+			config.Save(cfg)
+			os.MkdirAll(cfg.DEFAULT_DESTINATION, 0666)
+			os.MkdirAll(filepath.Dir(cfg.LOG), 0666)
+			os.Create(cfg.LOG)
 			errs := config.Validate(cfg)
 			if len(errs) != 0 {
 				fmt.Println("Config contains errors:")
@@ -64,7 +70,6 @@ func Setup() *cli.Command {
 					fmt.Println(" ", err)
 				}
 			}
-			config.Save(cfg)
 
 			bt, _ := yaml.Marshal(cfg)
 			fmt.Println("===================")

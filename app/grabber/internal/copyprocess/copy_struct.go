@@ -32,7 +32,8 @@ type copyActionState struct {
 	sourcesVolume        int64
 	downloadedVolume     int64
 	downloadedVolumeLast int64
-	completed            []origin.Origin
+	completed            []string
+	killList             []string
 	errors               []error
 }
 
@@ -111,7 +112,10 @@ func (cas *copyActionState) Start() error {
 			}
 		}
 		if goodDone {
-			cas.completed = append(cas.completed, src)
+			cas.completed = append(cas.completed, src.Path())
+			if src.MustDie() {
+				cas.killList = append(cas.killList, src.Path())
+			}
 		} else {
 			cas.errors = append(cas.errors, logman.Errorf("failed to grab %v", source))
 		}
@@ -119,6 +123,14 @@ func (cas *copyActionState) Start() error {
 	}
 	fmt.Print(rc + sc)
 	fmt.Println(cas.copyProcessData() + "\n")
+	for _, path := range cas.killList {
+		switch os.Remove(path) {
+		case nil:
+			logman.Info("deleted: %v", path)
+		default:
+			cas.errors = append(cas.errors, fmt.Errorf("failed to delete %v", path))
+		}
+	}
 	dur := time.Since(startTime)
 	tookTime := dur.String()
 
@@ -162,7 +174,14 @@ func (cas *copyActionState) copyProcessData() string {
 		progress, trueSize := currentProgress(src.Path(), tgt)
 		progressString := formatProgress(progress)
 		tgtName := filepath.Base(tgt)
-		out += fmt.Sprintf("  %v    %v           \n", wideName(tgtName, cas.namesLen), progressString)
+		mustDie := " "
+		if src.MustDie() {
+			mustDie = "*"
+			if progressString == "NaN%" || progressString == color.GreenString("ok") {
+				progressString = "dead"
+			}
+		}
+		out += fmt.Sprintf("  %v    %v%v           \n", wideName(tgtName, cas.namesLen), progressString, mustDie)
 		cas.downloadedVolume += trueSize
 	}
 	if len(cas.sourcePaths) == 0 {
@@ -211,7 +230,7 @@ func formatProgress(progress float64) string {
 	case 0:
 		progressString = "wait"
 	case 100:
-		progressString = color.GreenString("ok")
+		progressString = color.GreenString("done")
 	case math.NaN():
 		progressString = color.RedString("N/A")
 	}

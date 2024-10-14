@@ -105,8 +105,8 @@ func NewConfig(version string) *Configuration {
 	cfg.Version = version
 	cfg.MARKER_FILE_EXTENTION = ".ready"
 	cfg.SORT_METHOD = SORT_BY_PRIORITY
-	cfg.DEFAULT_DESTINATION = stdpath.ProgramDir()
-	cfg.LOG = stdpath.LogFile()
+	// cfg.DEFAULT_DESTINATION = stdpath.ProgramDir()
+	// cfg.LOG = stdpath.LogFile()
 	cfg.CONSOLE_LOG_LEVEL = "INFO"
 	cfg.FILE_LOG_LEVEL = "INFO"
 	cfg.COPY_HANDLING = grabberflag.VALUE_COPY_SKIP

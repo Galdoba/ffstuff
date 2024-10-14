@@ -140,19 +140,16 @@ func Grab() *cli.Command {
 			&cli.StringFlag{
 				Name:    grabberflag.COPY,
 				Usage:   "set decidion if target file with same name exists\n	  valid values: skip, rename or overwrite",
-				Value:   grabberflag.VALUE_COPY_SKIP,
 				Aliases: []string{"c"},
 			},
 			&cli.StringFlag{
 				Name:    grabberflag.DELETE,
 				Usage:   "set which original files will be deleted after grabbing\n	  valid values: none, marker or all",
-				Value:   grabberflag.VALUE_DELETE_MARKER,
 				Aliases: []string{"d"},
 			},
 			&cli.StringFlag{
 				Name:    grabberflag.SORT,
 				Usage:   "set method to decide grabbing order\n	  valid values: priority, size or none",
-				Value:   grabberflag.VALUE_SORT_PRIORITY,
 				Aliases: []string{"so"},
 			},
 			&cli.BoolFlag{

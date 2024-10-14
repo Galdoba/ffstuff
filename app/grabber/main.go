@@ -36,6 +36,7 @@ func main() {
 		commands.Grab(),
 		commands.Setup(),
 		commands.Health(),
+		commands.Open_Config(),
 		commands.Search(),
 		commands.Queue(),
 		commands.Run(),
