@@ -19,13 +19,15 @@ const (
 )
 
 type loggingLevel struct {
-	name       string
-	tag        string
-	importance int
-	callerInfo bool
-	osExit     bool
-	writers    map[string]io.Writer
-	formatFunc func(Message) (string, error)
+	name         string
+	tag          string
+	importance   int
+	callerInfo   bool
+	osExit       bool
+	writers      map[string]io.Writer
+	formatters   map[string]func(Message) (string, error)
+	colorSchemes map[string]uint8
+	formatFunc   func(Message) (string, error)
 }
 
 func NewLoggingLevel(name string, opts ...LevelOpts) *loggingLevel {
@@ -44,6 +46,19 @@ func NewLoggingLevel(name string, opts ...LevelOpts) *loggingLevel {
 	lo.writers = options.writers
 	return &lo
 }
+
+/*
+NewLoggingLevel("report", 55,
+color bool
+writers := []string{}
+tagColor = int
+ignore fields
+enforce fields
+timestamp short/full
+appStartTime time.Time
+sinceStart bool
+)
+*/
 
 func LevelTag(tag string) LevelOpts {
 	return func(lvl *lvlOpts) {
