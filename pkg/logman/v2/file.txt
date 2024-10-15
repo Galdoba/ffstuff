@@ -1,5 +1,79 @@
-2024-10-11 14:00:05.221 [info]: process testing complete
-2024-10-11 14:00:05.221 [warn]: process testing complete
-2024-10-11 14:00:05.267 [debug]: testing debug
-2024-10-11 14:00:05.269 [fatal]: testing fatal conv func 
-    caller: func={github.com/Galdoba/ffstuff/pkg/logman/v2.TestLogMan} file={logger_test.go} line={24}
+2024-10-16 00:28:46.051 [info]: process testing complete
+2024-10-16 00:28:46.051 [warn]: process testing complete
+2024-10-16 00:28:46.091 [debug]: testing debug
+2024-10-16 00:28:46.091 [info]: this is message with argument of type string
+2024-10-16 00:29:17.293 [info]: process testing complete
+2024-10-16 00:29:17.293 [warn]: process testing complete
+2024-10-16 00:29:17.336 [debug]: testing debug
+    fields: {'message_color'='testing debug%!(EXTRA []string=[])' string}
+2024-10-16 00:29:17.336 [info]: this is message with argument of type string
+2024-10-16 00:31:21.791 [info]: process testing complete
+2024-10-16 00:31:21.791 [warn]: process testing complete
+2024-10-16 00:31:21.832 [debug]: testing debug
+    fields: {'message_color'='testing debug%!(EXTRA []string=[])' string}
+2024-10-16 00:31:21.833 [info]: this is message with argument of type string
+2024-10-16 00:34:10.837 [info]: process testing complete
+2024-10-16 00:34:10.837 [warn]: process testing complete
+2024-10-16 00:34:10.880 [debug]: testing debug
+    fields: {'message_color'='testing debug%!(EXTRA []string=[])' string}
+2024-10-16 00:34:10.880 [info]: this is message with argument of type string
+2024-10-16 00:36:25.872 [info]: process testing complete
+2024-10-16 00:36:25.872 [warn]: process testing complete
+2024-10-16 00:36:25.912 [debug]: testing debug
+    fields: {'message_color'='testing debug%!(EXTRA []interface {}=[])' string}
+2024-10-16 00:36:25.913 [info]: this is message with argument of type string
+2024-10-16 00:42:43.265 [info]: process testing complete
+2024-10-16 00:42:43.265 [warn]: process testing complete
+2024-10-16 00:42:43.308 [debug]: testing debug
+    fields: {'message_color'='testing debug%!(EXTRA []string=[])' string}
+2024-10-16 00:42:43.308 [info]: this is message with argument of type string
+2024-10-16 00:44:24.936 [info]: process testing complete
+2024-10-16 00:44:24.936 [warn]: process testing complete
+2024-10-16 00:44:24.978 [debug]: testing debug
+    fields: {'message_color'='testing debug%!(EXTRA []interface {}=[])' string}
+2024-10-16 00:44:24.978 [info]: this is message with argument of type string
+2024-10-16 00:45:51.281 [info]: process testing complete at 2000
+2024-10-16 00:45:51.281 [warn]: process testing complete at 2000
+2024-10-16 00:45:51.321 [debug]: testing debug
+    fields: {'message_color'='testing debug%!(EXTRA []interface {}=[])' string}
+2024-10-16 00:45:51.322 [info]: this is message with argument of type string
+2024-10-16 00:46:12.935 [info]: process testing complete at 2000
+2024-10-16 00:46:12.935 [warn]: process testing complete at 2000
+2024-10-16 00:46:12.985 [debug]: testing debug
+    fields: {'message_color'='testing debug%!(EXTRA []interface {}=[])' string}
+2024-10-16 00:46:12.985 [info]: this is message with argument of type string
+2024-10-16 00:46:39.795 [info]: process testing complete at 2000
+2024-10-16 00:46:39.795 [warn]: process testing complete at 2000
+2024-10-16 00:46:39.835 [debug]: testing debug
+    fields: {'message_color'='testing debug%!(EXTRA []interface {}=[])' string}
+2024-10-16 00:46:39.836 [info]: this is message with argument of type string
+2024-10-16 00:48:24.417 [info]: process testing complete at 2000
+2024-10-16 00:48:24.417 [warn]: process testing complete at 2000
+2024-10-16 00:48:24.462 [debug]: testing debug
+    fields: {'message_color'='testing debug%!(EXTRA []interface {}=[[38;5;7;48;5;0m[][0m])' string}
+2024-10-16 00:48:24.463 [info]: this is message with argument of type string
+2024-10-16 00:48:42.487 [info]: process testing complete at 2000
+2024-10-16 00:48:42.487 [warn]: process testing complete at 2000
+2024-10-16 00:48:42.527 [debug]: testing debug
+    fields: {'message_color'='testing debug%!(EXTRA []interface {}=[[38;5;7;48;5;0m[][0m])' string}
+2024-10-16 00:48:42.528 [info]: this is message with argument of type string
+2024-10-16 00:53:12.428 [info]: process testing complete at 2000
+2024-10-16 00:53:12.428 [warn]: process testing complete at 2000
+2024-10-16 00:53:12.469 [debug]: testing debug
+    fields: {'message_color'='testing debug%!(EXTRA []interface {}=[[38;5;7;48;5;0m[][0m])' string}
+2024-10-16 00:53:12.469 [info]: this is message with argument of type string
+2024-10-16 01:03:18.787 [info]: process testing complete at 2000
+2024-10-16 01:03:18.787 [warn]: process testing complete at 2000
+2024-10-16 01:03:18.826 [debug]: testing debug
+    fields: {'message_color'='testing debug%!(EXTRA []string=[])' string}
+2024-10-16 01:03:18.827 [info]: this is message with argument of type string
+2024-10-16 01:13:50.603 [info]: process testing complete at 2000
+2024-10-16 01:13:50.603 [warn]: process testing complete at 2000
+2024-10-16 01:13:50.643 [debug]: testing debug
+    fields: {'message_color'='testing debug' string}
+2024-10-16 01:13:50.644 [info]: this is message with argument of type string
+2024-10-16 01:14:22.275 [info]: process testing complete at 2000 with pamcake
+2024-10-16 01:14:22.275 [warn]: process testing complete at 2000 with pamcake
+2024-10-16 01:14:22.315 [debug]: testing debug
+    fields: {'message_color'='testing debug' string}
+2024-10-16 01:14:22.315 [info]: this is message with argument of type string

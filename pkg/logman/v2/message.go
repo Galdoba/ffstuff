@@ -18,8 +18,30 @@ func NewMessage(format string, args ...interface{}) *message {
 	m.fields = make(map[string]interface{})
 	timeCreated := time.Now()
 	m.fields[keyMessage] = fmt.Sprintf(format, args...)
+	if logMan.colorizer != nil {
+		coloredArgs := []string{}
+		for _, arg := range args {
+			coloredArgs = append(coloredArgs, fmt.Sprintf("%v", logMan.colorizer.Colorize(arg)))
+			fmt.Println(logMan.colorizer.Colorize(arg))
+		}
+
+		m.fields[keyMessageColor] = combineColored(format, coloredArgs...)
+		fmt.Println(m.fields[keyMessageColor])
+	}
 	m.fields[keyTime] = timeCreated.Format(time.RFC3339Nano)
 	return &m
+}
+
+func combineColored(format string, args ...string) string {
+	fmtParts := strings.Split(format, `%v`)
+	combined := ""
+	for i, part := range fmtParts {
+		combined += part
+		if i < len(args) {
+			combined += args[i]
+		}
+	}
+	return combined
 }
 
 // Message is an interface to a struct to set/get/list data fields.

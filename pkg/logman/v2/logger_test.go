@@ -3,15 +3,18 @@ package logman
 import (
 	"fmt"
 	"testing"
+
+	"github.com/Galdoba/ffstuff/pkg/logman/v2/colorizer"
 )
 
 func TestLogMan(t *testing.T) {
 
-	Setup(WithAppLogLevelImportance(ImportanceALL))
+	Setup(WithAppLogLevelImportance(ImportanceALL), WithColorizer(colorizer.DefaultScheme()))
 
 	SetOutput("file.txt", ALL)
 
-	msg := NewMessage("process %v complete", "testing").WithFields(NewField("metric", 0.7))
+	msg := NewMessage("process %v complete at %v with pamcake", "testing", 2000)
+	fmt.Println(msg)
 	err := process(msg, logMan.logLevels[INFO])
 	if err != nil {
 		t.Errorf(err.Error())
@@ -21,7 +24,9 @@ func TestLogMan(t *testing.T) {
 		t.Errorf(err2.Error())
 	}
 	Debug(NewMessage("testing debug"), "test: 42")
-	Fatalf("testing fatal conv func")
+	Printf("this is message with %v of type string", "argument")
+
+	//Fatalf("testing fatal conv func")
 
 	// bt, _ := msg.MarshalJSON()
 	// msg1 := NewMessage("sss")

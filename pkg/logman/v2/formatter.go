@@ -9,6 +9,11 @@ import (
 	"github.com/fatih/color"
 )
 
+// Colorizer - uses Color Schema to make console output colored depending on fariable type
+type Colorizer interface {
+	Colorize(interface{}) string
+}
+
 type formatter struct {
 	writerKey string
 	color     bool
