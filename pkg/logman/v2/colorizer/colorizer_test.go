@@ -36,7 +36,7 @@ func TestColorizer(t *testing.T) {
 		`//http`,
 	} {
 		fmt.Println("--------", n)
-		s := cl.Colorize(arg)
+		s := cl.ColorizeByType(arg)
 		argType := "nil"
 		if arg != nil {
 			argType = reflect.ValueOf(arg).Type().String()

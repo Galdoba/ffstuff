@@ -8,12 +8,13 @@ import (
 	"github.com/gookit/color"
 )
 
-// Colorize - takes any argument and return it's string representation in color.
-func (c *colorSchema) Colorize(arg interface{}) string {
-	return colorize(c, arg)
+// ColorizeByType - takes any argument and return it's string representation in color.
+// Subtypes of argument are colored to their respective colors.
+func (c *colorSchema) ColorizeByType(arg interface{}) string {
+	return colorizeByType(c, arg)
 }
 
-func colorize(c *colorSchema, arg interface{}) string {
+func colorizeByType(c *colorSchema, arg interface{}) string {
 	s := ""
 	argVal := reflect.ValueOf(arg)
 	flds := constructFields(argVal)
@@ -27,6 +28,48 @@ func colorize(c *colorSchema, arg interface{}) string {
 		s += color.S256(fl.fg, fl.bg).Sprint(fl.text)
 	}
 	return s
+}
+
+// ColorizeByKeys - takes any argument and return it's string representation in color.
+// Color is forced to match keys provided.
+func (c *colorSchema) ColorizeByKeys(arg interface{}, keys ...ColorKey) string {
+	return colorizeByKeys(c, arg, keys...)
+}
+
+func colorizeByKeys(c *colorSchema, arg interface{}, keys ...ColorKey) string {
+	fgKey := NewKey(FG_KEY, "base")
+	bgKey := NewKey(BG_KEY, "base")
+	for _, key := range keys {
+		switch key.keytype {
+		case FG_KEY:
+			fgKey.value = key.value
+			fmt.Println("fg value", key.value)
+		case BG_KEY:
+			bgKey.value = key.value
+
+		default:
+			continue
+		}
+	}
+	fmt.Println(fgKey)
+	fg := c.getColor(fgKey)
+	fmt.Println(fg)
+	bg := c.getColor(bgKey)
+	s := color.S256(fg, bg).Sprint(arg)
+	return s
+}
+
+func approveForcedKeys(forcedKeys ...ColorKey) error {
+	if len(forcedKeys) != 2 {
+		return fmt.Errorf("expect 2 keys to be valid")
+	}
+	if forcedKeys[0].keytype != FG_KEY {
+		return fmt.Errorf("expect first key to be FG_KEY")
+	}
+	if forcedKeys[0].keytype != BG_KEY {
+		return fmt.Errorf("expect first key to be BG_KEY")
+	}
+	return nil
 }
 
 type coloredField struct {
@@ -156,35 +199,4 @@ func cField(arg reflect.Value) *coloredField {
 		text = "map["
 	}
 	return &coloredField{text, kind, 0, 0}
-}
-
-func (c *colorSchema) getColor(key colorKey) uint8 {
-	if v, ok := c.color256[key]; ok {
-		return v
-	}
-	switch key.keytype {
-	case FG_KEY:
-		return 7
-	case BG_KEY:
-		return 0
-	}
-	return 10
-}
-
-func colorToField(c *colorSchema, kind, keyType string) uint8 {
-	switch kind {
-	case "string", "bool",
-		"int", "int8", "int16", "int32", "int64",
-		"Int",
-		"uint", "uint8", "uint16", "uint32", "uint64",
-		"float32", "float64":
-		return c.getColor(NewKey(keyType, kind))
-	case "struct", "map", "slice", "interface", "ptr", "func", "chan", "nil":
-		return c.getColor(NewKey(keyType, kind))
-	}
-	switch keyType {
-	case FG_KEY:
-		return c.getColor(NewKey(FG_KEY, "base"))
-	}
-	return c.getColor(NewKey(BG_KEY, "base"))
 }

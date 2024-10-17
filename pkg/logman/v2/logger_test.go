@@ -15,12 +15,13 @@ func TestLogMan(t *testing.T) {
 
 	msg := NewMessage("process %v complete at %v with pamcake", "testing", 2000)
 	fmt.Println(msg)
-	//msg.SetField(keyLevel, "report")
+	msg.SetField(keyLevel, "error")
 	fmt.Println(msg)
-	fmt.Println("----")
 	fe := NewFE([]string{"time", keyLevel, keyMessage})
+	fe.ignoredFields = []string{"time"}
 	fe.AddFormatterFunc("time", stdFormatFunc_time)
 	fe.AddFormatterFunc("message", stdMessageFormat)
+	fe.AddFormatterFunc("level", stdLevelFormat)
 	formated := fe.Format(msg)
 	fmt.Println("----")
 	fmt.Println(formated)
