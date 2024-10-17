@@ -19,10 +19,6 @@ type formatter struct {
 	color     bool
 }
 
-type formatterExpanded struct {
-	formatFunc func(Message) string
-}
-
 func formatTextComplex(msg Message) (string, error) {
 	fldKeys := []string{}
 	for _, key := range msg.Fields() {

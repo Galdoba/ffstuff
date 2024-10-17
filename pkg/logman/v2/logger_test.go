@@ -15,29 +15,20 @@ func TestLogMan(t *testing.T) {
 
 	msg := NewMessage("process %v complete at %v with pamcake", "testing", 2000)
 	fmt.Println(msg)
-	err := process(msg, logMan.logLevels[INFO])
+	//msg.SetField(keyLevel, "report")
+	fmt.Println(msg)
+	fmt.Println("----")
+	fe := NewFE([]string{"time", keyLevel, keyMessage})
+	fe.AddFormatterFunc("time", stdFormatFunc_time)
+	fe.AddFormatterFunc("message", stdMessageFormat)
+	formated := fe.Format(msg)
+	fmt.Println("----")
+	fmt.Println(formated)
+	fmt.Println("----")
+	err := process(msg, logMan.logLevels[WARN])
 	if err != nil {
 		t.Errorf(err.Error())
 	}
-	err2 := process(msg, logMan.logLevels[WARN])
-	if err2 != nil {
-		t.Errorf(err2.Error())
-	}
-	Debug(NewMessage("testing debug"), "test: 42")
-	Printf("this is message with %v of type string", "argument")
-
-	//Fatalf("testing fatal conv func")
-
-	// bt, _ := msg.MarshalJSON()
-	// msg1 := NewMessage("sss")
-	// if err := msg1.UnmarshalJSON(bt); err != nil {
-	// 	t.Errorf("bad %v", err)
-	// }
-	// fmt.Println(string(bt))
-	// fmt.Println("1", msg)
-	// fmt.Println("2", msg1)
-	// js, err := formatJSON(msg)
-	// fmt.Println(js, err)
 
 }
 

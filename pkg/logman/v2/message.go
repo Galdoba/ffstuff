@@ -10,24 +10,21 @@ import (
 )
 
 type message struct {
-	fields map[string]interface{}
+	fields      map[string]interface{}
+	inputArgs   map[int]interface{}
+	timeCreated time.Time
 }
 
 func NewMessage(format string, args ...interface{}) *message {
 	m := message{}
 	m.fields = make(map[string]interface{})
+	m.inputArgs = make(map[int]interface{})
+	for _, arg := range args {
+		m.inputArgs[len(m.inputArgs)] = arg
+	}
+	m.inputArgs[-1] = format
 	timeCreated := time.Now()
 	m.fields[keyMessage] = fmt.Sprintf(format, args...)
-	if logMan.colorizer != nil {
-		coloredArgs := []string{}
-		for _, arg := range args {
-			coloredArgs = append(coloredArgs, fmt.Sprintf("%v", logMan.colorizer.Colorize(arg)))
-			fmt.Println(logMan.colorizer.Colorize(arg))
-		}
-
-		m.fields[keyMessageColor] = combineColored(format, coloredArgs...)
-		fmt.Println(m.fields[keyMessageColor])
-	}
 	m.fields[keyTime] = timeCreated.Format(time.RFC3339Nano)
 	return &m
 }
@@ -49,6 +46,7 @@ type Message interface {
 	Fields() []string
 	Value(string) interface{}
 	SetField(string, interface{})
+	InputArgs() map[int]interface{}
 }
 
 // Value return variable that serves as state if field.
@@ -72,6 +70,13 @@ func (m *message) Fields() []string {
 // SetField - sets/override fields value.
 func (m *message) SetField(key string, value interface{}) {
 	m.fields[key] = value
+}
+
+// InputArgs - returns map of arguments if NewMessage() function.
+// key -1 => is format string
+// other keys is position number of argument
+func (m *message) InputArgs() map[int]interface{} {
+	return m.inputArgs
 }
 
 // WithFields sets multiple fields to a message.

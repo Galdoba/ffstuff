@@ -77,3 +77,68 @@
 2024-10-16 01:14:22.315 [debug]: testing debug
     fields: {'message_color'='testing debug' string}
 2024-10-16 01:14:22.315 [info]: this is message with argument of type string
+2024-10-16 11:17:43.258 [info]: process testing complete at 2000 with pamcake
+2024-10-16 11:17:43.258 [warn]: process testing complete at 2000 with pamcake
+2024-10-16 11:17:43.303 [debug]: testing debug
+    fields: {'message_color'='testing debug' string}
+2024-10-16 11:17:43.303 [info]: this is message with argument of type string
+2024-10-16 11:29:37.727 [info]: process [38;5;208;48;5;0mtesting[0m complete at [38;5;120;48;5;0m2000[0m with pamcake
+2024-10-16 11:29:37.727 [warn]: process [38;5;208;48;5;0mtesting[0m complete at [38;5;120;48;5;0m2000[0m with pamcake
+2024-10-16 11:29:37.771 [debug]: testing debug
+2024-10-16 11:29:37.772 [info]: this is message with [38;5;208;48;5;0margument[0m of type string
+2024-10-16 11:31:03.971 [info]: process testing complete at 2000 with pamcake
+2024-10-16 11:31:03.971 [warn]: process testing complete at 2000 with pamcake
+2024-10-16 11:31:04.017 [debug]: testing debug
+    fields: {'message_color'='testing debug' string}
+2024-10-16 11:31:04.017 [info]: this is message with argument of type string
+2024-10-16 11:34:58.226 [info]: process testing complete at 2000 with pamcake
+2024-10-16 11:34:58.226 [warn]: process testing complete at 2000 with pamcake
+2024-10-16 11:34:58.270 [debug]: testing debug
+    fields: {'message_color'='testing debug' string}
+2024-10-16 11:34:58.270 [info]: this is message with argument of type string
+2024-10-16 11:35:38.512 [info]: process testing complete at 2000 with pamcake
+2024-10-16 11:35:38.512 [warn]: process testing complete at 2000 with pamcake
+2024-10-16 11:35:38.556 [debug]: testing debug
+    fields: {'message_color'='testing debug' string}
+2024-10-16 11:35:38.557 [info]: this is message with argument of type string
+2024-10-16 11:36:30.366 [info]: process testing complete at 2000 with pamcake
+2024-10-16 11:36:30.366 [warn]: process testing complete at 2000 with pamcake
+2024-10-16 11:36:30.415 [debug]: testing debug
+    fields: {'message_color'='testing debug' string}
+2024-10-16 11:36:30.419 [info]: this is message with argument of type string
+2024-10-16 14:00:59.309 [warn]: process testing complete at 2000 with pamcake
+2024-10-16 14:01:35.744 [warn]: process testing complete at 2000 with pamcake
+2024-10-16 14:02:14.622 [warn]: process testing complete at 2000 with pamcake
+2024-10-16 14:03:58.853 [warn]: process testing complete at 2000 with pamcake
+2024-10-16 14:04:52.954 [warn]: process testing complete at 2000 with pamcake
+2024-10-16 14:05:39.376 [warn]: process testing complete at 2000 with pamcake
+2024-10-16 14:07:23.957 [warn]: process testing complete at 2000 with pamcake
+2024-10-16 14:08:38.511 [warn]: process testing complete at 2000 with pamcake
+2024-10-16 14:10:02.027 [warn]: process testing complete at 2000 with pamcake
+2024-10-16 14:11:01.317 [warn]: process testing complete at 2000 with pamcake
+2024-10-16 14:11:36.789 [warn]: process testing complete at 2000 with pamcake
+2024-10-16 14:12:12.934 [warn]: process testing complete at 2000 with pamcake
+2024-10-16 14:12:44.242 [warn]: process testing complete at 2000 with pamcake
+2024-10-16 14:14:02.096 [warn]: process testing complete at 2000 with pamcake
+2024-10-16 14:24:04.043 [warn]: process testing complete at 2000 with pamcake
+2024-10-16 14:25:30.267 [warn]: process testing complete at 2000 with pamcake
+2024-10-16 14:25:49.719 [warn]: process testing complete at 2000 with pamcake
+2024-10-16 14:27:07.860 [warn]: process testing complete at 2000 with pamcake
+2024-10-16 14:40:52.841 [warn]: process testing complete at 2000 with pamcake
+2024-10-16 14:45:55.798 [warn]: process testing complete at 2000 with pamcake
+2024-10-16 14:47:04.727 [warn]: process testing complete at 2000 with pamcake
+2024-10-16 14:47:53.117 [warn]: process testing complete at 2000 with pamcake
+2024-10-16 14:48:21.632 [warn]: process testing complete at 2000 with pamcake
+2024-10-16 14:49:29.358 [warn]: process testing complete at 2000 with pamcake
+2024-10-16 14:52:14.550 [warn]: process testing complete at 2000 with pamcake
+2024-10-16 14:52:54.757 [warn]: process testing complete at 2000 with pamcake
+2024-10-16 14:53:19.796 [warn]: process testing complete at 2000 with pamcake
+2024-10-16 14:53:46.947 [warn]: process testing complete at 2000 with pamcake
+2024-10-16 14:56:55.732 [warn]: process testing complete at 2000 with pamcake
+2024-10-16 14:58:47.360 [warn]: process testing complete at 2000 with pamcake
+2024-10-16 15:02:51.875 [warn]: process testing complete at 2000 with pamcake
+2024-10-16 15:03:21.332 [warn]: process testing complete at 2000 with pamcake
+2024-10-16 15:04:12.971 [warn]: process testing complete at 2000 with pamcake
+2024-10-16 15:04:55.405 [warn]: process testing complete at 2000 with pamcake
+2024-10-16 15:06:47.277 [warn]: process testing complete at 2000 with pamcake
+2024-10-16 15:07:07.909 [warn]: process testing complete at 2000 with pamcake
