@@ -6,19 +6,16 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Galdoba/ffstuff/pkg/logman/v2/colorizer"
 	"github.com/fatih/color"
 )
-
-// Colorizer - uses Color Schema to make console output colored depending on fariable type
-type Colorizer interface {
-	ColorizeByType(interface{}) string
-	ColorizeByKeys(interface{}, ...colorizer.ColorKey) string
-}
 
 type formatter struct {
 	writerKey string
 	color     bool
+}
+
+type formatterExpanded struct {
+	formatFunc func(Message) string
 }
 
 func formatTextComplex(msg Message) (string, error) {

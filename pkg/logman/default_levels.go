@@ -1,18 +1,13 @@
 package logman
 
-import (
-	"io"
-	"os"
-)
-
 const (
-	stdTagFATAL = "[fatal]"
-	stdTagERROR = "[error]"
-	stdTagWARN  = "[warn]"
-	stdTagINFO  = "[info]"
-	stdTagDEBUG = "[debug]"
-	stdTagTRACE = "[trace]"
-	stdTagPing  = "[ping]"
+	stdTagFATAL = "fatal"
+	stdTagERROR = "error"
+	stdTagWARN  = "warn"
+	stdTagINFO  = "info"
+	stdTagDEBUG = "debug"
+	stdTagTRACE = "trace"
+	stdTagPing  = "ping"
 )
 
 var LogLevelFATAL = &loggingLevel{
@@ -21,8 +16,9 @@ var LogLevelFATAL = &loggingLevel{
 	importance: ImportanceFATAL,
 	callerInfo: true,
 	osExit:     true,
-	writers:    map[string]io.Writer{Stdout: os.Stdout},
-	formatFunc: formatTextComplex,
+	writerFormatterMap: map[string]*formatterExpanded{
+		Stdout: NewFormatter(WithRequestedFields(Request_Full)),
+	},
 }
 
 var LogLevelERROR = &loggingLevel{
@@ -31,8 +27,9 @@ var LogLevelERROR = &loggingLevel{
 	importance: ImportanceERROR,
 	callerInfo: true,
 	osExit:     false,
-	writers:    map[string]io.Writer{Stdout: os.Stdout},
-	formatFunc: formatTextComplex,
+	writerFormatterMap: map[string]*formatterExpanded{
+		Stdout: NewFormatter(WithRequestedFields(Request_Full)),
+	},
 }
 
 var LogLevelWARN = &loggingLevel{
@@ -41,8 +38,10 @@ var LogLevelWARN = &loggingLevel{
 	importance: ImportanceWARN,
 	callerInfo: false,
 	osExit:     false,
-	writers:    map[string]io.Writer{Stdout: os.Stdout},
-	formatFunc: formatTextSimple,
+	//formatFunc: formatTextSimple,
+	writerFormatterMap: map[string]*formatterExpanded{
+		Stderr: NewFormatter(WithRequestedFields(Request_Medium)),
+	},
 }
 
 var LogLevelINFO = &loggingLevel{
@@ -51,8 +50,11 @@ var LogLevelINFO = &loggingLevel{
 	importance: ImportanceINFO,
 	callerInfo: false,
 	osExit:     false,
-	writers:    map[string]io.Writer{Stderr: os.Stderr},
-	formatFunc: formatTextSimple,
+	//writers:    map[string]io.Writer{Stderr: os.Stderr},
+	//formatFunc: formatTextSimple,
+	writerFormatterMap: map[string]*formatterExpanded{
+		Stderr: NewFormatter(WithRequestedFields(Request_ShortSince)),
+	},
 }
 
 var LogLevelDEBUG = &loggingLevel{
@@ -61,8 +63,10 @@ var LogLevelDEBUG = &loggingLevel{
 	importance: ImportanceDEBUG,
 	callerInfo: false,
 	osExit:     false,
-	writers:    map[string]io.Writer{Stderr: os.Stderr},
-	formatFunc: formatTextComplex,
+	//writers:    map[string]io.Writer{Stderr: os.Stderr},
+	writerFormatterMap: map[string]*formatterExpanded{
+		Stderr: NewFormatter(WithRequestedFields(Request_ShortTime)),
+	},
 }
 
 var LogLevelTRACE = &loggingLevel{
@@ -71,8 +75,10 @@ var LogLevelTRACE = &loggingLevel{
 	importance: ImportanceTRACE,
 	callerInfo: true,
 	osExit:     false,
-	writers:    map[string]io.Writer{Stderr: os.Stderr},
-	formatFunc: formatTextComplex,
+	//writers:    map[string]io.Writer{Stderr: os.Stderr},
+	writerFormatterMap: map[string]*formatterExpanded{
+		Stderr: NewFormatter(WithRequestedFields(Request_Full)),
+	},
 }
 
 var LogLevelPING = &loggingLevel{
@@ -81,8 +87,8 @@ var LogLevelPING = &loggingLevel{
 	importance: ImportancePING,
 	callerInfo: true,
 	osExit:     false,
-	writers:    map[string]io.Writer{Stderr: os.Stderr},
-	formatFunc: formatPing,
+	//writers:    map[string]io.Writer{Stderr: os.Stderr},
+	//formatFunc: formatPing,
 }
 
 func defaultLoggingLevels() map[string]*loggingLevel {
@@ -93,6 +99,5 @@ func defaultLoggingLevels() map[string]*loggingLevel {
 	levels[INFO] = LogLevelINFO
 	levels[DEBUG] = LogLevelDEBUG
 	levels[TRACE] = LogLevelTRACE
-	levels[PING] = LogLevelPING
 	return levels
 }

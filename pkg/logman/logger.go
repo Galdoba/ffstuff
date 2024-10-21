@@ -2,6 +2,7 @@ package logman
 
 import (
 	"fmt"
+	"io"
 	"io/fs"
 	"log"
 	"os"
@@ -10,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gookit/color"
+	"github.com/Galdoba/ffstuff/pkg/logman/colorizer"
 )
 
 var logMan *logManager
@@ -29,12 +30,16 @@ const (
 	ImportanceALL   = 0
 
 	//fieldKeys
-	keyTime    = "time"
-	keyLevel   = "level"
-	keyMessage = "message"
-	keyFile    = "file"
-	keyLine    = "line"
-	keyFunc    = "callerFuncName"
+	keyTime        = "time"
+	keySince       = "since"
+	keyLevel       = "level"
+	keyMessage     = "message"
+	keyFile        = "file"
+	keyLine        = "line"
+	keyFunc        = "callerFuncName"
+	keyCaller      = "caller"
+	keyCallerShort = "caller_short"
+	keyCallerLong  = "caller_long"
 
 	Stdout = "StdOut"
 	Stderr = "StdErr"
@@ -45,13 +50,24 @@ type logManager struct {
 	logLevels          map[string]*loggingLevel
 	longCallerNames    bool
 	logger             *log.Logger
+	colorizer          Colorizer
+	startTime          time.Time
+	//activeWriter       string
 }
 
-// Setup sets logging levels for logMan. If no
+// Colorizer - uses Color Schema to make console output colored depending on fariable type
+type Colorizer interface {
+	ColorizeByType(interface{}) string
+	ColorizeByKeys(interface{}, ...colorizer.ColorKey) string
+}
+
+// Setup sets logMan options. Place it at start of the program.
 func Setup(opts ...LogmanOptions) error {
 	al := logManager{}
+	al.startTime = time.Now()
 	al.appMinimumLoglevel = ImportanceALL
-	al.logLevels = defaultLoggingLevels()
+	al.logLevels = make(map[string]*loggingLevel)
+	//al.logLevels = defaultLoggingLevels()
 	opt := defaultOpts()
 	for _, set := range opts {
 		set(&opt)
@@ -59,52 +75,39 @@ func Setup(opts ...LogmanOptions) error {
 	for _, lvl := range opt.logLevels {
 		al.logLevels[lvl.name] = lvl
 	}
-
 	al.appMinimumLoglevel = opt.appMinimumLoglevel
 	al.longCallerNames = opt.longCallerNames
-	al.logger = log.New(os.Stdout, "", 0)
+	al.colorizer = opt.colorizer
+	//add colors to all console writers.
+	if al.colorizer != nil {
+		for _, lvl := range opt.logLevels {
+			for wrtr, formatter := range lvl.writerFormatterMap {
+				switch wrtr {
+				case Stdout, Stderr:
+					if !formatter.customColorizer {
+						formatter.colorizer = al.colorizer
+					}
+				default:
+
+				}
+			}
+
+		}
+	}
+	//add global writers and formatters to all levels
+	for i, writerKey := range opt.globalWriterKeys {
+		for _, lvl := range al.logLevels {
+			if _, ok := lvl.writerFormatterMap[writerKey]; ok {
+				continue
+			}
+			if al.logLevels[lvl.name].writerFormatterMap == nil {
+				al.logLevels[lvl.name].writerFormatterMap = make(map[string]*formatterExpanded)
+			}
+			al.logLevels[lvl.name].writerFormatterMap[writerKey] = opt.globalFormatters[i]
+		}
+	}
 	logMan = &al
 	return nil
-}
-
-/*
-logman.Setup(logman.WithAppName("app"),
-	logman.WithLogLevel(logman.NewLogLevel("report", 55, map[string]logman.Formatter{
-		"stderr" : logman.NewFormatter(opts ...FormatterOption), //formaterFunc, colors, callerInfo
-		"file1.txt" : logman.NewFormatter(fgCol, bgCol, hlCol string, formatFunc func(msg Message) string),
-	}))
-)
-
-*/
-
-// SetOutput ADD new and REPLACE existing writers for loggingLevels.
-// writerKey cases:
-// Stdout - sets os.Stdout as writer (default for LvlFATAL, LvlERROR and LvlWARN )
-// Stderr - sets os.Stderr as writer (default for LvlINFO , LvlDEBUG and LvlTRACE)
-// If writerKey is a filepath to new or existing file, that file will be used as writer.
-// TODO: If writerKey is a filepath to directory each message will be written to own file for this directory.
-func SetOutput(writerKey string, levels ...string) {
-	for _, levelName := range levels {
-		for lvlName, lvlOpts := range logMan.logLevels {
-			if levelName != lvlName && levelName != ALL {
-				continue
-			}
-			lvlOpts.setWriter(writerKey)
-		}
-	}
-}
-
-// ClearOutput is used to REMOVE ALL writers for given level.
-// Used removing default writers.
-func ClearOutput(levels ...string) {
-	for _, levelName := range levels {
-		for lvlName, lvlOpts := range logMan.logLevels {
-			if levelName != lvlName && levelName != ALL {
-				continue
-			}
-			lvlOpts.clearWriters()
-		}
-	}
 }
 
 // LogmanOptions - settings for logMan object.
@@ -114,6 +117,9 @@ type options struct {
 	appMinimumLoglevel int
 	longCallerNames    bool
 	logLevels          map[string]*loggingLevel
+	colorizer          Colorizer
+	globalWriterKeys   []string
+	globalFormatters   []*formatterExpanded
 }
 
 func defaultOpts() options {
@@ -129,7 +135,7 @@ func defaultOpts() options {
 // Caution: It overrides default levels if new loglevel has standard key ("fatal", "error", "warn", "info", "debug", "trace").
 func WithLogLevels(lvls ...*loggingLevel) LogmanOptions {
 	return func(o *options) {
-		o.logLevels = make(map[string]*loggingLevel)
+		//o.logLevels = make(map[string]*loggingLevel)
 		for _, lvl := range lvls {
 			o.logLevels[lvl.name] = lvl
 		}
@@ -151,11 +157,27 @@ func WithAppLogLevelImportance(importance int) LogmanOptions {
 	}
 }
 
-func WithLongCallerNames(val bool) LogmanOptions {
+// WithGlobalColorizer - sets global color scheme for logman
+func WithGlobalColorizer(colorizer Colorizer) LogmanOptions {
 	return func(o *options) {
-		o.longCallerNames = val
+		o.colorizer = colorizer
 	}
 }
+
+// WithGlobalWriterFormatter - Add writer to all level.
+// Useful to setup logfile.
+func WithGlobalWriterFormatter(writer string, formatter *formatterExpanded) LogmanOptions {
+	return func(o *options) {
+		o.globalWriterKeys = append(o.globalWriterKeys, writer)
+		o.globalFormatters = append(o.globalFormatters, formatter)
+	}
+}
+
+// func WithLongCallerNames(val bool) LogmanOptions {
+// 	return func(o *options) {
+// 		o.longCallerNames = val
+// 	}
+// }
 
 func isInBounds(n, min, max int) bool {
 	if n < min || n > max {
@@ -200,12 +222,8 @@ func process(msg Message, lvls ...*loggingLevel) error {
 			if lvl.name != present.name {
 				continue
 			}
-			if lvl.formatFunc == nil {
-				errorStack = append(errorStack, fmt.Errorf("level %v have no formatFunc", lvl.name))
-				continue
-			}
-
 			msg.SetField(keyLevel, lvl.tag)
+
 			if lvl.callerInfo {
 				file, line, fn := callerFunctionInfo(3)
 				if msg.Value(keyFile) == nil {
@@ -218,15 +236,11 @@ func process(msg Message, lvls ...*loggingLevel) error {
 					msg.SetField(keyFunc, fn)
 				}
 			}
-			text, err := lvl.formatFunc(msg)
-			if err != nil {
-				errorStack = append(errorStack, fmt.Errorf("formatting message failed: '%v' level: %v", lvl.name, err))
-				continue
-			}
-			if err = lvl.write(text); err != nil {
+
+			if err := lvl.write(msg); err != nil {
 				errorStack = append(errorStack, fmt.Errorf("writting message failed: %v", err))
-				continue
 			}
+
 			if lvl.osExit {
 				fatalCalled = true
 			}
@@ -250,30 +264,51 @@ func isPresent(lvl *loggingLevel) bool {
 	return false
 }
 
-func (lvl *loggingLevel) write(text string) error {
-	text = removeEmptyLines(text) + "\n"
+func (lvl *loggingLevel) write(message Message) error {
 	errorStack := []error{}
-	for key, writer := range lvl.writers {
-		switch {
-		case key == Stderr, key == Stdout:
-			textColorized := colorizeTags(text)
-			bt := []byte(textColorized)
-			if _, err := writer.Write(bt); err != nil {
-				errorStack = append(errorStack, fmt.Errorf("'%v' level: writer %v failed: %v", lvl.name, key, err))
-			}
+	var writer io.Writer
+	for writerKey, formatter := range lvl.writerFormatterMap {
+		switch writerKey {
+		case Stderr:
+			writer = os.Stderr
+		case Stdout:
+			writer = os.Stdout
 		default:
-			f, err := os.OpenFile(key, flags, perm)
-			if err != nil {
-				errorStack = append(errorStack, fmt.Errorf("'%v' level: open file failed: %v", lvl.name, err))
-				continue
+			switch writerInfo(writerKey) {
+			case "file":
+				wr, err := os.OpenFile(writerKey, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0666)
+				switch err {
+				case nil:
+					writer = wr
+				default:
+					errorStack = append(errorStack, fmt.Errorf("failed to open writer '%v'", writerKey))
+					continue
+				}
+			case "dir":
+				sep := string(filepath.Separator)
+				dirPath := strings.TrimSuffix(writerKey, sep) + sep
+				msgTime, err := time.Parse(time.RFC3339Nano, fmt.Sprintf("%v", message.Value("time")))
+				if err != nil {
+					msgTime = time.Now()
+				}
+				msgFile := fmt.Sprintf("%v%v_%v.lmm", dirPath, msgTime.UnixNano(), lvl.name)
+				wr, err := os.OpenFile(msgFile, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0666)
+				switch err {
+				case nil:
+					writer = wr
+				default:
+					errorStack = append(errorStack, fmt.Errorf("failed to open writer '%v'", writerKey))
+					continue
+				}
 			}
-			if _, err := f.WriteString(text); err != nil {
-				errorStack = append(errorStack, fmt.Errorf("'%v' level: write to file failed: %v", lvl.name, err))
-				continue
-			}
-			f.Close()
 		}
-
+		text := formatter.Format(message, true)
+		text = strings.TrimSuffix(text, "\n") + "\n"
+		bt := []byte(text)
+		_, err := writer.Write(bt)
+		if err != nil {
+			errorStack = append(errorStack, err)
+		}
 	}
 	if err := joinErrors("writing message failed", errorStack...); err != nil {
 		return err
@@ -281,28 +316,24 @@ func (lvl *loggingLevel) write(text string) error {
 	return nil
 }
 
-func removeEmptyLines(text string) string {
-	lines := strings.Split(text, "\n")
-	filteredLines := []string{}
-	for _, line := range lines {
-		if strings.TrimSpace(line) == "" {
-			continue
-		}
-		filteredLines = append(filteredLines, line)
+func writerInfo(path string) string {
+	f, err := os.Stat(path)
+	if err != nil {
+		return "bad"
 	}
-	return strings.Join(filteredLines, "\n  ")
-}
-
-func colorizeTags(text string) string {
-	//TODO: temporary
-	//need to make formatter struct which will colorize text
-
-	text = strings.ReplaceAll(text, stdTagFATAL, color.S256(88).Sprintf(stdTagFATAL))
-	text = strings.ReplaceAll(text, stdTagERROR, color.S256(196).Sprintf(stdTagERROR))
-	text = strings.ReplaceAll(text, stdTagWARN, color.S256(184).Sprintf(stdTagWARN))
-	text = strings.ReplaceAll(text, stdTagDEBUG, color.S256(159).Sprintf(stdTagDEBUG))
-	text = strings.ReplaceAll(text, stdTagTRACE, color.S256(244).Sprintf(stdTagTRACE))
-	return text
+	if f.IsDir() {
+		return "dir"
+	}
+	if f.Mode().IsRegular() {
+		fl, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0666)
+		if err != nil {
+			fl.Close()
+			return "bad"
+		}
+		fl.Close()
+		return "file"
+	}
+	return "bad"
 }
 
 func joinErrors(message string, errs ...error) error {
@@ -320,22 +351,12 @@ func joinErrors(message string, errs ...error) error {
 
 func callerFunctionInfo(n int) (string, int, string) {
 	counter, file, line, success := runtime.Caller(n) //back to stack on n levels
-	if !logMan.longCallerNames {
-		file = filepath.Base(file)
-	}
+	// if !logMan.longCallerNames {
+	// 	file = filepath.Base(file)
+	// }
 	if !success {
 		return "", 0, ""
 	}
 	funcName := runtime.FuncForPC(counter).Name()
 	return file, line, funcName
-}
-
-func timestampFormat(tm time.Time) string {
-	format := "2006-01-02 15:04:05.999"
-	formatLen := len(format)
-	stamp := tm.Format(format)
-	for len(stamp) < formatLen {
-		stamp += "0"
-	}
-	return stamp
 }

@@ -12,7 +12,7 @@ import (
 	"github.com/Galdoba/ffstuff/app/grabber/internal/process"
 	"github.com/Galdoba/ffstuff/app/grabber/internal/sourcesort"
 	"github.com/Galdoba/ffstuff/app/grabber/internal/target"
-	"github.com/Galdoba/ffstuff/pkg/logman"
+	logman "github.com/Galdoba/ffstuff/pkg/logman"
 	"github.com/urfave/cli/v2"
 )
 

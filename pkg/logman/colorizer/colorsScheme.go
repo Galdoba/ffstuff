@@ -1,7 +1,5 @@
 package colorizer
 
-import "fmt"
-
 type colorSchema struct {
 	color256 map[ColorKey]uint8
 }
@@ -68,15 +66,15 @@ func defaultColorKey() map[ColorKey]uint8 {
 	colMap[fgKey("func")] = 36 //207
 	colMap[fgKey("chan")] = 2  //207
 
-	colMap[fgKey("fatal")] = 52
+	colMap[fgKey("fatal")] = 88
 	colMap[fgKey("error")] = 196
 	colMap[fgKey("warn")] = 184
 	colMap[fgKey("report")] = 40
-	colMap[fgKey("info")] = 255
-	colMap[fgKey("debug")] = 152
+	colMap[fgKey("info")] = 2
+	colMap[fgKey("debug")] = 244
 	colMap[fgKey("trace")] = 230
 
-	colMap[fgKey("caller")] = 240
+	colMap[fgKey("caller")] = 244
 	return colMap
 }
 
@@ -121,17 +119,13 @@ func NewKey(keyType, value string) ColorKey {
 }
 
 func (c *colorSchema) getColor(key ColorKey) uint8 {
-	fmt.Println("search key", key)
 	if v, ok := c.color256[key]; ok {
-		fmt.Println("Found")
 		return v
 	}
 	switch key.keytype {
 	case FG_KEY:
-		fmt.Println("DEFAULT FG")
 		return 7
 	case BG_KEY:
-		fmt.Println("DEFAULT BG")
 		return 0
 	}
 	return 10

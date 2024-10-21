@@ -3,43 +3,42 @@ package logman
 import (
 	"fmt"
 	"testing"
+
+	"github.com/Galdoba/ffstuff/pkg/logman/colorizer"
 )
 
 func TestLogMan(t *testing.T) {
 
-	Setup(WithAppLogLevelImportance(ImportanceALL))
+	Setup(WithAppLogLevelImportance(ImportanceALL),
+		WithGlobalColorizer(nil),
 
-	SetOutput("file.txt", ALL)
+		WithLogLevels(
+			NewLoggingLevel(INFO,
+				WithWriter(Stderr, NewFormatter(WithRequestedFields(Request_ShortSince), WithColor(colorizer.DefaultScheme()))),
+				WithWriter(`c:\Users\pemaltynov\go\src\github.com\Galdoba\ffstuff\pkg\logman\v2\file.txt`, NewFormatter(WithRequestedFields(Request_Full))),
+			),
+			NewLoggingLevel(DEBUG,
+				WithWriter(Stderr, NewFormatter(WithRequestedFields(Request_ShortReport), WithColor(colorizer.DefaultScheme()))),
+				WithWriter(`c:\Users\pemaltynov\go\src\github.com\Galdoba\ffstuff\pkg\logman\v2\file.txt`, NewFormatter(WithRequestedFields(Request_Medium))),
+			),
+		),
+		WithGlobalWriterFormatter(`c:\Users\pemaltynov\go\src\github.com\Galdoba\ffstuff\pkg\logman\v2\file.txt`, NewFormatter(WithRequestedFields(Request_ShortSince))),
+	)
+	//SetOutput("file.txt", ALL)
+	msg := NewMessage("this is test messsage 2 with arg %v, which is float64 and '%v': is string", 3.14, "some string")
+	fmt.Println("-------------------")
+	fmt.Println("-------------------")
+	ProcessMessage(msg, ERROR)
+	fmt.Println("----")
+	ProcessMessage(msg, WARN)
+	fmt.Println("----")
+	ProcessMessage(msg, INFO)
+	fmt.Println("----")
+	ProcessMessage(msg, DEBUG)
+	fmt.Println("----")
+	ProcessMessage(msg, TRACE)
+	fmt.Println("----")
+	ProcessMessage(msg, FATAL)
+	fmt.Println("-------------------")
 
-	msg := NewMessage("process %v complete", "testing").WithFields(NewField("metric", 0.7))
-	err := process(msg, logMan.logLevels[INFO])
-	if err != nil {
-		t.Errorf(err.Error())
-	}
-	err2 := process(msg, logMan.logLevels[WARN])
-	if err2 != nil {
-		t.Errorf(err2.Error())
-	}
-	Debug(NewMessage("testing debug"), "test: 42")
-	Fatalf("testing fatal conv func")
-
-	// bt, _ := msg.MarshalJSON()
-	// msg1 := NewMessage("sss")
-	// if err := msg1.UnmarshalJSON(bt); err != nil {
-	// 	t.Errorf("bad %v", err)
-	// }
-	// fmt.Println(string(bt))
-	// fmt.Println("1", msg)
-	// fmt.Println("2", msg1)
-	// js, err := formatJSON(msg)
-	// fmt.Println(js, err)
-
-}
-
-func formatTestFunc(msg Message) (string, error) {
-	out := "this is a TEST:"
-	for _, key := range msg.Fields() {
-		out += fmt.Sprintf("|field='%v' : value='%v'", key, msg.Value(key))
-	}
-	return out, nil
 }

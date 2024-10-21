@@ -43,7 +43,6 @@ func colorizeByKeys(c *colorSchema, arg interface{}, keys ...ColorKey) string {
 		switch key.keytype {
 		case FG_KEY:
 			fgKey.value = key.value
-			fmt.Println("fg value", key.value)
 		case BG_KEY:
 			bgKey.value = key.value
 
@@ -51,9 +50,7 @@ func colorizeByKeys(c *colorSchema, arg interface{}, keys ...ColorKey) string {
 			continue
 		}
 	}
-	fmt.Println(fgKey)
 	fg := c.getColor(fgKey)
-	fmt.Println(fg)
 	bg := c.getColor(bgKey)
 	s := color.S256(fg, bg).Sprint(arg)
 	return s

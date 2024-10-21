@@ -1,10 +1,8 @@
 package logman
 
 import (
-	"fmt"
 	"io"
 	"os"
-	"strings"
 )
 
 const (
@@ -19,20 +17,22 @@ const (
 )
 
 type loggingLevel struct {
-	name       string
-	tag        string
-	importance int
-	callerInfo bool
-	osExit     bool
-	writers    map[string]io.Writer
-	formatFunc func(Message) (string, error)
+	name               string
+	tag                string
+	importance         int
+	callerInfo         bool
+	osExit             bool
+	colorSchemes       map[string]uint8
+	formatFunc         func(Message) (string, error)
+	FMTE               *formatterExpanded
+	writerFormatterMap map[string]*formatterExpanded
 }
 
 func NewLoggingLevel(name string, opts ...LevelOpts) *loggingLevel {
 	lo := loggingLevel{}
 	lo.name = name
 	options := defaultLevel()
-	lo.tag = strings.ToUpper(fmt.Sprintf("[%v]", name))
+	lo.tag = name
 	for _, enrich := range opts {
 		enrich(&options)
 	}
@@ -40,8 +40,7 @@ func NewLoggingLevel(name string, opts ...LevelOpts) *loggingLevel {
 	lo.osExit = options.osExit
 	lo.formatFunc = options.formatFunc
 	lo.importance = options.importance
-	lo.tag = options.tag
-	lo.writers = options.writers
+	lo.writerFormatterMap = options.writerFormatterMap
 	return &lo
 }
 
@@ -98,45 +97,29 @@ func LevelFormatterFunc(formatter func(Message) (string, error)) LevelOpts {
 	}
 }
 
-func (lvl *loggingLevel) setWriter(key string) {
-	switch key {
-	case Stderr:
-		lvl.writers[key] = os.Stderr
-	case Stdout:
-		lvl.writers[key] = os.Stdout
-	default:
-		f, err := os.OpenFile(key, flags, perm)
-		if err != nil {
-			panic("TODO: add file check: " + err.Error())
-		}
-		lvl.writers[key] = f
-		f.Close()
-	}
-}
-
-func (lvl *loggingLevel) clearWriters() {
-	lvl.writers = make(map[string]io.Writer)
-}
-
 type lvlOpts struct {
-	tag        string
-	importance int
-	callerInfo bool
-	osExit     bool
-	writers    map[string]io.Writer
-	formatFunc func(Message) (string, error)
+	tag                string
+	importance         int
+	callerInfo         bool
+	osExit             bool
+	writers            map[string]io.Writer
+	formatFunc         func(Message) (string, error)
+	writerFormatterMap map[string]*formatterExpanded
 }
 
 func defaultLevel() lvlOpts {
 	return lvlOpts{
-		tag:        "[CUSTOM]",
-		importance: ImportanceINFO,
-		callerInfo: false,
-		writers:    map[string]io.Writer{Stderr: os.Stderr},
-		formatFunc: func(Message) (string, error) {
-			return "nothing", fmt.Errorf("formatFunc not set")
-		},
+		tag:                "[CUSTOM]",
+		importance:         ImportanceINFO,
+		callerInfo:         false,
+		writerFormatterMap: make(map[string]*formatterExpanded),
 	}
 }
 
 type LevelOpts func(*lvlOpts)
+
+func WithWriter(writerKey string, expandedFormatter *formatterExpanded) LevelOpts {
+	return func(lo *lvlOpts) {
+		lo.writerFormatterMap[writerKey] = expandedFormatter
+	}
+}

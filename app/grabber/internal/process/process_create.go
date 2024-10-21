@@ -62,7 +62,7 @@ func New(opts ...ProcessOption) (*Process, error) {
 }
 
 func (pr *Process) validate() error {
-	for _, assert := range []func(*Process) (string, error){
+	for _, assert := range []func(*Process) (logman.Message, error){
 		assertMode,
 		assertCopyDecidion,
 		assertDeleteDecidion,
@@ -71,57 +71,58 @@ func (pr *Process) validate() error {
 	} {
 		msg, err := assert(pr)
 		if err != nil {
-			return logman.Errorf("validation failed: %v", err)
+			logman.ProcessMessage(msg, logman.DEBUG)
+			return fmt.Errorf("validation failed: %v", err)
 		}
-		logman.Debug(logman.NewMessage(msg))
+		logman.Debug(msg)
 	}
 	return nil
 }
 
-func assertMode(pr *Process) (string, error) {
+func assertMode(pr *Process) (logman.Message, error) {
 	switch pr.mode {
 	case MODE_GRAB, MODE_TRACK:
 	default:
-		return "", fmt.Errorf("process mode: %v", pr.mode)
+		return nil, fmt.Errorf("process mode: %v", pr.mode)
 	}
-	return "process.mode: " + pr.mode, nil
+	return logman.NewMessage("process.mode: %v", pr.mode), nil
 }
 
-func assertCopyDecidion(pr *Process) (string, error) {
+func assertCopyDecidion(pr *Process) (logman.Message, error) {
 	switch pr.CopyDecidion {
 	case grabberflag.VALUE_COPY_SKIP, grabberflag.VALUE_COPY_RENAME, grabberflag.VALUE_COPY_OVERWRITE:
-		return "process.CopyDecidion: " + pr.CopyDecidion, nil
+		return logman.NewMessage("process.CopyDecidion: ", pr.CopyDecidion), nil
 	default:
-		return "", fmt.Errorf("process CopyDecidion invalid: %v", pr.CopyDecidion)
+		return nil, fmt.Errorf("process CopyDecidion invalid: %v", pr.CopyDecidion)
 	}
 
 }
 
-func assertDeleteDecidion(pr *Process) (string, error) {
+func assertDeleteDecidion(pr *Process) (logman.Message, error) {
 	switch pr.DeleteDecidion {
 	case grabberflag.VALUE_DELETE_NONE, grabberflag.VALUE_DELETE_MARKER, grabberflag.VALUE_DELETE_ALL:
-		return "process.DeleteDecidion: " + pr.DeleteDecidion, nil
+		return logman.NewMessage("process.DeleteDecidion: ", pr.DeleteDecidion), nil
 	default:
-		return "", fmt.Errorf("process DeleteDecidion invalid: %v", pr.DeleteDecidion)
+		return nil, fmt.Errorf("process DeleteDecidion invalid: %v", pr.DeleteDecidion)
 	}
 
 }
 
-func assertSortDecidion(pr *Process) (string, error) {
+func assertSortDecidion(pr *Process) (logman.Message, error) {
 	switch pr.SortDecidion {
 	case grabberflag.VALUE_SORT_PRIORITY, grabberflag.VALUE_SORT_SIZE, grabberflag.VALUE_SORT_NONE:
-		return "process.SortDecidion: " + pr.SortDecidion, nil
+		return logman.NewMessage("process.SortDecidion: ", pr.SortDecidion), nil
 	default:
-		return "", fmt.Errorf("process SortDecidion invalid: %v", pr.SortDecidion)
+		return nil, fmt.Errorf("process SortDecidion invalid: %v", pr.SortDecidion)
 	}
 
 }
 
-func assertDestination(pr *Process) (string, error) {
+func assertDestination(pr *Process) (logman.Message, error) {
 	if err := validation.DirectoryValidation(pr.DestinationDir); err != nil {
-		return "", err
+		return nil, err
 	}
-	return "process.DestinationDir: " + pr.DestinationDir, nil
+	return logman.NewMessage("process.DestinationDir: ", pr.DestinationDir), nil
 
 }
 

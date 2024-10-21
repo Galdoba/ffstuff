@@ -29,13 +29,12 @@ const (
 	ImportanceALL   = 0
 
 	//fieldKeys
-	keyTime         = "time"
-	keyLevel        = "level"
-	keyMessage      = "message"
-	keyMessageColor = "message_color"
-	keyFile         = "file"
-	keyLine         = "line"
-	keyFunc         = "callerFuncName"
+	keyTime    = "time"
+	keyLevel   = "level"
+	keyMessage = "message"
+	keyFile    = "file"
+	keyLine    = "line"
+	keyFunc    = "callerFuncName"
 
 	Stdout = "StdOut"
 	Stderr = "StdErr"
@@ -46,7 +45,6 @@ type logManager struct {
 	logLevels          map[string]*loggingLevel
 	longCallerNames    bool
 	logger             *log.Logger
-	colorizer          Colorizer
 }
 
 // Setup sets logging levels for logMan. If no
@@ -65,7 +63,6 @@ func Setup(opts ...LogmanOptions) error {
 	al.appMinimumLoglevel = opt.appMinimumLoglevel
 	al.longCallerNames = opt.longCallerNames
 	al.logger = log.New(os.Stdout, "", 0)
-	al.colorizer = opt.colorizer
 	logMan = &al
 	return nil
 }
@@ -117,7 +114,6 @@ type options struct {
 	appMinimumLoglevel int
 	longCallerNames    bool
 	logLevels          map[string]*loggingLevel
-	colorizer          Colorizer
 }
 
 func defaultOpts() options {
@@ -152,12 +148,6 @@ func WithAppLogLevelImportance(importance int) LogmanOptions {
 			importance = ImportanceALL
 		}
 		o.appMinimumLoglevel = importance
-	}
-}
-
-func WithColorizer(colorizer Colorizer) LogmanOptions {
-	return func(o *options) {
-		o.colorizer = colorizer
 	}
 }
 
@@ -228,7 +218,6 @@ func process(msg Message, lvls ...*loggingLevel) error {
 					msg.SetField(keyFunc, fn)
 				}
 			}
-
 			text, err := lvl.formatFunc(msg)
 			if err != nil {
 				errorStack = append(errorStack, fmt.Errorf("formatting message failed: '%v' level: %v", lvl.name, err))
