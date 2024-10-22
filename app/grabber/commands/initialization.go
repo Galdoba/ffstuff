@@ -114,7 +114,7 @@ func setupLogger(levelConsole, levelFile, logpath string) error {
 	withAllFields := logman.WithRequestedFields(logman.Request_Full)
 	withErrorFields := logman.WithRequestedFields(logman.Request_Medium)
 	withLogFields := logman.WithRequestedFields(logman.Request_ShortTime)
-	withReportFields := logman.WithRequestedFields(logman.Request_ShortReport)
+	withReportFields := logman.WithRequestedFields(logman.Request_ShortTime)
 	return logman.Setup(
 		logman.WithAppLogLevelImportance(logman.ImportanceALL),
 		logman.WithLogLevels(
