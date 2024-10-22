@@ -110,82 +110,6 @@ func Setup(opts ...LogmanOptions) error {
 	return nil
 }
 
-// LogmanOptions - settings for logMan object.
-type LogmanOptions func(*options)
-
-type options struct {
-	appMinimumLoglevel int
-	longCallerNames    bool
-	logLevels          map[string]*loggingLevel
-	colorizer          Colorizer
-	globalWriterKeys   []string
-	globalFormatters   []*formatterExpanded
-}
-
-func defaultOpts() options {
-	return options{
-		appMinimumLoglevel: ImportanceALL,
-		logLevels:          defaultLoggingLevels(),
-	}
-
-}
-
-// WithLogLevels sets loglevels to logman with slice of NewLogLevel functions.
-// Used to create custom logLevels.
-// Caution: It overrides default levels if new loglevel has standard key ("fatal", "error", "warn", "info", "debug", "trace").
-func WithLogLevels(lvls ...*loggingLevel) LogmanOptions {
-	return func(o *options) {
-		//o.logLevels = make(map[string]*loggingLevel)
-		for _, lvl := range lvls {
-			o.logLevels[lvl.name] = lvl
-		}
-	}
-}
-
-// WithAppLogLevelImportance sets minimum message importance level logMan will process.
-// If input is below ImportanceNone importance will be set to ImportanceNone.
-// If input is above ImportanceALL importance will be set to ImportanceALL.
-func WithAppLogLevelImportance(importance int) LogmanOptions {
-	return func(o *options) {
-		if importance > ImportanceNONE {
-			importance = ImportanceNONE
-		}
-		if importance < ImportanceALL {
-			importance = ImportanceALL
-		}
-		o.appMinimumLoglevel = importance
-	}
-}
-
-// WithGlobalColorizer - sets global color scheme for logman
-func WithGlobalColorizer(colorizer Colorizer) LogmanOptions {
-	return func(o *options) {
-		o.colorizer = colorizer
-	}
-}
-
-// WithGlobalWriterFormatter - Add writer to all level.
-// Useful to setup logfile.
-func WithGlobalWriterFormatter(writer string, formatter *formatterExpanded) LogmanOptions {
-	return func(o *options) {
-		o.globalWriterKeys = append(o.globalWriterKeys, writer)
-		o.globalFormatters = append(o.globalFormatters, formatter)
-	}
-}
-
-// func WithLongCallerNames(val bool) LogmanOptions {
-// 	return func(o *options) {
-// 		o.longCallerNames = val
-// 	}
-// }
-
-func isInBounds(n, min, max int) bool {
-	if n < min || n > max {
-		return false
-	}
-	return true
-}
-
 // ProcessMessage is a general call for processing message.
 // Must be used if custom log levels are used.
 func ProcessMessage(msg Message, levels ...string) error {
@@ -351,9 +275,6 @@ func joinErrors(message string, errs ...error) error {
 
 func callerFunctionInfo(n int) (string, int, string) {
 	counter, file, line, success := runtime.Caller(n) //back to stack on n levels
-	// if !logMan.longCallerNames {
-	// 	file = filepath.Base(file)
-	// }
 	if !success {
 		return "", 0, ""
 	}
