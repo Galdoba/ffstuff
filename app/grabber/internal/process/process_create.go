@@ -91,7 +91,7 @@ func assertMode(pr *Process) (logman.Message, error) {
 func assertCopyDecidion(pr *Process) (logman.Message, error) {
 	switch pr.CopyDecidion {
 	case grabberflag.VALUE_COPY_SKIP, grabberflag.VALUE_COPY_RENAME, grabberflag.VALUE_COPY_OVERWRITE:
-		return logman.NewMessage("process.CopyDecidion: ", pr.CopyDecidion), nil
+		return logman.NewMessage("process.CopyDecidion: %v", pr.CopyDecidion), nil
 	default:
 		return nil, fmt.Errorf("process CopyDecidion invalid: %v", pr.CopyDecidion)
 	}
@@ -101,7 +101,7 @@ func assertCopyDecidion(pr *Process) (logman.Message, error) {
 func assertDeleteDecidion(pr *Process) (logman.Message, error) {
 	switch pr.DeleteDecidion {
 	case grabberflag.VALUE_DELETE_NONE, grabberflag.VALUE_DELETE_MARKER, grabberflag.VALUE_DELETE_ALL:
-		return logman.NewMessage("process.DeleteDecidion: ", pr.DeleteDecidion), nil
+		return logman.NewMessage("process.DeleteDecidion: %v", pr.DeleteDecidion), nil
 	default:
 		return nil, fmt.Errorf("process DeleteDecidion invalid: %v", pr.DeleteDecidion)
 	}
@@ -111,7 +111,7 @@ func assertDeleteDecidion(pr *Process) (logman.Message, error) {
 func assertSortDecidion(pr *Process) (logman.Message, error) {
 	switch pr.SortDecidion {
 	case grabberflag.VALUE_SORT_PRIORITY, grabberflag.VALUE_SORT_SIZE, grabberflag.VALUE_SORT_NONE:
-		return logman.NewMessage("process.SortDecidion: ", pr.SortDecidion), nil
+		return logman.NewMessage("process.SortDecidion: %v", pr.SortDecidion), nil
 	default:
 		return nil, fmt.Errorf("process SortDecidion invalid: %v", pr.SortDecidion)
 	}
@@ -122,7 +122,7 @@ func assertDestination(pr *Process) (logman.Message, error) {
 	if err := validation.DirectoryValidation(pr.DestinationDir); err != nil {
 		return nil, err
 	}
-	return logman.NewMessage("process.DestinationDir: ", pr.DestinationDir), nil
+	return logman.NewMessage("process.DestinationDir: %v", pr.DestinationDir), nil
 
 }
 

@@ -1,18 +1,33 @@
 package commands
 
 import (
+	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 
-	"github.com/Galdoba/ffstuff/app/grabber/config"
+	"github.com/Galdoba/ffstuff/app/audlite/config"
 	"github.com/Galdoba/ffstuff/pkg/logman"
 	"github.com/Galdoba/ffstuff/pkg/logman/colorizer"
+	"github.com/urfave/cli/v2"
 )
 
-func commandInit() error {
+var cfg *config.Configuration
+
+func commandInit(c *cli.Context) error {
 	cfgLoaded, err := config.Load()
 	if err != nil {
-		return err
+		switch errors.Is(err, config.ErrNoConfig) {
+		case true:
+			cfgLoaded = config.NewConfig(c.App.Version)
+			for _, log := range cfgLoaded.LOGS {
+				os.MkdirAll(filepath.Dir(log), 0666)
+				os.Create(log)
+			}
+		case false:
+			return err
+		}
 	}
 	errs := config.Validate(cfgLoaded)
 	switch len(errs) {
@@ -25,12 +40,14 @@ func commandInit() error {
 		return fmt.Errorf("config errors detected")
 	case 0:
 		cfg = cfgLoaded
+
 		if err := setupLogger(cfg); err != nil {
 			return fmt.Errorf("logger initialization failed: %v", err)
 		}
-		// if err := setupSourceConstructor(); err != nil {
-		// 	return fmt.Errorf("source constructor initialization failed: %v", err)
-		// }
+		if err := config.Save(cfg); err != nil {
+
+			return fmt.Errorf("initialization failed: %v", err)
+		}
 
 	}
 	return nil
@@ -59,18 +76,21 @@ func setupLogger(cfg *config.Configuration) error {
 			return fmt.Errorf("failed to set formatter to level's '%v' writer (%v): %v", level, logman.Stderr, consoleFormatter)
 		}
 	}
-	for _, level := range fileLevels {
-		switch level {
-		case logman.ERROR, logman.FATAL:
-			if err := logman.SetLevelWriterFormatter(level, cfg.LOG, fileErrorFormatter); err != nil {
-				return fmt.Errorf("failed to set formatter to level's '%v' writer (%v): %v", level, cfg.LOG, fileErrorFormatter)
-			}
-		default:
-			if err := logman.SetLevelWriterFormatter(level, cfg.LOG, fileReportFormatter); err != nil {
-				return fmt.Errorf("failed to set formatter to level's '%v' writer (%v): %v", level, cfg.LOG, fileReportFormatter)
+	for _, log := range cfg.LOGS {
+		for _, level := range fileLevels {
+			switch level {
+			case logman.ERROR, logman.FATAL:
+				if err := logman.SetLevelWriterFormatter(level, log, fileErrorFormatter); err != nil {
+					return fmt.Errorf("failed to set formatter to level's '%v' writer (%v): %v", level, log, fileErrorFormatter)
+				}
+			default:
+				if err := logman.SetLevelWriterFormatter(level, log, fileReportFormatter); err != nil {
+					return fmt.Errorf("failed to set formatter to level's '%v' writer (%v): %v", level, log, fileReportFormatter)
+				}
 			}
 		}
 	}
+
 	fmt.Println("end logger setup")
 	return nil
 }

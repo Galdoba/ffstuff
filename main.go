@@ -9,36 +9,49 @@ const sc = "\u001B7"
 const rc = "\u001B8"
 
 func main() {
-	fmt.Print(sc)
-	for i := 1; i <= 3; i++ {
-		fmt.Print(rc + sc)
-		fmt.Println(i, "one")
-		fmt.Println(i, "two")
-		fmt.Println(i, "three")
-		fmt.Println(i, "four")
-		fmt.Println(i, "five")
-		time.Sleep(time.Second)
+	procs := []Process{}
+	for i := 0; i < 3; i++ {
+		procs = append(procs, NewProc())
 	}
-	errors := newEC()
-	addError(1, errors)
-	addError(2, errors)
-	addError(2, errors)
-	for _, err := range errors.errors {
-		fmt.Println(err)
+
+}
+
+type Process interface {
+	Start() error
+	Status() int
+	Progress() float64
+}
+
+type proc struct {
+	counter int
+}
+
+func NewProc() *proc {
+	return &proc{}
+}
+
+func (pr *proc) Start() error {
+	for pr.counter < 1000 {
+		time.Sleep(time.Millisecond * 100)
+		pr.counter++
+	}
+	return nil
+}
+
+func (pr *proc) Status() int {
+	switch pr.counter {
+	case 0:
+		return 0
+	default:
+		if pr.counter < 1000 {
+			return 1
+		}
+		return 2
 	}
 }
 
-type errorCollector struct {
-	errors []error
-}
-
-func newEC() *errorCollector {
-	return &errorCollector{}
-}
-
-func addError(i int, errors *errorCollector) {
-	err := fmt.Errorf("error %v", i)
-	errors.errors = append(errors.errors, err)
+func (pr *proc) Progress() float64 {
+	return float64(pr.counter) / 10.0
 }
 
 //func main() {
