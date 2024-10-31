@@ -1,6 +1,7 @@
 package copyprocess
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/Galdoba/ffstuff/app/grabber/internal/origin"
 	"github.com/Galdoba/ffstuff/pkg/logman"
+	"github.com/Galdoba/ffstuff/pkg/stdpath"
 	"github.com/fatih/color"
 )
 
@@ -21,20 +23,33 @@ const (
 )
 
 type copyActionState struct {
-	sourcePaths          []origin.Origin
-	destination          string
-	markerExt            string
-	creationErrors       []error
-	deleteAll            bool
-	deleteMarker         bool
-	sourceTargetMap      map[origin.Origin]string
-	namesLen             int
-	sourcesVolume        int64
-	downloadedVolume     int64
-	downloadedVolumeLast int64
-	completed            []string
-	killList             []string
-	errors               []error
+	SourcePaths          []origin.Origin
+	Destination          string
+	MarkerExt            string
+	CreationErrors       []error
+	DeleteAll            bool
+	DeleteMarker         bool
+	SourceTargetMap      map[origin.Origin]string `json:"-"`
+	AdapterSources       map[int]origin.ExportOrigin
+	AdapterTargets       map[int]string
+	NamesLen             int
+	SourcesVolume        int64
+	DownloadedVolume     int64
+	DownloadedVolumeLast int64
+	Completed            []string
+	KillList             []string
+	Errors               []error
+}
+
+type OriginData struct {
+	Path string
+	Name string
+}
+
+type CopyProcess interface {
+	Start() error
+	ErrorReport() error
+	AddToQueue() error
 }
 
 func NewCopyAction(sourceTargetMap map[origin.Origin]string, opts ...Option) *copyActionState {
@@ -45,52 +60,61 @@ func NewCopyAction(sourceTargetMap map[origin.Origin]string, opts ...Option) *co
 	for _, modify := range opts {
 		modify(&settings)
 	}
-	cas.destination = settings.destination
-	cas.markerExt = settings.markerExt
-	cas.sourceTargetMap = sourceTargetMap
-	cas.downloadedVolumeLast = -1
+	cas.Destination = settings.destination
+	cas.MarkerExt = settings.markerExt
+	cas.DeleteAll = settings.deleteAll
+	cas.DeleteMarker = settings.deleteMarkers
+	cas.SourceTargetMap = sourceTargetMap
+	cas.DownloadedVolumeLast = -1
 	for _, src := range settings.sourcePaths {
 		// fmt.Println("---")
 		// originFile := origin.New(src)
 
-		cas.sourcePaths = append(cas.sourcePaths, src)
+		cas.SourcePaths = append(cas.SourcePaths, src)
 	}
+
 	return &cas
 }
 
 func (cas *copyActionState) Start() error {
 	startTime := time.Now()
-	logman.Info("start grabbing")
+	logman.Info("begin transfert")
 	copyErrors := newErrorCollector()
-	for _, src := range cas.sourcePaths {
-		if cas.namesLen < len(src.Name()) {
-			tgt := cas.sourceTargetMap[src]
+	for _, src := range cas.SourcePaths {
+		if cas.NamesLen < len(src.Name()) {
+			tgt := cas.SourceTargetMap[src]
 			tgt = filepath.Base(tgt)
-			cas.namesLen = len(tgt)
+			cas.NamesLen = len(tgt)
 		}
 		si, err := os.Stat(src.Path())
 		if err != nil {
 			return fmt.Errorf("failed to get %v size", src.Name())
 		}
-		cas.sourcesVolume += si.Size()
+		cas.SourcesVolume += si.Size()
 	}
-	fmt.Println("target directory:", cas.destination)
+	fmt.Println("target directory:", cas.Destination)
 	fmt.Print(sc)
 	fmt.Println(cas.copyProcessData())
 
-	for _, src := range cas.sourcePaths {
+	for _, src := range cas.SourcePaths {
 		source := src.Path()
 		srcInfo, errS := os.Stat(source)
 		if errS != nil {
-			cas.errors = append(cas.errors, logman.Errorf("failed to get info on %v: %v", source, errS))
+			cas.Errors = append(cas.Errors, logman.Errorf("failed to get info on %v: %v", source, errS))
 			continue
 		}
 		if !srcInfo.Mode().IsRegular() { // cannot copy non-regular files (e.g., directories, symlinks, devices, etc.)
-			cas.errors = append(cas.errors, fmt.Errorf("cannot copy non-regular files (directories, symlinks, devices, etc.): "+source+" ("+srcInfo.Mode().String()+")"))
+			cas.Errors = append(cas.Errors, fmt.Errorf("cannot copy non-regular files (directories, symlinks, devices, etc.): "+source+" ("+srcInfo.Mode().String()+")"))
 			continue
 		}
 		sourceSize := srcInfo.Size()
-		target := cas.sourceTargetMap[src]
+		target := ""
+		for k, v := range cas.SourceTargetMap {
+			if k.Path() == src.Path() {
+				target = v
+				break
+			}
+		}
 
 		go copyContent(src.Path(), target, copyErrors)
 		doneCopying := false
@@ -98,6 +122,9 @@ func (cas *copyActionState) Start() error {
 		time.Sleep(time.Second)
 		for !doneCopying {
 			copyFile, err := os.Stat(target)
+			if err != nil {
+				fmt.Println(err, "----------------")
+			}
 			copySize := copyFile.Size()
 			fmt.Print(rc + sc)
 			fmt.Println(cas.copyProcessData())
@@ -112,29 +139,29 @@ func (cas *copyActionState) Start() error {
 			}
 		}
 		if goodDone {
-			cas.completed = append(cas.completed, src.Path())
+			cas.Completed = append(cas.Completed, src.Path())
 			if src.MustDie() {
-				cas.killList = append(cas.killList, src.Path())
+				cas.KillList = append(cas.KillList, src.Path())
 			}
 		} else {
-			cas.errors = append(cas.errors, logman.Errorf("failed to grab %v", source))
+			cas.Errors = append(cas.Errors, logman.Errorf("failed to grab %v", source))
 		}
 
 	}
 	fmt.Print(rc + sc)
 	fmt.Println(cas.copyProcessData() + "\n")
-	for _, path := range cas.killList {
+	for _, path := range cas.KillList {
 		switch os.Remove(path) {
 		case nil:
 			logman.Info("deleted: %v", path)
 		default:
-			cas.errors = append(cas.errors, fmt.Errorf("failed to delete %v", path))
+			cas.Errors = append(cas.Errors, fmt.Errorf("failed to delete %v", path))
 		}
 	}
 	dur := time.Since(startTime)
 	tookTime := dur.String()
 
-	allErrors := append(copyErrors.collected, cas.errors...)
+	allErrors := append(copyErrors.collected, cas.Errors...)
 	if len(allErrors) > 0 {
 		fmt.Println(color.RedString("grabbing errors:"))
 		for _, err := range allErrors {
@@ -146,11 +173,11 @@ func (cas *copyActionState) Start() error {
 		}
 		// return logman.Errorf("%v errors intecepted, while processing", len(copyErrors.collected))
 	}
-	logman.Info("done grabbing (process took %v)", tookTime)
-	if len(cas.completed) < len(cas.sourcePaths) {
-		return logman.Warn("grabbed %v of %v files", len(cas.completed), len(cas.sourcePaths))
+	logman.Info("transfert complete (process took %v)", tookTime)
+	if len(cas.Completed) < len(cas.SourcePaths) {
+		return logman.Warn("grabbed %v of %v files", len(cas.Completed), len(cas.SourcePaths))
 	}
-	if len(cas.errors) > 0 {
+	if len(cas.Errors) > 0 {
 		return cas.ErrorReport()
 	}
 
@@ -166,11 +193,17 @@ func newErrorCollector() *errorCollector {
 }
 
 func (cas *copyActionState) copyProcessData() string {
-	cas.downloadedVolumeLast = cas.downloadedVolume
-	cas.downloadedVolume = 0
+	cas.DownloadedVolumeLast = cas.DownloadedVolume
+	cas.DownloadedVolume = 0
 	out := "process report:\n"
-	for _, src := range cas.sourcePaths {
-		tgt := cas.sourceTargetMap[src]
+	for _, src := range cas.SourcePaths {
+		//tgt := cas.SourceTargetMap[src]
+		for k, _ := range cas.SourceTargetMap {
+			if k.Path() == src.Path() {
+				src = k
+			}
+		}
+		tgt := cas.SourceTargetMap[src]
 		progress, trueSize := currentProgress(src.Path(), tgt)
 		progressString := formatProgress(progress)
 		tgtName := filepath.Base(tgt)
@@ -181,16 +214,16 @@ func (cas *copyActionState) copyProcessData() string {
 				progressString = "dead"
 			}
 		}
-		out += fmt.Sprintf("  %v    %v%v           \n", wideName(tgtName, cas.namesLen), progressString, mustDie)
-		cas.downloadedVolume += trueSize
+		out += fmt.Sprintf("  %v    %v%v           \n", wideName(tgtName, cas.NamesLen), progressString, mustDie)
+		cas.DownloadedVolume += trueSize
 	}
-	if len(cas.sourcePaths) == 0 {
+	if len(cas.SourcePaths) == 0 {
 		out += "  nothing to grab"
 		return out
 	}
 
 	out += "summary:\n"
-	out += fmt.Sprintf("  %v        ", summaryString(cas.sourcesVolume, cas.downloadedVolume, cas.downloadedVolumeLast))
+	out += fmt.Sprintf("  %v        ", summaryString(cas.SourcesVolume, cas.DownloadedVolume, cas.DownloadedVolumeLast))
 	return out
 }
 
@@ -252,11 +285,14 @@ func size2GbString(bts int64) string {
 }
 
 func (cas *copyActionState) ErrorReport() error {
-	if len(cas.errors) == 0 {
+	if len(cas.SourcePaths) == 0 {
+		return fmt.Errorf("process is empty")
+	}
+	if len(cas.Errors) == 0 {
 		return nil
 	}
 	text := "processing error(s) detected:\n"
-	for i, err := range cas.errors {
+	for i, err := range cas.Errors {
 		text += fmt.Sprintf("%v: %v\n", i+1, err)
 	}
 	return errors.New(text)
@@ -265,3 +301,106 @@ func (cas *copyActionState) ErrorReport() error {
 /*
 create
 */
+
+func (cas *copyActionState) AddToQueue() error {
+	id := time.Now().UnixNano()
+	name := fmt.Sprintf("%v.json", id)
+	procFile := stdpath.ProgramDir("queue") + name
+	f, err := os.Create(procFile)
+
+	cas.AdapterSources = make(map[int]origin.ExportOrigin)
+	cas.AdapterTargets = make(map[int]string)
+	i := 0
+	for k, v := range cas.SourceTargetMap {
+		e := origin.Export(k)
+		cas.AdapterSources[i] = *e
+		cas.AdapterTargets[i] = v
+		i++
+	}
+	defer f.Close()
+	if err != nil {
+		return logman.Errorf("process file creation failed: %v", err)
+	}
+	bt, err := json.MarshalIndent(cas, "", "  ")
+	if err != nil {
+		return logman.Errorf("process marshaling failed: %v", err)
+	}
+	err = os.WriteFile(procFile, bt, 0660)
+	if err != nil {
+		return logman.Errorf("process file writing failed: %v", err)
+	}
+	return nil
+}
+
+func Reconstruct(path string) (CopyProcess, error) {
+	bt, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read process file: %v", err)
+	}
+	cp := &copyActionState{}
+	cp.AdapterSources = make(map[int]origin.ExportOrigin)
+	cp.AdapterTargets = make(map[int]string)
+	cp.SourceTargetMap = make(map[origin.Origin]string)
+
+	if err := cp.UnmarshalJSON(bt); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal: %v", err)
+	}
+	cp.AdapterSources = nil
+	cp.AdapterTargets = nil
+
+	return cp, nil
+}
+
+type adapter struct {
+	SourcePaths          []origin.ExportOrigin
+	Destination          string
+	MarkerExt            string
+	CreationErrors       []error
+	DeleteAll            bool
+	DeleteMarker         bool
+	AdapterSources       map[int]origin.ExportOrigin
+	AdapterTargets       map[int]string
+	NamesLen             int
+	SourcesVolume        int64
+	DownloadedVolume     int64
+	DownloadedVolumeLast int64
+	Completed            []string
+	KillList             []string
+	Errors               []error
+}
+
+func (receiver *copyActionState) UnmarshalJSON(data []byte) error {
+	//var s string
+	//fmt.Println("start")
+	//type Alias *copyActionState
+	cp := adapter{}
+	cp.AdapterSources = make(map[int]origin.ExportOrigin)
+	cp.AdapterTargets = make(map[int]string)
+	if err := json.Unmarshal(data, &cp); err != nil {
+		return err
+	}
+	for i := 0; i <= len(cp.AdapterSources)-1; i++ {
+		e := origin.Inject(cp.AdapterSources[i])
+
+		receiver.SourceTargetMap[e] = cp.AdapterTargets[i]
+	}
+	for _, e := range cp.SourcePaths {
+		receiver.SourcePaths = append(receiver.SourcePaths, origin.Inject(e))
+	}
+	//receiver.AdapterSources = cp.AdapterSources
+	//receiver.AdapterTargets = cp.AdapterTargets
+	receiver.Destination = cp.Destination
+	receiver.MarkerExt = cp.MarkerExt
+	receiver.CreationErrors = cp.CreationErrors
+	receiver.DeleteAll = cp.DeleteAll
+	receiver.DeleteMarker = cp.DeleteMarker
+	receiver.NamesLen = cp.NamesLen
+	receiver.SourcesVolume = cp.SourcesVolume
+	receiver.DownloadedVolume = cp.DownloadedVolume
+	receiver.DownloadedVolumeLast = cp.DownloadedVolumeLast
+	receiver.Completed = cp.Completed
+	receiver.KillList = cp.KillList
+	receiver.Errors = cp.Errors
+
+	return nil
+}

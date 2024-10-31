@@ -20,23 +20,16 @@ func TestNewMerge(t *testing.T) {
 			name: "test 1",
 			args: args{
 				[]string{
-					`c:\Users\pemaltynov\go\src\github.com\Galdoba\ffstuff\app\audlite\Dom_C.wav`,
-					`c:\Users\pemaltynov\go\src\github.com\Galdoba\ffstuff\app\audlite\Dom_L.wav`,
-					`c:\Users\pemaltynov\go\src\github.com\Galdoba\ffstuff\app\audlite\Dom_R.wav`,
-					`c:\Users\pemaltynov\go\src\github.com\Galdoba\ffstuff\app\audlite\Dom_Lfe.wav`,
-					`c:\Users\pemaltynov\go\src\github.com\Galdoba\ffstuff\app\audlite\Dom_Rs.wav`,
-					`c:\Users\pemaltynov\go\src\github.com\Galdoba\ffstuff\app\audlite\Dom_Ls.wav`,
+					`c:\Users\pemaltynov\assets\Bol.L.wav`,
+					`c:\Users\pemaltynov\assets\Bol.C.wav`,
+					`c:\Users\pemaltynov\assets\Bol.R.wav`,
+					`c:\Users\pemaltynov\assets\Bol.Lfe.wav`,
+					`c:\Users\pemaltynov\assets\Bol.Ls.wav`,
+					`c:\Users\pemaltynov\assets\Bol.Rs.wav`,
 				},
 			},
 		},
-		{
-			name: "test 1",
-			args: args{
-				[]string{
-					`c:\Users\pemaltynov\go\src\github.com\Galdoba\ffstuff\app\audlite\Archipelago_HD_Trailer.20.RUS.clear.mp4`,
-				},
-			},
-		},
+
 		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
@@ -56,22 +49,21 @@ func TestNewMerge(t *testing.T) {
 func TestProcess(t *testing.T) {
 	fmt.Println("test proc")
 	input := []string{
-		`c:\Users\pemaltynov\go\src\github.com\Galdoba\ffstuff\app\audlite\Dom_C.wav`,
-		`c:\Users\pemaltynov\go\src\github.com\Galdoba\ffstuff\app\audlite\Dom_L.wav`,
-		`c:\Users\pemaltynov\go\src\github.com\Galdoba\ffstuff\app\audlite\Dom_R.wav`,
-		`c:\Users\pemaltynov\go\src\github.com\Galdoba\ffstuff\app\audlite\Dom_Lfe.wav`,
-		`c:\Users\pemaltynov\go\src\github.com\Galdoba\ffstuff\app\audlite\Dom_Rs.wav`,
-		`c:\Users\pemaltynov\go\src\github.com\Galdoba\ffstuff\app\audlite\Dom_Ls.wav`,
+		`c:\Users\pemaltynov\assets\Bol.L.wav`,
+		`c:\Users\pemaltynov\assets\Bol.R.wav`,
+		// `c:\Users\pemaltynov\assets\Bol.C.wav`,
+		// `c:\Users\pemaltynov\assets\Bol.Lfe.wav`,
+		// `c:\Users\pemaltynov\assets\Bol.Ls.wav`,
+		// `c:\Users\pemaltynov\assets\Bol.Rs.wav`,
 	}
 	mp, _ := NewMerge(input...)
 	fmt.Println("------------")
-	mp.SetOriginalFPS(fpsToFloat("24/1"))
-	//mp.SetOriginalDuration("00:27:25.14")
-	mp.SetTargetName("out")
-	mp.tgDuration = 3600.0
+	mp.SetOriginalFPS(fpsToFloat("25/1"))
+	mp.SetTargetName(`c:\Users\pemaltynov\assets\Bol.stereo`)
 	prompt, err := mp.Prompt()
 	fmt.Println(err)
 	fmt.Println(prompt)
+	fmt.Println("------------")
 }
 
 func Test_durationToFl64(t *testing.T) {

@@ -1,42 +1,26 @@
 package commands
 
 import (
-	"os"
-
 	"github.com/Galdoba/ffstuff/app/grabber/commands/grabberflag"
-	"github.com/Galdoba/ffstuff/app/grabber/config"
-	logman "github.com/Galdoba/ffstuff/pkg/logman"
+	"github.com/Galdoba/ffstuff/pkg/logman"
 	"github.com/urfave/cli/v2"
 )
 
-var cfg *config.Configuration
-
-func Grab() *cli.Command {
+func Queue() *cli.Command {
 	return &cli.Command{
-		Name:      "grab",
-		Aliases:   []string{},
-		Usage:     "Direct command for transfering files",
-		UsageText: "grabber grab [command options] args...",
-		Description: "Setup and execute single process to copy source files to destination directory. Command receives filepaths as arguments.\n" +
-			"If argument is 'marker' file grabber will search all related files in the same directory and add them for transfering.",
-		Args:      false,
-		ArgsUsage: "Args Usage Text",
-		Category:  "",
+		Name:        "queue",
+		Aliases:     []string{},
+		Usage:       "Direct command for transfering files",
+		UsageText:   "grabber queue [command options] args...",
+		Description: "Setup and put to the process queue single copy process.",
+		Args:        false,
+		ArgsUsage:   "Args Usage Text",
+		Category:    "",
 		Before: func(*cli.Context) error {
 			return commandInit()
 		},
 		Action: func(c *cli.Context) error {
-			logman.Info("begin grabbing")
-			copyProc, err := preapareProcess(c)
-			if err != nil {
-				return logman.Errorf("copy process creation failed: %v", err)
-			}
-			if err := copyProc.Start(); err != nil {
-				return err
-
-			}
-			logman.Info("grabbing complete")
-			return nil
+			return queue(c)
 		},
 		Subcommands: []*cli.Command{},
 		Flags: []cli.Flag{
@@ -76,13 +60,18 @@ func Grab() *cli.Command {
 	}
 }
 
-func exists(path string) (bool, error) {
-	_, err := os.Stat(path)
-	if err == nil {
-		return true, nil
+func queue(c *cli.Context) error {
+	copyProc, err := preapareProcess(c)
+	if err != nil {
+		return logman.Errorf("process setup failed: %v", err)
 	}
-	if os.IsNotExist(err) {
-		return false, nil
+	if err = copyProc.ErrorReport(); err != nil {
+		return logman.Errorf("process error: %v", err)
 	}
-	return false, err
+
+	if err = copyProc.AddToQueue(); err != nil {
+		return logman.Errorf("failed to add process to queue: %v", err)
+	}
+
+	return nil
 }

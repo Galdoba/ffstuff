@@ -11,6 +11,7 @@ Changes done:
     v 0.1.0:241010   -- prototype release
     v 0.1.0:241010:1 -- refactoring: setup and health commands
     v 0.1.0:241014:1 -- fix config/flags parity: take flags in there no flags - take config
+    v 0.2.0:241031   -- add queue and run commands
     
 
 TODO:

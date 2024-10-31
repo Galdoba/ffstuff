@@ -1,6 +1,7 @@
 package origin
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -68,6 +69,8 @@ type Origin interface {
 	MustDie() bool
 	Score() int
 	IsMarker() bool
+	MarshalJSON() ([]byte, error)
+	UnmarshalJSON([]byte) error
 }
 
 func New(path string, group ...string) *origin {
@@ -133,6 +136,29 @@ func (or *origin) IsMarker() bool {
 	return or.isMarker
 }
 
+func (or *origin) MarshalJSON() ([]byte, error) {
+	e := Export(or)
+	return json.MarshalIndent(e, "", "  ")
+}
+
+func (or *origin) UnmarshalJSON(data []byte) error {
+	e := Export(or)
+	if err := json.Unmarshal(data, &e); err != nil {
+		return err
+	}
+	i := Inject(*e)
+	or = i
+	//*or = origin(s)
+	return nil
+}
+
+/*
+func (receiver *Mode) UnmarshalJSON(data []byte) error {
+    *receiver = Mode(data[1 : len(data)-1])
+    return nil
+}
+*/
+
 func WithFilePriority(priorityMap map[string]int) ConstructorOption {
 	return func(co *constructorOptions) {
 		for k, v := range priorityMap {
@@ -159,4 +185,36 @@ func WithMarkerExt(ext string) ConstructorOption {
 	return func(co *constructorOptions) {
 		co.markerExt = ext
 	}
+}
+
+type ExportOrigin struct {
+	Path       string
+	Message    string
+	Group      string
+	KillOnDone bool
+	Score      int
+	IsMarker   bool
+	Err        error
+}
+
+func Export(o Origin) *ExportOrigin {
+	e := ExportOrigin{}
+	e.Path = o.Path()
+	e.Message = o.Message()
+	e.Group = o.Group()
+	e.KillOnDone = o.MustDie()
+	e.Score = o.Score()
+	e.IsMarker = o.IsMarker()
+	return &e
+}
+
+func Inject(e ExportOrigin) *origin {
+	o := origin{}
+	o.path = e.Path
+	o.message = e.Message
+	o.group = e.Group
+	o.killOnDone = e.KillOnDone
+	o.score = e.Score
+	o.isMarker = e.IsMarker
+	return &o
 }

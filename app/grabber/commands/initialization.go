@@ -39,7 +39,6 @@ func commandInit() error {
 var stdLogLevels = []string{logman.TRACE, logman.DEBUG, logman.INFO, logman.WARN, logman.ERROR, logman.FATAL}
 
 func setupLogger(cfg *config.Configuration) error {
-	fmt.Println("start logger setup")
 	consoleLevels, fileLevels := filterLevels(cfg.CONSOLE_LOG_LEVEL, cfg.FILE_LOG_LEVEL)
 	consoleFormatter := logman.NewFormatter(logman.WithRequestedFields(logman.Request_ShortReport), logman.WithColor(colorizer.DefaultScheme()))
 	fileReportFormatter := logman.NewFormatter(logman.WithRequestedFields(logman.Request_ShortTime), logman.WithColor(nil))
@@ -71,7 +70,6 @@ func setupLogger(cfg *config.Configuration) error {
 			}
 		}
 	}
-	fmt.Println("end logger setup")
 	return nil
 }
 

@@ -25,18 +25,18 @@ Stages:
 */
 
 type Process struct {
-	activeStage           int
-	nextStage             int
-	timeoutTriggerSeconds int
-	cronShedule           string
-	nextSheduleTrigger    int
-	mode                  string
-	CopyDecidion          string
-	DeleteDecidion        string
-	SortDecidion          string
-	KeepMarkerGroups      bool
-	DestinationDir        string
-	SourceTargetMap       map[origin.Origin]string
+	//activeStage           int
+	//nextStage             int
+	//timeoutTriggerSeconds int
+	//cronShedule           string
+	//nextSheduleTrigger    int
+	//mode                  string
+	CopyDecidion     string
+	DeleteDecidion   string
+	SortDecidion     string
+	KeepMarkerGroups bool
+	DestinationDir   string
+	SourceTargetMap  map[origin.Origin]string
 }
 
 func New(opts ...ProcessOption) (*Process, error) {
@@ -47,7 +47,7 @@ func New(opts ...ProcessOption) (*Process, error) {
 		enrich(&settings)
 	}
 	pr.SourceTargetMap = make(map[origin.Origin]string)
-	pr.mode = settings.mode
+	//pr.mode = settings.mode
 	pr.CopyDecidion = settings.copy_decidion
 	pr.DeleteDecidion = settings.delete_decidion
 	pr.SortDecidion = settings.sort_decidion
@@ -63,7 +63,7 @@ func New(opts ...ProcessOption) (*Process, error) {
 
 func (pr *Process) validate() error {
 	for _, assert := range []func(*Process) (logman.Message, error){
-		assertMode,
+		//	assertMode,
 		assertCopyDecidion,
 		assertDeleteDecidion,
 		assertSortDecidion,
@@ -79,14 +79,14 @@ func (pr *Process) validate() error {
 	return nil
 }
 
-func assertMode(pr *Process) (logman.Message, error) {
-	switch pr.mode {
-	case MODE_GRAB, MODE_TRACK:
-	default:
-		return nil, fmt.Errorf("process mode: %v", pr.mode)
-	}
-	return logman.NewMessage("process.mode: %v", pr.mode), nil
-}
+// func assertMode(pr *Process) (logman.Message, error) {
+// 	switch pr.mode {
+// 	case MODE_GRAB, MODE_TRACK:
+// 	default:
+// 		return nil, fmt.Errorf("process mode: %v", pr.mode)
+// 	}
+// 	return logman.NewMessage("process.mode: %v", pr.mode), nil
+// }
 
 func assertCopyDecidion(pr *Process) (logman.Message, error) {
 	switch pr.CopyDecidion {

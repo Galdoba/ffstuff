@@ -172,12 +172,9 @@ func stdFormatFunc_since(msg Message, colors Colorizer) (string, error) {
 	//fmt.Println("to log", duration)
 	switch colors {
 	case nil:
-		return fmt.Sprintf("[%v]", float64(duration.Milliseconds())/1000), nil
+		return fmt.Sprintf("[%.3f]", float64(duration.Milliseconds())/1000), nil
 	default:
-		text := fmt.Sprintf("%v", float64(duration.Milliseconds())/1000)
-		for len(text) < 5 {
-			text += "0"
-		}
+		text := fmt.Sprintf("[%.3f]", float64(duration.Milliseconds())/1000)
 		if text == "00000" {
 			text = "0.000"
 		}

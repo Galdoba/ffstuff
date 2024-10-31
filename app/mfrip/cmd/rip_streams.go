@@ -80,7 +80,7 @@ func RipStreams() *cli.Command {
 				// if fc != "" {
 				// 	fc = `"` + strings.TrimSuffix(fc, "; ") + `"`
 				// }
-				// mVid := mapVideo(streamNumMap[video], filePath, flag[flag_io])
+				//mVid := mapVideo(streamNumMap[video], filePath, flag[flag_io])
 				mAud := mapAudio(streamNumMap[audio], filePath, flag[flag_io])
 				//vOutName := ""
 				fmt.Println(filePath)

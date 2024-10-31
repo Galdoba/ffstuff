@@ -1,6 +1,9 @@
 package copyprocess
 
-import "github.com/Galdoba/ffstuff/app/grabber/internal/origin"
+import (
+	"github.com/Galdoba/ffstuff/app/grabber/commands/grabberflag"
+	"github.com/Galdoba/ffstuff/app/grabber/internal/origin"
+)
 
 type Option func(*copyOptions)
 
@@ -51,5 +54,17 @@ func WithDestination(dest string) Option {
 func WithMarkerExt(ext string) Option {
 	return func(co *copyOptions) {
 		co.markerExt = ext
+	}
+}
+
+func WithDeleteDecidion(d string) Option {
+	return func(co *copyOptions) {
+		switch d {
+		case grabberflag.VALUE_DELETE_ALL:
+			co.deleteAll = true
+			co.deleteMarkers = true
+		case grabberflag.VALUE_DELETE_MARKER:
+			co.deleteMarkers = true
+		}
 	}
 }

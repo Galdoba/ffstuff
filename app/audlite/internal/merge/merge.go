@@ -2,11 +2,17 @@ package merge
 
 import (
 	"fmt"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/Galdoba/ffstuff/pkg/ump"
+)
+
+const (
+	merge2 = "2 mono ==> streo"
+	merge6 = "6 mono ==> 5.1"
 )
 
 /*
@@ -50,6 +56,7 @@ type mergeProc struct {
 	srcFps         float64
 	srcDuration    float64
 	tgDuration     float64
+	destination    string
 	target         string
 }
 
@@ -73,7 +80,6 @@ func NewMerge(sources ...string) (*mergeProc, error) {
 		return nil, err
 	}
 	durAverage = durAverage / float64(len(mp.source))
-	fmt.Println(durAverage, ": average")
 	mp.srcDuration = durAverage
 	return &mp, nil
 }
@@ -93,6 +99,18 @@ func (mp *mergeProc) SetOriginalDuration(duration string) error {
 
 func (mp *mergeProc) SetTargetName(name string) error {
 	mp.target = name
+	return nil
+}
+
+func (mp *mergeProc) SetDestination(name string) error {
+	fi, err := os.Stat(name)
+	if err != nil {
+		return err
+	}
+	if !fi.IsDir() {
+		return fmt.Errorf("destination is not directory")
+	}
+	mp.destination = name
 	return nil
 }
 
@@ -138,6 +156,7 @@ func (mp *mergeProc) defineOrder() error {
 	default:
 		return fmt.Errorf("can't set order of %v sources", num)
 	case 6:
+		mp.descr = merge6
 		l, r, c, lfe, ls, rs := "", "", "", "", "", ""
 		for path := range mp.source {
 			path_low := strings.ToLower(path)
@@ -158,6 +177,20 @@ func (mp *mergeProc) defineOrder() error {
 			}
 		}
 		mp.sourcesOrdered = []string{l, r, c, lfe, ls, rs}
+	case 2:
+		mp.descr = merge2
+		l, r := "", ""
+		for path := range mp.source {
+			path_low := strings.ToLower(path)
+			switch {
+			case strings.HasSuffix(path_low, "01.wav") || strings.HasSuffix(path_low, "l.wav"):
+				l = path
+			case strings.HasSuffix(path_low, "02.wav") || strings.HasSuffix(path_low, "r.wav"):
+				r = path
+			default:
+			}
+		}
+		mp.sourcesOrdered = []string{l, r}
 	}
 	for i, channel := range mp.sourcesOrdered {
 		if channel == "" {
@@ -168,7 +201,7 @@ func (mp *mergeProc) defineOrder() error {
 }
 
 func (mp *mergeProc) Prompt() (string, error) {
-	s := "ffmpeg"
+	s := "ffmpeg -hide_banner"
 	list := []string{}
 	for k := range mp.source {
 		list = append(list, k)
@@ -189,8 +222,21 @@ func (mp *mergeProc) Prompt() (string, error) {
 	if mp.target == "" {
 		return "", fmt.Errorf("output name not set")
 	}
-	fctext := fmt.Sprintf("amerge=inputs=6,aresample=48000,atempo=(%v/%v)", mp.srcDuration, mp.tgDuration)
-	fc := fmt.Sprintf("[0:a:0][1:a:0][2:a:0][3:a:0][4:a:0][5:a:0]%v[out]", fctext)
+	fctext := ""
+	switch mp.descr {
+	case merge2:
+		fctext += "amerge=inputs=2,channelmap=channel_layout=stereo"
+	case merge6:
+		fctext += "amerge=inputs=6"
+	default:
+		return "", fmt.Errorf("merge scenario unknown '%v'", mp.descr)
+	}
+	fctext = fmt.Sprintf("%v,aresample=48000,atempo=(%v/%v)", fctext, mp.srcDuration, mp.tgDuration)
+	openFC := ""
+	for i := range mp.sourcesOrdered {
+		openFC += fmt.Sprintf("[%v:a:0]", i)
+	}
+	fc := fmt.Sprintf("%v%v[out]", openFC, fctext)
 	s += fmt.Sprintf(` -filter_complex "%v"`, fc)
 	s += fmt.Sprintf(" -map \"[out]\" -c:a alac -compression_level 0 -map_metadata -1 -map_chapters -1 %v.m4a", mp.target)
 	return s, nil
