@@ -1,6 +1,7 @@
 package logman
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"path/filepath"
@@ -53,6 +54,13 @@ func (fe *formatterExpanded) Format(msg Message, color bool) string {
 				return output + formatted
 			}
 		default:
+			if field == "json" {
+				text, err := stdJSON(msg, nil)
+				if err != nil {
+					return err.Error()
+				}
+				return text
+			}
 			// if field == keyCallerLong {
 			// 	field = keyCaller
 			// }
@@ -174,7 +182,7 @@ func stdFormatFunc_since(msg Message, colors Colorizer) (string, error) {
 	case nil:
 		return fmt.Sprintf("[%.3f]", float64(duration.Milliseconds())/1000), nil
 	default:
-		text := fmt.Sprintf("[%.3f]", float64(duration.Milliseconds())/1000)
+		text := fmt.Sprintf("%.3f", float64(duration.Milliseconds())/1000)
 		if text == "00000" {
 			text = "0.000"
 		}
@@ -289,4 +297,57 @@ func stdFormatCallerShort(msg Message, colors Colorizer) (string, error) {
 		keyBg := colorizer.NewKey(colorizer.BG_KEY, "caller")
 		return fmt.Sprintf("%v", colors.ColorizeByKeys(text, keyFg, keyBg)), nil
 	}
+}
+
+type JSONlog struct {
+	APP   string            `json:"app"`
+	LVL   string            `json:"level"`
+	MSG   string            `json:"message"`
+	TIME  string            `json:"time"`
+	AGRS1 map[string]string `json:"logman keys,omitempty"`
+	AGRS2 map[string]string `json:"input arguments,omitempty"`
+}
+
+func stdJSON(msg Message, color Colorizer) (string, error) {
+	jsMsg := JSONlog{}
+	jsMsg.APP = logMan.appName
+	jsMsg.TIME = fmt.Sprintf("%v", msg.Value(keyTime))
+	jsMsg.LVL = fmt.Sprintf("%v", msg.Value(keyLevel))
+	msgText, err := stdFormatMessage(msg, nil)
+	if err != nil {
+		return "", err
+	}
+	jsMsg.MSG = msgText
+	keys := msg.Fields()
+	for _, key := range keys {
+		switch key {
+		case keyTime, keyLevel, keyMessage:
+		default:
+			switch jsMsg.LVL {
+			case ERROR, FATAL, DEBUG, TRACE:
+				if jsMsg.AGRS1 == nil {
+					jsMsg.AGRS1 = make(map[string]string)
+				}
+				jsMsg.AGRS1[key] = fmt.Sprintf("%v", msg.Value(key))
+			}
+
+		}
+	}
+
+	inputArgs := msg.InputArgs()
+	switch jsMsg.LVL {
+	case FATAL, TRACE:
+		if len(inputArgs) > 0 {
+			jsMsg.AGRS2 = make(map[string]string)
+			for i := 0; i < len(inputArgs)-1; i++ {
+				jsMsg.AGRS2[fmt.Sprintf("arg[%v]", i)] = fmt.Sprintf("%v", inputArgs[i])
+
+			}
+		}
+	}
+	bt, err := json.Marshal(&jsMsg)
+	if err != nil {
+		return "", err
+	}
+	return string(bt), nil
 }

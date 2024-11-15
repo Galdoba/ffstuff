@@ -1,41 +1,38 @@
 package commands
 
 import (
-	"errors"
-	"fmt"
-
+	"github.com/Galdoba/devtools/decidion/operator"
 	"github.com/Galdoba/ffstuff/app/aue/config"
-	"github.com/Galdoba/ffstuff/pkg/logman"
 	"github.com/urfave/cli/v2"
 )
 
-func Shout() *cli.Command {
+func Setup() *cli.Command {
 	return &cli.Command{
-		Name: "shout",
+		Name: "setup",
 		//Aliases:     []string{"fs"},
 		Usage: "test commands",
 
 		BashComplete: func(*cli.Context) {
 		},
 		Before: func(c *cli.Context) error {
-			cfgLoaded := config.NewConfig(c.App.Version)
 
-			cfg = cfgLoaded
-			fmt.Println(cfg.CONSOLE_LOG_LEVEL)
-			// log.Setup(
-			// 	log.WithAppLogLevelImportance(log.ImportanceALL),
-			// )
-			// log.SetOutput(cfg.AssetFiles[config.Asset_File_Log], log.ALL)
-
-			return setupLogger(cfg)
+			return nil
 		},
 		After: func(c *cli.Context) error {
 			return nil
 		},
 		Action: func(c *cli.Context) error {
-			fmt.Println("Shout !!!")
-			internalF()
-			return nil
+			if !operator.Confirm("Create config?") {
+				return nil
+			}
+			cfg = config.NewConfig(c.App.Version)
+
+			// log.Setup(
+			// 	log.WithAppLogLevelImportance(log.ImportanceALL),
+			// )
+			// log.SetOutput(cfg.AssetFiles[config.Asset_File_Log], log.ALL)
+
+			return config.Save(cfg)
 		},
 		OnUsageError: func(cCtx *cli.Context, err error, isSubcommand bool) error {
 			return nil
@@ -51,12 +48,4 @@ func Shout() *cli.Command {
 		CustomHelpTemplate:     "",
 	}
 
-}
-
-func internalF() {
-	logman.Warn("warn")
-	logman.Error(errors.New("error"))
-	logman.Info("info text")
-	logman.Fatalf("Kill me")
-	logman.Debug(logman.NewMessage("shout!!!").WithArgs(3, 3.14))
 }

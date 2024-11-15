@@ -121,11 +121,11 @@ func (br *fileBridge) updateTargets() error {
 		case PURPOSE_Output_Video:
 			target.ExpectedName += "_HD.mp4"
 		case PURPOSE_Output_Audio1:
-			target.ExpectedName += "_AUDIO" + br.metaInfo.Show(META_Audio_Lang_0) + br.metaInfo.Show(META_Audio_Layout_0) + ".m4a"
+			target.ExpectedName += "_HD_AUDIO" + br.metaInfo.Show(META_Audio_Lang_0) + br.metaInfo.Show(META_Audio_Layout_0) + ".m4a"
 		case PURPOSE_Output_Audio2:
-			target.ExpectedName += "_AUDIO" + br.metaInfo.Show(META_Audio_Lang_1) + br.metaInfo.Show(META_Audio_Layout_1) + ".m4a"
+			target.ExpectedName += "_HD_AUDIO" + br.metaInfo.Show(META_Audio_Lang_1) + br.metaInfo.Show(META_Audio_Layout_1) + ".m4a"
 		case PURPOSE_Output_Subs:
-			target.ExpectedName += ".srt"
+			target.ExpectedName += "_HD.srt"
 		}
 		br.targetFiles[i] = target
 	}

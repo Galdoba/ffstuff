@@ -17,7 +17,7 @@ var LogLevelFATAL = &loggingLevel{
 	callerInfo: true,
 	osExit:     true,
 	writerFormatterMap: map[string]*formatterExpanded{
-		Stdout: NewFormatter(WithRequestedFields(Request_Full)),
+		Stdout: NewFormatter(WithRequestedFields(Request_ShortReport)),
 	},
 }
 
@@ -28,7 +28,7 @@ var LogLevelERROR = &loggingLevel{
 	callerInfo: true,
 	osExit:     false,
 	writerFormatterMap: map[string]*formatterExpanded{
-		Stdout: NewFormatter(WithRequestedFields(Request_Full)),
+		Stdout: NewFormatter(WithRequestedFields(Request_ShortReport)),
 	},
 }
 
@@ -40,7 +40,7 @@ var LogLevelWARN = &loggingLevel{
 	osExit:     false,
 	//formatFunc: formatTextSimple,
 	writerFormatterMap: map[string]*formatterExpanded{
-		Stderr: NewFormatter(WithRequestedFields(Request_Medium)),
+		Stderr: NewFormatter(WithRequestedFields(Request_ShortReport)),
 	},
 }
 
@@ -53,7 +53,7 @@ var LogLevelINFO = &loggingLevel{
 	//writers:    map[string]io.Writer{Stderr: os.Stderr},
 	//formatFunc: formatTextSimple,
 	writerFormatterMap: map[string]*formatterExpanded{
-		Stderr: NewFormatter(WithRequestedFields(Request_ShortSince)),
+		Stderr: NewFormatter(WithRequestedFields(Request_ShortReport)),
 	},
 }
 
@@ -65,7 +65,7 @@ var LogLevelDEBUG = &loggingLevel{
 	osExit:     false,
 	//writers:    map[string]io.Writer{Stderr: os.Stderr},
 	writerFormatterMap: map[string]*formatterExpanded{
-		Stderr: NewFormatter(WithRequestedFields(Request_ShortTime)),
+		Stderr: NewFormatter(WithRequestedFields(Request_ShortReport)),
 	},
 }
 
@@ -77,7 +77,7 @@ var LogLevelTRACE = &loggingLevel{
 	osExit:     false,
 	//writers:    map[string]io.Writer{Stderr: os.Stderr},
 	writerFormatterMap: map[string]*formatterExpanded{
-		Stderr: NewFormatter(WithRequestedFields(Request_Full)),
+		Stderr: NewFormatter(WithRequestedFields(Request_ShortReport)),
 	},
 }
 

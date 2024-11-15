@@ -5,8 +5,13 @@ import (
 	"os"
 
 	"github.com/Galdoba/ffstuff/app/aue/commands"
+	"github.com/Galdoba/ffstuff/pkg/stdpath"
 	"github.com/urfave/cli/v2"
 )
+
+func init() {
+
+}
 
 func main() {
 
@@ -16,7 +21,7 @@ func main() {
 	app.Usage = "auto amedia encoder/decoder"
 	app.Description = "TODO: Description"
 	app.Flags = []cli.Flag{}
-
+	stdpath.SetAppName(app.Name)
 	//ДО НАЧАЛА ДЕЙСТВИЯ
 	app.Before = func(c *cli.Context) error {
 
@@ -27,6 +32,7 @@ func main() {
 		commands.Shout(),
 		commands.Run(),
 		commands.Health(),
+		commands.Setup(),
 	}
 
 	//ПО ОКОНЧАНИЮ ДЕЙСТВИЯ

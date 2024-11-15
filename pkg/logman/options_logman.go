@@ -7,6 +7,7 @@ type LogmanOptions func(*options)
 
 type options struct {
 	appMinimumLoglevel int
+	appName            string
 	longCallerNames    bool
 	logLevels          map[string]*loggingLevel
 	colorizer          Colorizer
@@ -65,6 +66,22 @@ func WithGlobalWriterFormatter(writer string, formatter *formatterExpanded) Logm
 	}
 }
 
+// WithJSON - Add json writer to all levels.
+// Useful to setup logfile.
+func WithJSON(directory string) LogmanOptions {
+	formatter := NewFormatter(WithCustomFunc("json", stdJSON), WithRequestedFields([]string{"json"}))
+	return func(o *options) {
+		o.globalWriterKeys = append(o.globalWriterKeys, directory)
+		o.globalFormatters = append(o.globalFormatters, formatter)
+	}
+}
+
+func WithAppName(name string) LogmanOptions {
+	return func(o *options) {
+		o.appName = name
+	}
+}
+
 //AFTER SETUP CONTROL
 
 func SetLevelWriterFormatter(level, writer string, formatter *formatterExpanded) error {
@@ -82,5 +99,16 @@ func ResetWriters(levels ...string) error {
 		}
 		logMan.logLevels[level].writerFormatterMap = make(map[string]*formatterExpanded)
 	}
+	return nil
+}
+
+func RemovetWriter(level, writer string) error {
+	if _, ok := logMan.logLevels[level]; !ok {
+		return fmt.Errorf("logman has no level '%v'", level)
+	}
+	if _, ok := logMan.logLevels[level].writerFormatterMap[writer]; !ok {
+		return fmt.Errorf("logman level '%v' has no writer '%v'", writer)
+	}
+	delete(logMan.logLevels[level].writerFormatterMap, writer)
 	return nil
 }

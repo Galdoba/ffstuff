@@ -16,8 +16,8 @@ func Queue() *cli.Command {
 		Args:        false,
 		ArgsUsage:   "Args Usage Text",
 		Category:    "",
-		Before: func(*cli.Context) error {
-			return commandInit()
+		Before: func(c *cli.Context) error {
+			return commandInit(c)
 		},
 		Action: func(c *cli.Context) error {
 			return queue(c)

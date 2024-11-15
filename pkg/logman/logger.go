@@ -47,11 +47,13 @@ const (
 
 type logManager struct {
 	appMinimumLoglevel int
+	appName            string
 	logLevels          map[string]*loggingLevel
 	longCallerNames    bool
 	logger             *log.Logger
 	colorizer          Colorizer
 	startTime          time.Time
+
 	//activeWriter       string
 }
 
@@ -78,6 +80,7 @@ func Setup(opts ...LogmanOptions) error {
 	al.appMinimumLoglevel = opt.appMinimumLoglevel
 	al.longCallerNames = opt.longCallerNames
 	al.colorizer = opt.colorizer
+	al.appName = opt.appName
 	//add colors to all console writers.
 	if al.colorizer != nil {
 		for _, lvl := range opt.logLevels {
@@ -209,13 +212,14 @@ func (lvl *loggingLevel) write(message Message) error {
 					continue
 				}
 			case "dir":
+
 				sep := string(filepath.Separator)
 				dirPath := strings.TrimSuffix(writerKey, sep) + sep
 				msgTime, err := time.Parse(time.RFC3339Nano, fmt.Sprintf("%v", message.Value("time")))
 				if err != nil {
 					msgTime = time.Now()
 				}
-				msgFile := fmt.Sprintf("%v%v_%v.lmm", dirPath, msgTime.UnixNano(), lvl.name)
+				msgFile := fmt.Sprintf("%v%v_%v_%v.lmm", dirPath, msgTime.UnixNano(), logMan.appName, lvl.name)
 				wr, err := os.OpenFile(msgFile, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0666)
 				switch err {
 				case nil:

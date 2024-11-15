@@ -11,6 +11,8 @@ const (
 	ALL   = "All_Levels"
 )
 
+var STDLevels = []string{TRACE, DEBUG, INFO, WARN, ERROR, FATAL}
+
 type loggingLevel struct {
 	name               string
 	tag                string
@@ -75,7 +77,7 @@ type lvlOpts struct {
 
 func defaultLevel() lvlOpts {
 	return lvlOpts{
-		tag:                "[CUSTOM]",
+		tag:                "",
 		importance:         ImportanceINFO,
 		callerInfo:         false,
 		writerFormatterMap: make(map[string]*formatterExpanded),

@@ -21,8 +21,8 @@ func Run() *cli.Command {
 		Args:        false,
 		ArgsUsage:   "Args Usage Text",
 		Category:    "",
-		Before: func(*cli.Context) error {
-			return commandInit()
+		Before: func(c *cli.Context) error {
+			return commandInit(c)
 		},
 		Action: func(c *cli.Context) error {
 			return pullAndExecute(c)
@@ -83,6 +83,7 @@ func pullAndExecute(c *cli.Context) error {
 			errors = append(errors, fmt.Errorf("failed to reconstruct process from %v: %v", fi.Name(), err))
 			continue
 		}
+
 		copyProcs = append(copyProcs, cp)
 	}
 

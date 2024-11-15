@@ -36,18 +36,21 @@ func Run() *cli.Command {
 			err = log.Setup(
 				log.WithAppLogLevelImportance(log.ImportanceTRACE),
 			)
-			log.ClearOutput(log.DEBUG)
-			logPathDefault := cfg.AssetFiles[config.Asset_File_Log]
-			logPathSession := strings.ReplaceAll(logPathDefault, "default.log", "session_"+sessionID+".log")
-			f, err := os.Create(logPathSession)
-			if err != nil {
-				fmt.Println(err)
-			}
-			f.Close()
-			log.SetOutput(logPathDefault, log.ALL)
-			log.SetOutput(logPathSession, log.ALL)
-			if err != nil {
-				return fmt.Errorf("logger setup failed: %v", err)
+			// log.ClearOutput(log.DEBUG)
+			// logPathDefault := cfg.AssetFiles[config.Asset_File_Log]
+			// logPathSession := strings.ReplaceAll(logPathDefault, "default.log", "session_"+sessionID+".log")
+			// f, err := os.Create(logPathSession)
+			// if err != nil {
+			// 	fmt.Println(err)
+			// }
+			// f.Close()
+			// log.SetOutput(logPathDefault, log.ALL)
+			// log.SetOutput(logPathSession, log.ALL)
+			// if err != nil {
+			// 	return fmt.Errorf("logger setup failed: %v", err)
+			// }
+			if err := setupLogger(cfg); err != nil {
+				return err
 			}
 			fmt.Println("logger started")
 			defer fmt.Println("initiation completed")
@@ -82,9 +85,10 @@ func Run() *cli.Command {
 				if len(projects) == 0 {
 					log.Info("no projects detected")
 				}
-
+				in_dir = strings.TrimSuffix(in_dir, "/") + "/"
 				for _, project := range projects {
-					proj_dir := in_dir + "/" + project + "/"
+
+					proj_dir := in_dir + project + "/"
 
 					log.Printf("start project: %v", project)
 					sources := []*sourcefile.SourceFile{}

@@ -76,6 +76,8 @@ func NewCopyAction(sourceTargetMap map[origin.Origin]string, opts ...Option) *co
 	return &cas
 }
 
+var prnt = 0
+
 func (cas *copyActionState) Start() error {
 	startTime := time.Now()
 	logman.Info("begin transfert")
@@ -94,7 +96,7 @@ func (cas *copyActionState) Start() error {
 	}
 	fmt.Println("target directory:", cas.Destination)
 	fmt.Print(sc)
-	fmt.Println(cas.copyProcessData())
+	//	fmt.Println(cas.copyProcessData())
 
 	for _, src := range cas.SourcePaths {
 		source := src.Path()
@@ -196,6 +198,10 @@ func (cas *copyActionState) copyProcessData() string {
 	cas.DownloadedVolumeLast = cas.DownloadedVolume
 	cas.DownloadedVolume = 0
 	out := "process report:\n"
+	if len(cas.SourcePaths) == 0 {
+		out += "  nothing to grab"
+		return out
+	}
 	for _, src := range cas.SourcePaths {
 		//tgt := cas.SourceTargetMap[src]
 		for k, _ := range cas.SourceTargetMap {
@@ -217,9 +223,41 @@ func (cas *copyActionState) copyProcessData() string {
 		out += fmt.Sprintf("  %v    %v%v           \n", wideName(tgtName, cas.NamesLen), progressString, mustDie)
 		cas.DownloadedVolume += trueSize
 	}
+
+	out += "summary:\n"
+	out += fmt.Sprintf("  %v        ", summaryString(cas.SourcesVolume, cas.DownloadedVolume, cas.DownloadedVolumeLast))
+	return out
+}
+
+func (cas *copyActionState) copyProcessData0() string {
+	cas.DownloadedVolumeLast = cas.DownloadedVolume
+	cas.DownloadedVolume = 0
+	prnt++
+	out := fmt.Sprintf("%v ", prnt) + "process report:\n"
 	if len(cas.SourcePaths) == 0 {
 		out += "  nothing to grab"
 		return out
+	}
+	for _, src := range cas.SourcePaths {
+		//tgt := cas.SourceTargetMap[src]
+		for k, _ := range cas.SourceTargetMap {
+			if k.Path() == src.Path() {
+				src = k
+			}
+		}
+		tgt := cas.SourceTargetMap[src]
+		progress, trueSize := currentProgress(src.Path(), tgt)
+		progressString := formatProgress(progress)
+		tgtName := filepath.Base(tgt)
+		mustDie := " "
+		if src.MustDie() {
+			mustDie = "*"
+			if progressString == "NaN%" || progressString == color.GreenString("ok") {
+				progressString = "dead"
+			}
+		}
+		out += fmt.Sprintf("  %v    %v%v           \n", wideName(tgtName, cas.NamesLen), progressString, mustDie)
+		cas.DownloadedVolume += trueSize
 	}
 
 	out += "summary:\n"
