@@ -52,7 +52,6 @@ func (ja *jobAdmin) setJobCodeAndTargets() error {
 	if err := assertJobCode(ja.options.jobType); err != nil {
 		return err
 	}
-	fmt.Println("creating targets for", ja.options.jobType)
 
 	switch ja.options.jobType {
 	case JOB_V1A2S1:

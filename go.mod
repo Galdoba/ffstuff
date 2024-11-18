@@ -6,7 +6,7 @@ require (
 	github.com/charmbracelet/huh v0.3.0
 	github.com/fatih/color v1.17.0
 	golang.design/x/clipboard v0.7.0
-	golang.org/x/text v0.18.0
+	golang.org/x/text v0.20.0
 )
 
 require (
@@ -16,6 +16,7 @@ require (
 	github.com/Galdoba/convert v0.0.0-20190624041132-29cce9aaf367 // indirect
 	github.com/atotto/clipboard v0.1.4 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
+	github.com/basgys/goxml2json v1.1.0 // indirect
 	github.com/catppuccin/go v0.2.0 // indirect
 	github.com/charmbracelet/bubbles v0.18.0 // indirect
 	github.com/charmbracelet/bubbletea v0.26.2 // indirect
@@ -51,17 +52,17 @@ require (
 	go.opentelemetry.io/otel v1.29.0 // indirect
 	go.opentelemetry.io/otel/metric v1.29.0 // indirect
 	go.opentelemetry.io/otel/trace v1.29.0 // indirect
-	golang.org/x/crypto v0.27.0 // indirect
-	golang.org/x/net v0.29.0 // indirect
-	golang.org/x/sync v0.8.0 // indirect
-	golang.org/x/term v0.24.0 // indirect
+	golang.org/x/crypto v0.29.0 // indirect
+	golang.org/x/net v0.31.0 // indirect
+	golang.org/x/sync v0.9.0 // indirect
+	golang.org/x/term v0.26.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240903143218-8af14fe29dc1 // indirect
 	google.golang.org/grpc v1.66.2 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
 )
 
 require (
-	github.com/Galdoba/devtools v0.0.0-20240920010929-e26ac7eca93f
+	github.com/Galdoba/devtools v0.0.0-20241115061951-8cc7480bf91b
 	github.com/Galdoba/utils v0.0.0-20211006043430-41d7b3fa4b0a
 	github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1
 	github.com/malashin/ffinfo v0.0.0-20221209093859-4b0670e459ad
@@ -71,7 +72,7 @@ require (
 	golang.org/x/image v0.6.0 // indirect
 	golang.org/x/mobile v0.0.0-20230301163155-e0f57694e12c // indirect
 	golang.org/x/oauth2 v0.23.0
-	golang.org/x/sys v0.25.0 // indirect
+	golang.org/x/sys v0.27.0 // indirect
 	google.golang.org/api v0.198.0
 	gopkg.in/AlecAivazis/survey.v1 v1.8.8
 	gopkg.in/yaml.v3 v3.0.1

@@ -83,14 +83,14 @@ func Run() *cli.Command {
 				}
 
 				if len(projects) == 0 {
-					log.Info("no projects detected")
+					log.Debug(log.NewMessage("no projects detected"))
 				}
 				in_dir = strings.TrimSuffix(in_dir, "/") + "/"
 				for _, project := range projects {
 
 					proj_dir := in_dir + project + "/"
 
-					log.Printf("start project: %v", project)
+					log.Debug(log.NewMessage("start project: %v", project))
 					sources := []*sourcefile.SourceFile{}
 					//Project Setup
 					selectedAction, err := actions.SelectSourceAction(proj_dir)
@@ -109,7 +109,7 @@ func Run() *cli.Command {
 						log.Info("end project: %v (clean)", project)
 						continue
 					case actions.ActionSkip:
-						log.Info("end project: %v (skip)", project)
+						log.Debug(log.NewMessage("end project: %v (skip)", project))
 						continue
 					case actions.ActionSetup:
 						sourcesCreated, err := actions.SetupSources(proj_dir, cfg.BUFFER_DIR, cfg.AssetFiles[config.Asset_File_Serial_data])

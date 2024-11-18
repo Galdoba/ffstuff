@@ -79,6 +79,7 @@ func (br *fileBridge) connectTargets(targets ...*target.TargetFile) error {
 
 func (br *fileBridge) sealConnections() error {
 	for _, source := range br.sourceFiles {
+
 		metas := metainfo.Parse(source.Name())
 		metas = append(metas, audioMeta(source)...)
 		if err := br.metaInfo.Add(metas...); err != nil {
@@ -92,7 +93,6 @@ func (br *fileBridge) sealConnections() error {
 	if err != nil {
 		return fmt.Errorf("sealing failed: %v", err)
 	}
-
 	return nil
 }
 
@@ -137,7 +137,9 @@ func (br *fileBridge) calculateEditDir() error {
 		logman.Warn("edit path omited: no target files received")
 		return nil
 	}
-	br.destinationPrefix = br.metaInfo.Show(META_Base) + "_s" + br.metaInfo.Show(META_Season) + "/"
+	if br.metaInfo.Show(META_Season) != "" {
+		br.destinationPrefix = br.metaInfo.Show(META_Base) + "_s" + br.metaInfo.Show(META_Season) + "/"
+	}
 	return nil
 }
 

@@ -12,6 +12,7 @@ import (
 )
 
 func Parse(name string) []Meta {
+
 	found := []Meta{}
 	found, err := parseComplex(name)
 	if err == nil {
@@ -21,10 +22,10 @@ func Parse(name string) []Meta {
 
 	found, err = parseSimple(name)
 	if err == nil {
+		fmt.Println("simple feed", found)
 		return found
 	}
 	logger.Error(fmt.Errorf("parseSimple Failed: %v\n%v", name, err))
-
 	return parseDesperate(name)
 
 }
@@ -86,9 +87,9 @@ func parseSimple(name string) ([]Meta, error) {
 	if complexFeed == "" {
 		return nil, ErrNotFound
 	}
-	found, err := separateComplex(complexFeed)
+	found, err := separateSimple(complexFeed)
 	if err != nil {
-		return found, fmt.Errorf("parseComplex failed: %v", err)
+		return found, fmt.Errorf("parseSimple failed: %v", err)
 	}
 
 	return found, nil
@@ -104,7 +105,7 @@ func separateSimple(feed string) ([]Meta, error) {
 	prt := NewMeta(key.META_PRT, prtFeed)
 	found = append(found, prt)
 
-	baseFeed := strings.Join(data[0:len(data)-2], "_")
+	baseFeed := strings.Join(data[0:len(data)-1], "_")
 	base := NewMeta(key.META_Base, baseFeed)
 	found = append(found, base)
 	return found, nil

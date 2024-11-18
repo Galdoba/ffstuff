@@ -12,6 +12,8 @@ import (
 
 	"github.com/Galdoba/ffstuff/app/aue/internal/define"
 	source "github.com/Galdoba/ffstuff/app/aue/internal/files/sourcefile"
+	"github.com/Galdoba/ffstuff/app/aue/internal/metadata"
+	"github.com/Galdoba/ffstuff/pkg/logman"
 	logger "github.com/Galdoba/ffstuff/pkg/logman"
 	"github.com/Galdoba/ffstuff/pkg/ump"
 	"golang.org/x/text/encoding/charmap"
@@ -40,13 +42,16 @@ type nameTranslationOption struct {
 }
 
 func SetupSources(sourceDir, targetDir, translationFile string) ([]*source.SourceFile, error) {
+	// serialFile := ``
+	// serialInfo, err := xmlparse.ParseSeriesVideoData(translationFile)
+
 	sc := sourceCollector{}
 	sc.sourceDir = sourceDir
 	sc.projectName = filepath.Base(sourceDir)
 	sc.targetDir = targetDir
 	sc.renamingMap = make(map[string]string)
 	for _, err := range []error{
-		sc.fillTranslationMap(translationFile),
+		//sc.fillTranslationMap(translationFile),
 		sc.assertProjectDirectory(),
 		sc.projectPrefix(),
 		sc.collectFiles(),
@@ -84,9 +89,7 @@ func (sc *sourceCollector) collectFiles() error {
 			continue
 		}
 		file := path(sc.sourceDir, f.Name())
-
-		expectedSourcePath := path(sc.targetDir, sc.projectSourceFilepath(f.Name()))
-
+		expectedSourcePath := path(sc.targetDir, sc.exprctedPrefix+"_"+f.Name())
 		prf := ump.NewProfile()
 		if err := prf.ConsumeFile(file); err != nil {
 			err := fmt.Errorf("failed to consume file '%v': %v", f.Name(), err)
@@ -110,8 +113,9 @@ func (sc *sourceCollector) collectFiles() error {
 			return fmt.Errorf("collectFiles: %v", err)
 		}
 		sc.sources = append(sc.sources, newSource)
-		logger.Info("source added: %v", newSource.Name())
+		logger.Info("source added: %v", f.Name())
 		sc.renamingMap[file] = expectedSourcePath
+
 	}
 	if len(sc.sources) == 0 {
 		return logger.Warn("project '%v': no sources detected", sc.projectName)
@@ -125,19 +129,37 @@ func newSourceWithProfile(expectedpath, purpose string, profile *ump.MediaProfil
 	return src, nil
 }
 
+// func (sc *sourceCollector) projectPrefix() error {
+// 	base := filepath.Base(sc.sourceDir)
+// 	base = inputBaseCleaned(base)
+// 	sc.base = base
+// 	sc.prt = prtStr(sc.sourceDir)
+// 	if sc.prt == "" {
+// 		logger.Warn("no PRT detected")
+// 	}
+// 	sc.seNum = seNumConverted(seNum(sc.sourceDir))
+// 	if sc.seNum == "" {
+// 		logger.Warn("no serial season/episode number detected")
+// 	}
+// 	sc.exprctedPrefix = sc.base + sc.seNum + sc.prt
+// 	return nil
+// }
+
 func (sc *sourceCollector) projectPrefix() error {
 	base := filepath.Base(sc.sourceDir)
-	base = inputBaseCleaned(base)
-	sc.base = base
-	sc.prt = prtStr(sc.sourceDir)
-	if sc.prt == "" {
-		logger.Warn("no PRT detected")
+	se := seNum(base)
+	if se != "" {
+		se = seNumConverted(se)
 	}
-	sc.seNum = seNumConverted(seNum(sc.sourceDir))
-	if sc.seNum == "" {
-		logger.Warn("no serial season/episode number detected")
+	prt := prtStr(base)
+	baseCleaned := inputBaseCleaned(base)
+	sc.base = baseCleaned
+	prefix, err := translate(baseCleaned)
+	if err != nil {
+		logman.Warn("translation failed: %v", baseCleaned)
 	}
-	sc.exprctedPrefix = sc.base + sc.seNum + sc.prt
+	sc.exprctedPrefix = prefix + se + prt
+
 	return nil
 }
 
@@ -146,8 +168,8 @@ func (sc *sourceCollector) executeRenaming() error {
 		if err := os.Rename(source, destination); err != nil {
 			return fmt.Errorf("renaming failed: %v", source)
 		}
+		//		fmt.Printf("os.Rename(%v, %v)", source, destination)
 	}
-
 	return nil
 }
 
@@ -176,14 +198,15 @@ func sourceNameProjected(base, name string) string {
 	return fmt.Sprintf("%v_%v", base, name)
 }
 
-func (sc *sourceCollector) projectSourceFilepath(name string) string {
-	for _, renameOpt := range sc.renamingOptions {
-		if sc.base == renameOpt.expectedDirPrefix {
-			return fmt.Sprintf("%v_%v", renameOpt.renameTarget+sc.seNum+sc.prt, name)
-		}
-	}
-	return fmt.Sprintf("%v_%v", sc.base+sc.seNum+sc.prt, name)
-}
+// func (sc *sourceCollector) projectSourceFilepath(name string) string {
+// 	for _, renameOpt := range sc.renamingOptions {
+// 		if sc.exprctedPrefix == renameOpt.expectedDirPrefix {
+// 			fmt.Println("========", sc.exprctedPrefix)
+// 			return fmt.Sprintf("%v_%v", renameOpt.renameTarget+sc.seNum+sc.prt, name)
+// 		}
+// 	}
+// 	return fmt.Sprintf("%v_%v", sc.base+sc.seNum+sc.prt, name)
+// }
 
 type translations struct {
 	origin      string
@@ -218,16 +241,16 @@ func sugestTranslation(base string, translationMap map[string]string) []translat
 	return transl
 }
 
-func baseToSource(base, translation string) string {
-	seNum := seNum(base)
-	seNumConv := "_"
-	prt := prtStr(base)
-	if seNum != "" {
-		seNumConv = "s" + seNumConverted(seNum)
-	}
-	sourceBase := translation + strings.TrimSuffix(seNumConv, "_") + prt
-	return sourceBase
-}
+// func baseToSource(base, translation string) string {
+// 	seNum := seNum(base)
+// 	seNumConv := "_"
+// 	prt := prtStr(base)
+// 	if seNum != "" {
+// 		seNumConv = "s" + seNumConverted(seNum)
+// 	}
+// 	sourceBase := translation + strings.TrimSuffix(seNumConv, "_") + prt
+// 	return sourceBase
+// }
 
 func seNum(str string) string {
 	re := regexp.MustCompile(`(_[0-9]{3,})`)
@@ -286,14 +309,14 @@ func encodeToUTF8(filename string) []string {
 	return lines
 }
 
-func (sc *sourceCollector) fillTranslationMap(translationFilePath string) error {
-	renamingOptions, err := collectTranslationVariants(translationFilePath)
-	if err != nil {
-		fmt.Println("LOG ERROR:", err.Error())
-	}
-	sc.renamingOptions = renamingOptions
-	return nil
-}
+// func (sc *sourceCollector) fillTranslationMap(translationFilePath string) error {
+// 	renamingOptions, err := collectTranslationVariants(translationFilePath)
+// 	if err != nil {
+// 		fmt.Println("LOG ERROR:", err.Error())
+// 	}
+// 	sc.renamingOptions = renamingOptions
+// 	return nil
+// }
 
 func translit(origin string) string {
 	letters := strings.Split(origin, "")
@@ -405,6 +428,33 @@ func collectTranslationVariants(path string) ([]nameTranslationOption, error) {
 
 	}
 	return translations, nil
+}
+
+func translate(base string) (string, error) {
+	trMap, err := metadata.TranslationsMap()
+	if err != nil {
+		return base, fmt.Errorf("failed to compose translation map: %v", err)
+	}
+	keyWords := words(strings.ToLower(inputBaseCleaned(base)))
+
+	for key, value := range trMap {
+		if equal(keyWords, words(key)) {
+			return value, nil
+		}
+	}
+	return base, fmt.Errorf("words not found: %v", keyWords)
+}
+
+func equal(sl1, sl2 []string) bool {
+	if len(sl1) != len(sl2) {
+		return false
+	}
+	for i, s := range sl1 {
+		if s != sl2[i] {
+			return false
+		}
+	}
+	return true
 }
 
 func between(head, tail, text string) string {
