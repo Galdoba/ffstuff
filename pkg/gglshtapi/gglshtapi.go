@@ -1,10 +1,14 @@
 package main
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
 	"log"
 	"os"
+
+	"golang.org/x/oauth2/google"
+	"google.golang.org/api/sheets/v4"
 )
 
 func main() {
@@ -27,14 +31,15 @@ func main() {
 }
 
 func SaveDataToSheet(credBytes []byte) {
-	// ctx := context.Background()
-	// //autentification
-	// config, err := google.JWTConfigFromJSON(credBytes, "https://www.googleapis.com/auth/spreadsheets")
-	// if err != nil {
-	// 	log.Fatalf("%v", err)
-	// }
-	//create client
-	//client := config.Client(ctx)
-	//create service
-	//srv, err := sheets.NewService(ctx)
+	ctx := context.Background()
+	//autentification
+	config, err := google.JWTConfigFromJSON(credBytes, "https://www.googleapis.com/auth/spreadsheets")
+	if err != nil {
+		log.Fatalf("%v", err)
+	}
+	// create client
+	client := config.Client(ctx)
+	// create service
+	srv, err := sheets.NewService(ctx)
+	fmt.Println(client, srv, err)
 }
