@@ -75,5 +75,6 @@ require (
 	golang.org/x/sys v0.27.0 // indirect
 	google.golang.org/api v0.198.0
 	gopkg.in/AlecAivazis/survey.v1 v1.8.8
+	gopkg.in/Iwark/spreadsheet.v2 v2.0.0-20230915040305-7677e8164883
 	gopkg.in/yaml.v3 v3.0.1
 )
