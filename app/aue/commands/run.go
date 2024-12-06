@@ -10,6 +10,7 @@ import (
 	"github.com/Galdoba/ffstuff/app/aue/internal/actions"
 	"github.com/Galdoba/ffstuff/app/aue/internal/files/sourcefile"
 	"github.com/Galdoba/ffstuff/app/aue/internal/job"
+	"github.com/Galdoba/ffstuff/pkg/logman"
 	log "github.com/Galdoba/ffstuff/pkg/logman"
 	"github.com/urfave/cli/v2"
 )
@@ -64,7 +65,7 @@ func Run() *cli.Command {
 			in_dir := cfg.IN_DIR
 			failCounter := 0
 			for {
-
+				haltIfLocked(in_dir)
 				//return fmt.Errorf("testining config exit")
 				log.Debug(log.NewMessage(fmt.Sprintf("scan root directory")))
 				rootFiles, projects, err := actions.ScanDir(in_dir)
@@ -247,4 +248,24 @@ func timestamplogFormat(tm time.Time) string {
 		stamp += "0"
 	}
 	return stamp
+}
+
+func haltIfLocked(in_dir string) {
+mainLoop:
+	for {
+		fi, err := os.ReadDir(in_dir)
+		if err != nil {
+			logman.Warn("failed to check lock: %v")
+			time.Sleep(time.Second * 5)
+			continue
+		}
+		for _, f := range fi {
+			if f.Name() == "lock" {
+				fmt.Printf("aue is locked\r")
+				time.Sleep(time.Second)
+				continue mainLoop
+			}
+		}
+		return
+	}
 }

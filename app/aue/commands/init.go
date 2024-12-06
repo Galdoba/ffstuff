@@ -13,7 +13,7 @@ var stdLogLevels = logman.STDLevels
 
 func setupLogger(cfg *config.Configuration) error {
 	consoleLevels, fileLevels := filterLevels(cfg.CONSOLE_LOG_LEVEL, cfg.FILE_LOG_LEVEL)
-	consoleFormatter := logman.NewFormatter(logman.WithRequestedFields(logman.Request_ShortReport), logman.WithColor(colorizer.DefaultScheme()))
+	consoleFormatter := logman.NewFormatter(logman.WithRequestedFields(logman.Request_ShortTime), logman.WithColor(colorizer.DefaultScheme()))
 	fileReportFormatter := logman.NewFormatter(logman.WithRequestedFields(logman.Request_ShortTime), logman.WithColor(nil))
 	fileErrorFormatter := logman.NewFormatter(logman.WithRequestedFields(logman.Request_Full), logman.WithColor(nil))
 	if err := logman.Setup(
