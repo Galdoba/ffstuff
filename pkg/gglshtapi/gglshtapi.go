@@ -9,9 +9,9 @@ import (
 )
 
 const (
-	spreadsheetID = "1Waa58usrgEal2Da6tyayaowiWujpm0rzd06P5ASYlsg"
+	spreadsheetID = ""
 	//readRange     = "Sheet9!A:C"
-	credentials = `c:\Users\pemaltynov\.credentials\tablegrabber.json`
+	credentials = ``
 )
 
 func main() {
