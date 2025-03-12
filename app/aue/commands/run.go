@@ -261,7 +261,7 @@ mainLoop:
 		}
 		for _, f := range fi {
 			if f.Name() == "lock" {
-				fmt.Printf("aue is locked\r")
+				fmt.Printf("aue is locked                               \r")
 				time.Sleep(time.Second)
 				continue mainLoop
 			}
