@@ -161,10 +161,10 @@ func stdFormatFunc_time(msg Message, colors Colorizer) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	text := tm.Format("06/01/02 15:04:05.999")
-	if len(text) < 21 {
-		text += "0"
-	}
+	text := formatTime(tm)
+	// if len(text) < 21 {
+	// 	text += "0"
+	// }
 	switch colors {
 	case nil:
 	default:
@@ -172,6 +172,24 @@ func stdFormatFunc_time(msg Message, colors Colorizer) (string, error) {
 		text = colors.ColorizeByKeys(text, colorizer.NewKey(colorizer.FG_KEY, level))
 	}
 	return fmt.Sprintf("[%v]", text), nil
+}
+
+func formatTime(tm time.Time) string {
+	s := tm.Format("2006-01-02 15:04:05.999")
+	slice := strings.Split(s, "")
+	switch len(slice) {
+	case 19:
+		s += ".000"
+	case 20:
+		s += "000"
+	case 21:
+		s += "00"
+	case 22:
+		s += "0"
+	case 23:
+		return s
+	}
+	return s
 }
 
 func stdFormatFunc_since(msg Message, colors Colorizer) (string, error) {
